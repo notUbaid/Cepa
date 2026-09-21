@@ -32,6 +32,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
   onCheckPassed,
   onRetake,
 }) => {
+  const [currentPhotoUri, setCurrentPhotoUri] = useState(photoUri);
   const [stage, setStage] = useState<'uploading' | 'analyzing' | 'done' | 'failed'>(
     'uploading'
   );
@@ -39,7 +40,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
   const [failureCodes, setFailureCodes] = useState<string[]>([]);
   const [sampleResult, setSampleResult] = useState<SampleDetail | null>(null);
 
-  // Staggered checklist items for visual delight
+  // Staggered checklist items for visual feedback
   const [checkProgress, setCheckProgress] = useState({
     blur: false,
     exposure: false,
@@ -47,73 +48,87 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
     segmentation: false,
   });
 
-  useEffect(() => {
+  const processPhoto = async (targetUri: string) => {
     let isMounted = true;
+    try {
+      setStage('uploading');
+      setErrorMessage(null);
+      setFailureCodes([]);
 
-    const processPhoto = async () => {
-      try {
-        setStage('uploading');
-
-        // Step 1 check simulation while network upload begins
-        setTimeout(() => {
-          if (isMounted) {
-            setCheckProgress((p) => ({ ...p, blur: true }));
-            Haptics.light();
-          }
-        }, 400);
-
-        setTimeout(() => {
-          if (isMounted) {
-            setCheckProgress((p) => ({ ...p, exposure: true }));
-            Haptics.light();
-          }
-        }, 800);
-
-        const sample = await ApiClient.uploadSample(inspection.id, photoUri, {
-          lat: inspection.geo_lat ?? undefined,
-          lon: inspection.geo_lon ?? undefined,
-          accuracy: inspection.location_accuracy ?? undefined,
-        });
-
-        if (!isMounted) return;
-
-        if (sample.quality_passed && sample.processing_status === 'DONE') {
-          setCheckProgress({
-            blur: true,
-            exposure: true,
-            scale: true,
-            segmentation: true,
-          });
-          setStage('done');
-          setSampleResult(sample);
-          Haptics.success();
-
-          setTimeout(() => {
-            if (isMounted) onCheckPassed(sample);
-          }, 1400);
-        } else {
-          setStage('failed');
-          setFailureCodes(sample.quality_flags || []);
-          setErrorMessage(
-            sample.processing_error ||
-              'Image quality validation failed. Please check illumination or ChArUco card placement.'
-          );
-          Haptics.error();
+      setTimeout(() => {
+        if (isMounted) {
+          setCheckProgress((p) => ({ ...p, blur: true }));
+          Haptics.light();
         }
-      } catch (err: any) {
-        if (!isMounted) return;
+      }, 350);
+
+      setTimeout(() => {
+        if (isMounted) {
+          setCheckProgress((p) => ({ ...p, exposure: true }));
+          Haptics.light();
+        }
+      }, 700);
+
+      const sample = await ApiClient.uploadSample(inspection.id, targetUri, {
+        lat: inspection.geo_lat ?? undefined,
+        lon: inspection.geo_lon ?? undefined,
+        accuracy: inspection.location_accuracy ?? undefined,
+      });
+
+      if (!isMounted) return;
+
+      if (sample.quality_passed && sample.processing_status === 'DONE') {
+        setCheckProgress({
+          blur: true,
+          exposure: true,
+          scale: true,
+          segmentation: true,
+        });
+        setStage('done');
+        setSampleResult(sample);
+        Haptics.success();
+
+        setTimeout(() => {
+          if (isMounted) onCheckPassed(sample);
+        }, 1400);
+      } else {
         setStage('failed');
-        setErrorMessage(`Inference pipeline error: ${err.message}`);
+        setFailureCodes(sample.quality_flags || []);
+        setErrorMessage(
+          sample.processing_error ||
+            'Spread arrangement or reference marker could not be verified. Ensure all bulbs are separated and the calibration card is visible.'
+        );
         Haptics.error();
       }
-    };
+    } catch (err: any) {
+      if (!isMounted) return;
+      setStage('failed');
+      let cleanMsg = 'Verification could not be completed.';
+      if (err.message) {
+        const raw = String(err.message);
+        if (raw.includes('Upload failed') || raw.includes('422') || raw.includes('Expected UploadFile')) {
+          cleanMsg = 'Image file could not be read or uploaded. Please try capturing or selecting another photo.';
+        } else if (raw.includes('Network') || raw.includes('Failed to fetch') || raw.includes('connect')) {
+          cleanMsg = 'Cannot reach the Mandi verification service. Ensure the local server is running on port 8000.';
+        } else {
+          cleanMsg = raw.replace(/\{.*\}/g, '').trim() || cleanMsg;
+        }
+      }
+      setErrorMessage(cleanMsg);
+      Haptics.error();
+    }
+  };
 
-    processPhoto();
+  useEffect(() => {
+    processPhoto(currentPhotoUri);
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [inspection.id, photoUri]);
+  const handleLoadDemo = () => {
+    Haptics.medium();
+    const demoUrl = ApiClient.getDemoSampleUrl();
+    setCurrentPhotoUri(demoUrl);
+    processPhoto(demoUrl);
+  };
 
   return (
     <View style={styles.container}>
@@ -121,7 +136,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
       <FadeInView delay={50} distance={10}>
         <View style={styles.thumbnailContainer}>
           <LazyImage
-            source={{ uri: photoUri }}
+            source={{ uri: currentPhotoUri }}
             style={styles.thumbnail}
             borderRadius={Radius.lg}
             resizeMode="cover"
@@ -197,13 +212,23 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                 </View>
               )}
 
-              <AnimatedPressable
-                haptic="medium"
-                style={styles.retakeBtn}
-                onPress={onRetake}
-              >
-                <Text style={styles.retakeBtnText}>Retake Photograph</Text>
-              </AnimatedPressable>
+              <View style={styles.actionBtnGroup}>
+                <AnimatedPressable
+                  haptic="medium"
+                  style={styles.retakeBtn}
+                  onPress={onRetake}
+                >
+                  <Text style={styles.retakeBtnText}>Retake Photograph</Text>
+                </AnimatedPressable>
+
+                <AnimatedPressable
+                  haptic="light"
+                  style={styles.demoRetryBtn}
+                  onPress={handleLoadDemo}
+                >
+                  <Text style={styles.demoRetryBtnText}>Load Mandi Demo Lot Sample</Text>
+                </AnimatedPressable>
+              </View>
             </View>
           )}
         </View>
@@ -367,60 +392,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   failBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.rejectBg,
-    borderWidth: 1.5,
-    borderColor: Colors.reject,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.cardBgElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   failIcon: {
-    fontSize: 22,
-    color: Colors.reject,
+    fontSize: 16,
+    color: Colors.textSecondary,
     fontWeight: '700',
   },
   failureTitle: {
-    ...Typography.title1,
-    color: Colors.reject,
+    ...Typography.title2,
+    color: Colors.text,
     marginTop: Spacing.md,
   },
   failureDesc: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    fontSize: 13,
+    color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xs,
-    lineHeight: 18,
+    lineHeight: 19,
+    paddingHorizontal: Spacing.sm,
   },
   flagsList: {
     marginVertical: Spacing.md,
-    backgroundColor: Colors.rejectBg,
+    backgroundColor: Colors.cardBgElevated,
     padding: Spacing.md,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     width: '100%',
     borderWidth: 1,
-    borderColor: Colors.rejectBorder,
+    borderColor: Colors.border,
   },
   flagItem: {
     fontSize: 11,
-    fontWeight: '600',
-    color: Colors.reject,
+    fontWeight: '500',
+    color: Colors.textSecondary,
     marginVertical: 2,
+  },
+  actionBtnGroup: {
+    width: '100%',
+    gap: 8,
+    marginTop: Spacing.md,
   },
   retakeBtn: {
     backgroundColor: Colors.accent,
-    paddingVertical: 13,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: Radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.sm,
     width: '100%',
     alignItems: 'center',
-    marginTop: Spacing.sm,
     ...Shadows.card,
   },
   retakeBtnText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+  demoRetryBtn: {
+    backgroundColor: Colors.cardBgElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 11,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.sm,
+    width: '100%',
+    alignItems: 'center',
+  },
+  demoRetryBtnText: {
+    color: Colors.text,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

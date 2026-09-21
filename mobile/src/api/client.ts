@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { getApiBaseUrl } from '../config';
 import {
   InspectionDetail,
@@ -78,6 +79,10 @@ export class ApiClient {
     return this.request<InspectionDetail>(`/api/v1/inspections/${id}`);
   }
 
+  static getDemoSampleUrl(): string {
+    return `${getApiBaseUrl()}/api/v1/demo/sample-image`;
+  }
+
   static async uploadSample(
     inspectionId: string,
     fileUri: string,
@@ -87,15 +92,39 @@ export class ApiClient {
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/samples`;
 
     const formData = new FormData();
-    const filename = fileUri.split('/').pop() || 'sample.jpg';
+    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
+    const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
 
-    formData.append('file', {
-      uri: fileUri,
-      name: filename,
-      type,
-    } as any);
+    if (Platform.OS === 'web') {
+      try {
+        const fileRes = await fetch(fileUri);
+        const blob = await fileRes.blob();
+        formData.append('file', blob, filename);
+      } catch (blobErr) {
+        console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
+        const base64Match = fileUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (base64Match) {
+          const byteCharacters = atob(base64Match[2]);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: base64Match[1] });
+          formData.append('file', blob, filename);
+        } else {
+          formData.append('file', fileUri);
+        }
+      }
+    } else {
+      formData.append('file', {
+        uri: fileUri,
+        name: filename,
+        type,
+      } as any);
+    }
 
     if (location?.lat !== undefined) formData.append('geo_lat', location.lat.toString());
     if (location?.lon !== undefined) formData.append('geo_lon', location.lon.toString());
@@ -113,7 +142,20 @@ export class ApiClient {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Upload failed (${response.status}): ${errText}`);
+      let humanMsg = `Upload failed (${response.status})`;
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed.detail) {
+          if (typeof parsed.detail === 'string') {
+            humanMsg = parsed.detail;
+          } else if (Array.isArray(parsed.detail) && parsed.detail[0]?.msg) {
+            humanMsg = parsed.detail[0].msg;
+          }
+        }
+      } catch {
+        // use default
+      }
+      throw new Error(humanMsg);
     }
 
     return (await response.json()) as SampleDetail;

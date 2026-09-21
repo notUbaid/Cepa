@@ -44,6 +44,12 @@ class TestHealthEndpoints:
         assert "active_policy" in data
         assert data["active_policy"] == "DEMO_ASSUMPTION_v1"
 
+    def test_demo_sample_image(self, client: TestClient):
+        response = client.get("/api/v1/demo/sample-image")
+        assert response.status_code == 200
+        assert "image/jpeg" in response.headers["content-type"]
+        assert len(response.content) > 10000
+
 
 class TestFullInspectionWorkflow:
     def test_end_to_end_inspection_flow(self, client: TestClient):

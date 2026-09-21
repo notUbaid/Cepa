@@ -32,21 +32,6 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  const handleLoad = () => {
-    setLoaded(true);
-    Animated.timing(opacityAnim, {
-      toValue: 1,
-      duration: 320,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleError = () => {
-    setError(true);
-    setLoaded(true);
-  };
 
   const isUriEmpty =
     typeof source === 'object' && 'uri' in source && (!source.uri || source.uri === '');
@@ -55,10 +40,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     return (
       <View
         style={[
+          styles.container,
           styles.fallbackContainer,
           { borderRadius },
-          containerStyle,
           style as ViewStyle,
+          containerStyle,
         ]}
       >
         <Text style={styles.fallbackIcon}>{fallbackText}</Text>
@@ -68,7 +54,14 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   }
 
   return (
-    <View style={[styles.container, { borderRadius }, containerStyle]}>
+    <View
+      style={[
+        styles.container,
+        { borderRadius },
+        style as ViewStyle,
+        containerStyle,
+      ]}
+    >
       {/* Underlying Shimmer Skeleton while loading */}
       {!loaded && (
         <SkeletonBox
@@ -79,17 +72,20 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         />
       )}
 
-      {/* Fade-in Cached Image */}
-      <Animated.Image
+      {/* Primary Image with robust rendering */}
+      <Image
         source={source as any}
         resizeMode={resizeMode}
-        onLoad={handleLoad}
-        onError={handleError}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          setError(true);
+          setLoaded(true);
+        }}
         style={[
-          style,
+          StyleSheet.absoluteFill,
           {
             borderRadius,
-            opacity: opacityAnim,
+            opacity: loaded ? 1 : 0.01,
           },
         ]}
       />
@@ -99,8 +95,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    height: '100%',
     overflow: 'hidden',
     backgroundColor: Colors.skeletonBase,
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -108,8 +107,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
     borderColor: Colors.borderMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 8,
   },
   fallbackIcon: {
