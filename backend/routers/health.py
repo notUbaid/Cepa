@@ -3,12 +3,21 @@ from __future__ import annotations
 
 import platform
 from datetime import datetime
+from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from services.inspection_service import get_cv_status
 
 router = APIRouter(prefix="/api/v1", tags=["health"])
+
+_DEMO_SAMPLE_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "cv_tools"
+    / "test_data"
+    / "synthetic_onion_spread_sample.jpg"
+)
 
 
 @router.get("/health")
@@ -31,3 +40,15 @@ async def cv_health() -> dict:
         "status": "ok" if cv["seg_ready"] else "degraded",
         **cv,
     }
+
+
+@router.get("/demo/sample-image")
+async def get_demo_sample_image():
+    """Returns a verified high-resolution onion spread sample with ChArUco card."""
+    if _DEMO_SAMPLE_PATH.exists():
+        return FileResponse(
+            _DEMO_SAMPLE_PATH,
+            media_type="image/jpeg",
+            filename="demo_onion_spread.jpg",
+        )
+    raise HTTPException(status_code=404, detail="Demo sample image not found on disk")

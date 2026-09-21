@@ -2,12 +2,14 @@ import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { ApiClient } from '../api/client';
 import { InspectionDetail } from '../types';
 import {
   AnimatedPressable,
@@ -73,6 +75,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     }
   };
 
+  const loadDemoSample = () => {
+    Haptics.medium();
+    const demoUrl = ApiClient.getDemoSampleUrl();
+    onPhotoCaptured(demoUrl);
+  };
+
   if (!permission) {
     return (
       <View style={styles.centerContainer}>
@@ -107,7 +115,17 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             onPress={pickFromGallery}
           >
             <Text style={styles.galleryFallbackText}>
-              Choose from Photo Library
+              Select from Photo Library
+            </Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            haptic="medium"
+            style={styles.demoCardBtn}
+            onPress={loadDemoSample}
+          >
+            <Text style={styles.demoCardBtnText}>
+              Load Mandi Demo Lot (32 Bulbs + ChArUco)
             </Text>
           </AnimatedPressable>
         </FadeInView>
@@ -207,6 +225,16 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 disabled={capturing}
               >
                 <Text style={styles.galleryText}>Upload</Text>
+              </AnimatedPressable>
+
+              {/* Demo Sample */}
+              <AnimatedPressable
+                haptic="medium"
+                style={styles.demoBtn}
+                onPress={loadDemoSample}
+                disabled={capturing}
+              >
+                <Text style={styles.demoText}>Demo</Text>
               </AnimatedPressable>
             </View>
           </FadeInView>
@@ -490,6 +518,36 @@ const styles = StyleSheet.create({
   },
   galleryText: {
     color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  demoBtn: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  demoText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  demoCardBtn: {
+    backgroundColor: Colors.cardBgElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  demoCardBtnText: {
+    color: Colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
