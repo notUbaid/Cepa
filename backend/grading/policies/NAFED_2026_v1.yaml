@@ -1,0 +1,73 @@
+# Cepa Grading Policy — NAFED 2026 v1 (PLACEHOLDER — NOT YET VERIFIED)
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# THIS FILE IS A PLACEHOLDER.
+# To create a verified policy, obtain the official NAFED/NCCF EOI
+# document for the current procurement season and update the thresholds
+# below based on the exact specifications in that document.
+# Set verified: true ONLY after cross-checking with the official document.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# Instructions for updating this file:
+#   1. Obtain NAFED/NCCF EOI for the current season from NAFED portal or DCA
+#   2. Note exact size range, defect tolerance percentages
+#   3. Update size.grade_a_min_mm, size.grade_a_max_mm
+#   4. Update urs_active based on current season policy
+#   5. Update defect_thresholds to match stated tolerances
+#   6. Set verified: true
+#   7. Update source_note with document name and date
+#   8. Update ACTIVE_GRADING_POLICY in .env to "NAFED_2026_v1"
+
+version: "NAFED_2026_v1"
+label: "NAFED 2026 Procurement Policy (PLACEHOLDER — NOT VERIFIED)"
+source_note: >
+  PLACEHOLDER: Update from official NAFED/NCCF EOI document.
+  Source: [EOI document name and date to be filled here]
+verified: false   # CHANGE TO true ONLY AFTER VERIFYING AGAINST OFFICIAL DOCUMENT
+created: "2026-09-22"
+
+urs_active: true   # UPDATE based on current season
+
+size:
+  grade_a_min_mm: 45.0   # UPDATE FROM OFFICIAL EOI
+  grade_a_max_mm: 65.0
+  urs_min_mm: 35.0
+  urs_max_mm: 70.0
+
+defect_thresholds:
+  damaged_threshold: 0.50
+  rotten_threshold: 0.50
+  sprouted_threshold: 0.50
+
+hard_rejection:
+  rotten_always_rejected: true
+  sprouted_always_rejected: true
+  below_urs_min_always_rejected: true
+  above_urs_max_always_rejected: true
+
+grade_a_rules:
+  size_range: grade_a
+  rotten: false
+  sprouted: false
+  damaged: false
+
+urs_rules:
+  size_range: urs
+  rotten: false
+  sprouted: false
+  damaged: true
+
+review_thresholds:
+  size_tolerance_mm: 3.0
+  defect_prob_range: [0.35, 0.65]
+
+rejection_reason_codes:
+  - ROTTEN
+  - SPROUTED
+  - UNDERSIZED
+  - OVERSIZED
+  - DAMAGED_GRADE_A
+  - URS_INACTIVE
+  - FAILED_ALL_GRADES
+  - SIZE_UNKNOWN
+  - CONFIDENCE_UNUSABLE

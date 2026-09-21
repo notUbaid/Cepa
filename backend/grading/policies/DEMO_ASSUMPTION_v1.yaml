@@ -1,0 +1,92 @@
+# Cepa Grading Policy — DEMO ASSUMPTION v1
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: THIS IS A DEMO POLICY BASED ON PUBLICLY AVAILABLE INFORMATION.
+# IT IS NOT AN OFFICIAL GOVERNMENT PROCUREMENT SPECIFICATION.
+# For production use, obtain the current NAFED/NCCF EOI document and
+# create a verified policy file (NAFED_2026_v1.yaml).
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# Sources consulted:
+#   - NAFED/NCCF Price Stabilisation Fund (PSF) procurement news 2023-2026
+#   - UNECE FFV-25 standard for onions (international reference)
+#   - AgMarkNet/APMC grading practices (domestic market)
+#   - BIS IS 17912:2022 supply chain guidelines (size reference)
+#
+# Key uncertainty: The URS category was a temporary 2026 seasonal measure.
+# Its exact current status depends on the active NAFED EOI circular.
+# This policy reflects the URS as documented in news reports from 2026.
+
+version: "DEMO_ASSUMPTION_v1"
+label: "Demo Assumptions — NOT official NAFED/NCCF procurement specification"
+source_note: >
+  Based on publicly available information about NAFED/NCCF Price Stabilisation Fund
+  procurement guidelines. NOT an official government specification. Thresholds should
+  be verified against the current NAFED/NCCF EOI before use in real procurement.
+verified: false
+created: "2026-09-22"
+
+# Whether the URS (Under Relaxed Specification) category is currently active.
+# URS is a conditional, seasonal category activated during crop damage / glut.
+# Set to false when NAFED/government reverts to Grade A only procurement.
+urs_active: true
+
+# ── Size thresholds (equatorial projected diameter in mm) ─────────────────────
+size:
+  # Grade A: standard procurement range
+  grade_a_min_mm: 45.0
+  grade_a_max_mm: 65.0
+  # URS: relaxed range (active only when urs_active=true)
+  urs_min_mm: 35.0
+  urs_max_mm: 70.0
+
+# ── Defect probability thresholds ────────────────────────────────────────────
+# Defect is considered PRESENT when probability >= threshold.
+# These are sigmoid probabilities from the multi-label classifier.
+defect_thresholds:
+  damaged_threshold: 0.50
+  rotten_threshold: 0.50
+  sprouted_threshold: 0.50
+
+# ── Hard rejection rules (apply unconditionally, regardless of size) ──────────
+# These are the same in all grades — rotten and sprouted onions are always rejected.
+hard_rejection:
+  rotten_always_rejected: true
+  sprouted_always_rejected: true
+  below_urs_min_always_rejected: true   # < 35mm always rejected
+  above_urs_max_always_rejected: true   # > 70mm always rejected
+
+# ── Grade A qualification criteria ───────────────────────────────────────────
+# ALL conditions must be met for GRADE_A classification.
+grade_a_rules:
+  size_range: grade_a      # must be within grade_a_min_mm–grade_a_max_mm
+  rotten: false            # rotten_prob >= rotten_threshold → FAIL
+  sprouted: false          # sprouted_prob >= sprouted_threshold → FAIL
+  damaged: false           # damaged_prob >= damaged_threshold → FAIL (strict Grade A)
+
+# ── URS qualification criteria ────────────────────────────────────────────────
+# Applied only when urs_active=true AND Grade A criteria failed.
+urs_rules:
+  size_range: urs          # within urs_min_mm–urs_max_mm
+  rotten: false            # still ALWAYS rejected
+  sprouted: false          # still ALWAYS rejected
+  damaged: true            # damaged onions CAN qualify for URS (minor damage allowed)
+
+# ── Confidence tier boundary values ──────────────────────────────────────────
+review_thresholds:
+  # Size within this tolerance of any threshold → NEEDS_REVIEW
+  size_tolerance_mm: 3.0
+  # Defect probability in this range → NEEDS_REVIEW (borderline)
+  defect_prob_range: [0.35, 0.65]
+
+# ── Rejection reason codes ────────────────────────────────────────────────────
+rejection_reason_codes:
+  - ROTTEN              # visible rot/decay detected
+  - SPROUTED            # visible sprouting detected
+  - UNDERSIZED          # size < urs_min_mm (35mm)
+  - OVERSIZED           # size > urs_max_mm (70mm)
+  - DAMAGED_GRADE_A     # damaged bulb failing Grade A strict rules
+  - URS_INACTIVE        # would be URS but policy urs_active=false
+  - FAILED_ALL_GRADES   # failed both Grade A and URS criteria
+  - SIZE_UNKNOWN        # no calibration marker — cannot measure
+  - CONFIDENCE_UNUSABLE # detection confidence too low for reliable grading

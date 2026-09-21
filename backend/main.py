@@ -1,0 +1,89 @@
+"""
+Cepa Backend Application Entrypoint
+
+FastAPI app factory, lifespan handlers, CORS middleware, static file serving,
+and route registration.
+"""
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from config import settings
+from database import create_all_tables
+from routers import health, inspections, reports
+from services.inspection_service import initialize_cv_components
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("cepa")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager.
+    Initializes runtime directories, database tables, and CV/grading components once at startup.
+    """
+    logger.info("Initializing Cepa backend service (env=%s)...", settings.backend_env)
+    
+    # 1. Ensure required runtime storage directories exist
+    settings.ensure_dirs()
+
+    # 2. Ensure database tables exist
+    create_all_tables()
+    logger.info("Database initialized with URL: %s", settings.database_url)
+
+    # 3. Initialize CV models and active grading policy
+    try:
+        initialize_cv_components()
+        logger.info("CV pipeline and grading policy initialized successfully.")
+    except Exception as e:
+        logger.exception("Failed to initialize CV components during startup: %s", e)
+        # We don't crash the server so health checks and diagnostics can still report errors
+    
+    yield
+
+    logger.info("Cepa backend shutting down cleanly.")
+
+
+app = FastAPI(
+    title="Cepa Onion Quality Inspection API",
+    description=(
+        "SIH26031: AI-powered onion quality inspection, size calibration, "
+        "defect classification, and grading policy enforcement."
+    ),
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# ── CORS Middleware ───────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permissive for mobile Expo / dev environment
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Static File Serving (Crops, Masks, Reports, Images) ───────────────────────
+settings.ensure_dirs()
+app.mount("/static", StaticFiles(directory=str(settings.storage_dir)), name="static")
+
+# ── Register Routers ──────────────────────────────────────────────────────────
+app.include_router(health.router)
+app.include_router(inspections.router)
+app.include_router(reports.router)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
