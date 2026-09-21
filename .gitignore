@@ -74,6 +74,7 @@ demo/sample_images/*.png
 # Dataset images (use DVC or separate storage)
 cv_tools/dataset/images/
 cv_tools/dataset/labels/
+cv_tools/dataset/real_onions/
 
 # Secrets
 *.pem

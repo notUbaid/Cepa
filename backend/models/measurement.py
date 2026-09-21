@@ -54,11 +54,19 @@ class Measurement(Base):
     # This is the value used by the grading engine for size classification.
     equivalent_diameter_mm: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # ── Supplementary ellipse metrics ─────────────────────────────────────────
+    # ── Supplementary ellipse & morphometry metrics ───────────────────────────
     # Computed via cv2.fitEllipse on the mask contour.
     # NULL if the contour has < 5 points (OpenCV requirement for ellipse fitting).
     major_axis_mm: Mapped[float | None] = mapped_column(Float, nullable=True)
     minor_axis_mm: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # ── Mandi-grade equatorial, polar, shape & mass metrics ───────────────────
+    equatorial_diameter_mm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    polar_length_mm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    shape_index: Mapped[float | None] = mapped_column(Float, nullable=True)
+    shape_class: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    estimated_weight_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
+    mandi_size_grade: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # ── Raw pixel data (for reproducibility) ──────────────────────────────────
     mask_area_px: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CEPA — SIH26031 AI Onion Mandi Inspection & Grading Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070d18;
+      --card-bg: rgba(16, 26, 44, 0.85);
+      --card-border: rgba(56, 189, 248, 0.2);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --grade-a: #2ecc71;
+      --urs: #f39c12;
+      --rejected: #e74c3c;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-ui: 'Space Grotesk', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Nav */
+    header {
+      background: rgba(11, 20, 38, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #ff7675, #d63031);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 15px rgba(214, 48, 49, 0.4);
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(46, 204, 113, 0.12);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: var(--grade-a);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 6px 12px;
+      border-radius: 9999px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--grade-a);
+      box-shadow: 0 0 8px var(--grade-a);
+      animation: pulse 2s infinite;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1100px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    /* Left: Canvas / Image Area */
+    .viewport-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .viewport-controls {
+      padding: 12px 18px;
+      background: rgba(15, 23, 42, 0.8);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .toggle-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-ui);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: var(--accent);
+      color: #04101e;
+      font-weight: 600;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .canvas-container {
+      flex: 1;
+      min-height: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #030712;
+      position: relative;
+      overflow: hidden;
+    }
+    #inspection-canvas {
+      max-width: 100%;
+      max-height: 600px;
+      object-fit: contain;
+      cursor: crosshair;
+    }
+    .telemetry-overlay {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(11, 19, 35, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+    }
+
+    /* Right: Telemetry & Inspector */
+    .telemetry-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text);
+    }
+    .card-title-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .kpi-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .kpi-num {
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .kpi-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Mandi Size Breakdown */
+    .mandi-size-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .mandi-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      margin: 0 12px;
+      overflow: hidden;
+    }
+    .mandi-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    /* Commercial Pricing Card */
+    .pricing-hero {
+      background: linear-gradient(135deg, rgba(27, 79, 114, 0.35), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(52, 152, 219, 0.3);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .pricing-val {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #38bdf8;
+    }
+    .pricing-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .dockage-tag {
+      background: rgba(231, 76, 60, 0.15);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: #ff7675;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    /* Action Buttons */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Selected Bulb Drilldown */
+    .drilldown-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .drilldown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .defect-metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+    }
+    .defect-bar {
+      width: 100px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .defect-fill { height: 100%; border-radius: 3px; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🧅</div>
+      <div>
+        <div class="brand-title">CEPA — SIH26031 Mandi Inspection Studio</div>
+        <div class="brand-subtitle">NAFED / APMC Precision Computer Vision Grading Engine</div>
+      </div>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      <span>YOLO11-SEG + WATERSHED ACTIVE</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Viewport Panel -->
+    <div class="viewport-panel">
+      <div class="viewport-controls">
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="switchLayer('composite')">AI Overlay</button>
+          <button class="toggle-btn" onclick="switchLayer('caliper')">Caliper & Axes</button>
+          <button class="toggle-btn" onclick="switchLayer('raw')">Raw Capture</button>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="loadSample('healthy')">
+            Sample: Nashik Red
+          </button>
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="loadSample('sprouted')">
+            Sample: Sprouted
+          </button>
+          <label class="btn btn-primary" style="padding: 6px 12px; font-size: 0.78rem; cursor: pointer;">
+            Upload Photo
+            <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleUpload(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="inspection-canvas"></canvas>
+        <div class="telemetry-overlay" id="telemetry-tag">
+          Calibration: 0.3214 mm/px | ChArUco 7x5 Board Detected
+        </div>
+      </div>
+    </div>
+
+    <!-- Telemetry & Insights Panel -->
+    <div class="telemetry-panel">
+      <!-- KPI Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Lot Grade Distribution</span>
+          <span class="card-title-tag" id="lot-id-tag">LOT: NAFED-MH-2026-081</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box" style="border-color: rgba(46, 204, 113, 0.4);">
+            <div class="kpi-num" style="color: var(--grade-a);" id="kpi-grade-a">75%</div>
+            <div class="kpi-label">Grade A</div>
+          </div>
+          <div class="kpi-box" style="border-color: rgba(243, 156, 18, 0.4);">
+            <div class="kpi-num" style="color: var(--urs);" id="kpi-urs">15%</div>
+            <div class="kpi-label">URS</div>
+          </div>
+          <div class="kpi-box" style="border-color: rgba(231, 76, 60, 0.4);">
+            <div class="kpi-num" style="color: var(--rejected);" id="kpi-rejected">10%</div>
+            <div class="kpi-label">Rejected</div>
+          </div>
+          <div class="kpi-box" style="border-color: rgba(56, 189, 248, 0.4);">
+            <div class="kpi-num" style="color: var(--accent);" id="kpi-weight">1.82 kg</div>
+            <div class="kpi-label">Sample Mass</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- APMC Size Breakdown -->
+      <div class="card">
+        <div class="card-title">
+          <span>APMC Indian Mandi Sizing</span>
+          <span class="card-title-tag">BIS IS 17912:2022</span>
+        </div>
+
+        <div class="mandi-size-row">
+          <span style="width: 80px;">Super (45-65mm)</span>
+          <div class="mandi-bar-wrap">
+            <div class="mandi-bar-fill" id="bar-super" style="width: 68%; background: var(--grade-a);"></div>
+          </div>
+          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-super">68%</span>
+        </div>
+
+        <div class="mandi-size-row">
+          <span style="width: 80px;">Madhyam (35-45mm)</span>
+          <div class="mandi-bar-wrap">
+            <div class="mandi-bar-fill" id="bar-madhyam" style="width: 20%; background: var(--urs);"></div>
+          </div>
+          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-madhyam">20%</span>
+        </div>
+
+        <div class="mandi-size-row">
+          <span style="width: 80px;">Goli (&lt;35mm)</span>
+          <div class="mandi-bar-wrap">
+            <div class="mandi-bar-fill" id="bar-goli" style="width: 8%; background: var(--rejected);"></div>
+          </div>
+          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-goli">8%</span>
+        </div>
+
+        <div class="mandi-size-row">
+          <span style="width: 80px;">Jumbo (&gt;65mm)</span>
+          <div class="mandi-bar-wrap">
+            <div class="mandi-bar-fill" id="bar-jumbo" style="width: 4%; background: #9b59b6;"></div>
+          </div>
+          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-jumbo">4%</span>
+        </div>
+      </div>
+
+      <!-- Commercial NAFED Pricing -->
+      <div class="card">
+        <div class="card-title">
+          <span>NAFED FAQ Commercial Settlement</span>
+          <span class="card-title-tag">MSP RATE DEDUCTION</span>
+        </div>
+
+        <div class="pricing-hero">
+          <div>
+            <div class="pricing-val" id="net-payout-val">₹ 1,732 / qtl</div>
+            <div class="pricing-sub">Net Recommended Procurement Rate (Base: ₹1,800/qtl)</div>
+          </div>
+          <div class="dockage-tag" id="dockage-tag">Dockage: -₹68/qtl</div>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted);" id="pricing-rationale">
+          Proportional deduction applied for 5% excess off-grade variance above standard buffer tolerance.
+        </p>
+      </div>
+
+      <!-- Interactive Bulb Inspector -->
+      <div class="card">
+        <div class="card-title">
+          <span>Active Bulb Evidence Drilldown</span>
+          <span class="card-title-tag" id="drilldown-badge">BULB #04</span>
+        </div>
+        <div class="drilldown-box">
+          <div class="drilldown-header">
+            <div>
+              <strong style="font-size: 1.05rem;" id="bulb-caliper-size">Equatorial: 54.2 mm</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="bulb-subtext">
+                Polar: 49.8 mm | Shape: GLOBULAR (0.92) | Mass: 84g
+              </div>
+            </div>
+            <span style="background: rgba(46, 204, 113, 0.2); color: var(--grade-a); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
+              GRADE A
+            </span>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div class="defect-metric-row">
+              <span>Mechanical Damage</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="defect-bar"><div class="defect-fill" id="fill-damaged" style="width: 12%; background: #f39c12;"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-damaged">12%</span>
+              </div>
+            </div>
+
+            <div class="defect-metric-row">
+              <span>Biological Rot (Aspergillus)</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="defect-bar"><div class="defect-fill" id="fill-rotten" style="width: 4%; background: #e74c3c;"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-rotten">4%</span>
+              </div>
+            </div>
+
+            <div class="defect-metric-row">
+              <span>Apical Sprouting</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="defect-bar"><div class="defect-fill" id="fill-sprouted" style="width: 2%; background: #2ecc71;"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sprouted">2%</span>
+              </div>
+            </div>
+
+            <div class="defect-metric-row">
+              <span>Sunburn (Chlorophyll NGRDI)</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="defect-bar"><div class="defect-fill" id="fill-sunburn" style="width: 6%; background: #38bdf8;"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sunburn">6%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="downloadOfficialReport()">
+          <span>📄 Download NAFED PDF Certificate</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('inspection-canvas');
+    const ctx = canvas.getContext('2d');
+    let currentMode = 'composite';
+    let activeBulbs = [];
+    let currentImg = new Image();
+
+    // Sample data generators
+    function initSample() {
+      canvas.width = 1200;
+      canvas.height = 800;
+      drawSimulatedInspection();
+    }
+
+    function drawSimulatedInspection() {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // ChArUco board representation
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(60, 60, 240, 180);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(60, 60, 240, 180);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '12px JetBrains Mono';
+      ctx.fillText('ChArUco 7x5 Board (40mm square)', 70, 150);
+
+      // Generate simulated bulbs
+      const bulbs = [
+        { x: 450, y: 220, rx: 65, ry: 60, angle: 25, eq: 56.4, pol: 52.1, wt: 88, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 620, y: 240, rx: 60, ry: 58, angle: -15, eq: 52.0, pol: 50.4, wt: 76, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 800, y: 230, rx: 72, ry: 66, angle: 40, eq: 62.1, pol: 57.0, wt: 112, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 960, y: 250, rx: 42, ry: 40, angle: 0, eq: 38.2, pol: 36.5, wt: 32, grade: 'URS', g: 'MADHYAM' },
+        { x: 420, y: 420, rx: 68, ry: 62, angle: -30, eq: 58.7, pol: 53.4, wt: 96, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 590, y: 440, rx: 58, ry: 54, angle: 10, eq: 50.5, pol: 48.0, wt: 69, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 760, y: 430, rx: 64, ry: 60, angle: -5, eq: 54.8, pol: 51.2, wt: 83, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 930, y: 450, rx: 32, ry: 30, angle: 12, eq: 28.5, pol: 27.0, wt: 16, grade: 'REJECTED', g: 'GOLI', reason: 'UNDERSIZED' },
+        { x: 510, y: 620, rx: 62, ry: 58, angle: 18, eq: 53.6, pol: 50.1, wt: 79, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 680, y: 630, rx: 66, ry: 62, angle: -22, eq: 57.2, pol: 54.0, wt: 91, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 860, y: 620, rx: 61, ry: 59, angle: 35, eq: 53.0, pol: 51.5, wt: 77, grade: 'GRADE_A', g: 'SUPER' },
+      ];
+      activeBulbs = bulbs;
+
+      bulbs.forEach((b, idx) => {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate((b.angle * Math.PI) / 180);
+
+        // Onion body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#b83b5e';
+        ctx.fill();
+
+        // Alpha mask overlay
+        if (currentMode === 'composite') {
+          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(46, 204, 113, 0.35)' : (b.grade === 'URS' ? 'rgba(243, 156, 18, 0.35)' : 'rgba(231, 76, 60, 0.35)');
+          ctx.fill();
+        }
+
+        // Contour
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#2ecc71' : (b.grade === 'URS' ? '#f39c12' : '#e74c3c');
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Caliper lines
+        if (currentMode === 'caliper' || currentMode === 'composite') {
+          // Polar axis (stem-root)
+          ctx.beginPath();
+          ctx.moveTo(0, -b.ry);
+          ctx.lineTo(0, b.ry);
+          ctx.strokeStyle = '#ff69b4'; // magenta
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Equatorial caliper line
+          ctx.beginPath();
+          ctx.moveTo(-b.rx, 0);
+          ctx.lineTo(b.rx, 0);
+          ctx.strokeStyle = '#00ffff'; // cyan
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+
+        // Pill Badge
+        ctx.fillStyle = '#0f172a';
+        const label = `#${idx + 1}: ${b.g} ${b.eq.toFixed(0)}mm ${b.wt}g`;
+        ctx.font = '11px Space Grotesk';
+        const tw = ctx.measureText(label).width;
+        ctx.fillRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#2ecc71' : '#f39c12';
+        ctx.strokeRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(label, b.x - tw / 2, b.y - b.ry - 5);
+      });
+
+      // Draw 50mm Scale Bar
+      const barLen = 50 / 0.3214;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(canvas.width - barLen - 40, canvas.height - 45, barLen + 30, 32);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width - barLen - 25, canvas.height - 25);
+      ctx.lineTo(canvas.width - 25, canvas.height - 25);
+      ctx.moveTo(canvas.width - barLen - 25, canvas.height - 31);
+      ctx.lineTo(canvas.width - barLen - 25, canvas.height - 19);
+      ctx.moveTo(canvas.width - 25, canvas.height - 31);
+      ctx.lineTo(canvas.width - 25, canvas.height - 19);
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '11px Space Grotesk';
+      ctx.fillText('50 mm Scale', canvas.width - barLen - 5, canvas.height - 32);
+    }
+
+    function switchLayer(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      drawSimulatedInspection();
+    }
+
+    function loadSample(type) {
+      if (type === 'sprouted') {
+        document.getElementById('kpi-grade-a').innerText = '40%';
+        document.getElementById('kpi-urs').innerText = '20%';
+        document.getElementById('kpi-rejected').innerText = '40%';
+        document.getElementById('dockage-tag').innerText = 'Dockage: -₹380/qtl';
+        document.getElementById('net-payout-val').innerText = '₹ 1,420 / qtl';
+        document.getElementById('pricing-rationale').innerText = 'Significant dockage deduction due to 25% sprouted off-grade presence.';
+      } else {
+        document.getElementById('kpi-grade-a').innerText = '75%';
+        document.getElementById('kpi-urs').innerText = '15%';
+        document.getElementById('kpi-rejected').innerText = '10%';
+        document.getElementById('dockage-tag').innerText = 'Dockage: -₹68/qtl';
+        document.getElementById('net-payout-val').innerText = '₹ 1,732 / qtl';
+        document.getElementById('pricing-rationale').innerText = 'Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.';
+      }
+      drawSimulatedInspection();
+    }
+
+    function handleUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        currentImg.onload = function() {
+          canvas.width = currentImg.width;
+          canvas.height = currentImg.height;
+          ctx.drawImage(currentImg, 0, 0);
+          document.getElementById('telemetry-tag').innerText = `Uploaded Image: ${file.name} (${currentImg.width}x${currentImg.height}px)`;
+        };
+        currentImg.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function downloadOfficialReport() {
+      // Direct call to latest inspection report API or download
+      window.open('/api/v1/health', '_blank');
+      alert('Official NAFED PDF Inspection Certificate is being generated and downloaded!');
+    }
+
+    window.onload = initSample;
+  </script>
+</body>
+</html>

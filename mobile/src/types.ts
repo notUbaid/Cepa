@@ -45,6 +45,11 @@ export interface OnionInstanceSummary {
   segmentation_conf: number;
   touches_border: boolean;
   equivalent_diameter_mm: number | null;
+  equatorial_diameter_mm?: number | null;
+  polar_length_mm?: number | null;
+  shape_class?: string | null;
+  estimated_weight_grams?: number | null;
+  mandi_size_grade?: string | null;
   damaged_prob: number | null;
   rotten_prob: number | null;
   sprouted_prob: number | null;
@@ -61,6 +66,7 @@ export interface OnionInstanceDetail extends OnionInstanceSummary {
   corrected_by: string | null;
   major_axis_mm: number | null;
   minor_axis_mm: number | null;
+  shape_index?: number | null;
   mask_area_px: number | null;
   scale_mm_per_px: number | null;
   projection_note: string | null;
@@ -68,6 +74,7 @@ export interface OnionInstanceDetail extends OnionInstanceSummary {
   rejection_reasons: string[];
   ruleset_version: string | null;
   explanation: Record<string, string>;
+  morphology?: Record<string, any>;
 }
 
 export interface SampleDetail {

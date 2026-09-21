@@ -287,6 +287,21 @@ def run_pipeline(
                 grading.explanation["circularity"] = f"{morph.circularity:.3f}"
                 grading.explanation["surface_stain_pct"] = f"{morph.surface_stain_pct:.1f}%"
                 grading.explanation["sunburn_pct"] = f"{morph.sunburn_pct:.1f}%"
+                grading.explanation["black_mold_pct"] = f"{morph.black_mold_pct:.1f}%"
+                grading.explanation["skin_baldness_pct"] = f"{morph.skin_baldness_pct:.1f}%"
+                grading.explanation["ngrdi_mean"] = f"{morph.ngrdi_mean:.3f}"
+
+                if size_est:
+                    if size_est.equatorial_diameter_mm:
+                        grading.explanation["equatorial_diameter_mm"] = f"{size_est.equatorial_diameter_mm:.1f}mm"
+                    if size_est.polar_length_mm:
+                        grading.explanation["polar_length_mm"] = f"{size_est.polar_length_mm:.1f}mm"
+                    if size_est.shape_class:
+                        grading.explanation["shape_class"] = size_est.shape_class
+                    if size_est.estimated_weight_grams:
+                        grading.explanation["estimated_weight_grams"] = f"{size_est.estimated_weight_grams:.0f}g"
+                    if size_est.mandi_size_grade:
+                        grading.explanation["mandi_size_grade"] = size_est.mandi_size_grade
             except Exception:
                 logger.debug("Morphology analysis skipped for instance %d", idx)
 

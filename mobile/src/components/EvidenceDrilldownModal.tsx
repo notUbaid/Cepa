@@ -173,52 +173,88 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
             {/* Geometric Size Measurement */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Physical Sizing (ChArUco Calibrated)</Text>
+              <Text style={styles.sectionTitle}>Physical Sizing & Mandi Telemetry (BIS IS 17912:2022)</Text>
               <View style={styles.metricRow}>
-                <Text style={styles.metricLabel}>Equivalent Diameter ($D_e$):</Text>
+                <Text style={styles.metricLabel}>Mandi Size Grade:</Text>
+                <Text style={[styles.metricValue, { color: '#38bdf8', fontWeight: '700' }]}>
+                  {onion.mandi_size_grade || onion.explanation?.mandi_size_grade || 'Standard'}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Equatorial Caliper (Deq):</Text>
                 <Text style={styles.metricValue}>
-                  {onion.equivalent_diameter_mm !== null
+                  {onion.equatorial_diameter_mm
+                    ? `${onion.equatorial_diameter_mm.toFixed(1)} mm`
+                    : onion.equivalent_diameter_mm !== null
                     ? `${onion.equivalent_diameter_mm.toFixed(1)} mm`
                     : 'Uncalibrated'}
                 </Text>
               </View>
+              {(onion.polar_length_mm || onion.explanation?.polar_length_mm) && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Polar Length (Stem-Root):</Text>
+                  <Text style={styles.metricValue}>
+                    {onion.polar_length_mm
+                      ? `${onion.polar_length_mm.toFixed(1)} mm`
+                      : onion.explanation?.polar_length_mm}
+                  </Text>
+                </View>
+              )}
+              {(onion.shape_class || onion.explanation?.shape_class) && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Bulb Shape Classification:</Text>
+                  <Text style={styles.metricValue}>
+                    {onion.shape_class || onion.explanation?.shape_class}
+                  </Text>
+                </View>
+              )}
+              {(onion.estimated_weight_grams || onion.explanation?.estimated_weight_grams) && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Estimated Bulb Weight:</Text>
+                  <Text style={[styles.metricValue, { color: '#2ecc71', fontWeight: '700' }]}>
+                    {onion.estimated_weight_grams
+                      ? `${onion.estimated_weight_grams.toFixed(0)} g`
+                      : onion.explanation?.estimated_weight_grams}
+                  </Text>
+                </View>
+              )}
               {onion.major_axis_mm && (
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Ellipse Major / Minor:</Text>
+                  <Text style={styles.metricLabel}>Fitted Ellipse (Maj/Min):</Text>
                   <Text style={styles.metricValue}>
                     {onion.major_axis_mm.toFixed(1)} / {onion.minor_axis_mm?.toFixed(1)} mm
                   </Text>
                 </View>
               )}
-              {onion.mask_area_px && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Mask Area:</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.mask_area_px.toLocaleString()} px
-                  </Text>
-                </View>
-              )}
               {onion.explanation?.circularity && (
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Sphericity / Circularity:</Text>
+                  <Text style={styles.metricLabel}>Circularity (Isoperimetric Q):</Text>
                   <Text style={styles.metricValue}>
-                    {onion.explanation.circularity} (Q-Factor)
+                    {onion.explanation.circularity}
                   </Text>
                 </View>
               )}
-              {onion.explanation?.surface_stain_pct && (
+              {onion.explanation?.black_mold_pct && (
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Surface Stain Area:</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.explanation.surface_stain_pct}
+                  <Text style={styles.metricLabel}>Black Mold (Aspergillus):</Text>
+                  <Text style={[styles.metricValue, { color: '#e74c3c' }]}>
+                    {onion.explanation.black_mold_pct}
                   </Text>
                 </View>
               )}
               {onion.explanation?.sunburn_pct && (
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Sunburn (Green Shoulder):</Text>
+                  <Text style={styles.metricLabel}>Sunburn (Chlorophyll NGRDI):</Text>
                   <Text style={styles.metricValue}>
                     {onion.explanation.sunburn_pct}
+                  </Text>
+                </View>
+              )}
+              {onion.explanation?.skin_baldness_pct && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Tunic Loss (Peeled Flesh):</Text>
+                  <Text style={styles.metricValue}>
+                    {onion.explanation.skin_baldness_pct}
                   </Text>
                 </View>
               )}

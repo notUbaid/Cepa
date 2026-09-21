@@ -110,6 +110,11 @@ def _onion_to_summary(inst) -> OnionInstanceSummary:
         segmentation_conf=inst.segmentation_conf,
         touches_border=inst.touches_border,
         equivalent_diameter_mm=meas.equivalent_diameter_mm if meas else None,
+        equatorial_diameter_mm=meas.equatorial_diameter_mm if meas else None,
+        polar_length_mm=meas.polar_length_mm if meas else None,
+        shape_class=meas.shape_class if meas else None,
+        estimated_weight_grams=meas.estimated_weight_grams if meas else None,
+        mandi_size_grade=meas.mandi_size_grade if meas else None,
         damaged_prob=damaged_p,
         rotten_prob=rotten_p,
         sprouted_prob=sprouted_p,
@@ -140,6 +145,16 @@ def _onion_to_detail(inst) -> OnionInstanceDetail:
 
     damaged_p, rotten_p, sprouted_p = _extract_defect_probs(defect)
 
+    morph_dict = {
+        "circularity": explanation.get("circularity"),
+        "surface_stain_pct": explanation.get("surface_stain_pct"),
+        "sunburn_pct": explanation.get("sunburn_pct"),
+        "black_mold_pct": explanation.get("black_mold_pct"),
+        "skin_baldness_pct": explanation.get("skin_baldness_pct"),
+        "ngrdi_mean": explanation.get("ngrdi_mean"),
+        "double_bulb": "DOUBLE_BULB" in rejection_reasons,
+    }
+
     return OnionInstanceDetail(
         id=inst.id,
         instance_index=inst.instance_index,
@@ -159,9 +174,16 @@ def _onion_to_detail(inst) -> OnionInstanceDetail:
         is_mock_defect=defect.is_mock if defect else True,
         has_human_correction=defect.human_correction is not None if defect else False,
         corrected_by=defect.corrected_by if defect else None,
+        morphology=morph_dict,
         equivalent_diameter_mm=meas.equivalent_diameter_mm if meas else None,
         major_axis_mm=meas.major_axis_mm if meas else None,
         minor_axis_mm=meas.minor_axis_mm if meas else None,
+        equatorial_diameter_mm=meas.equatorial_diameter_mm if meas else None,
+        polar_length_mm=meas.polar_length_mm if meas else None,
+        shape_index=meas.shape_index if meas else None,
+        shape_class=meas.shape_class if meas else None,
+        estimated_weight_grams=meas.estimated_weight_grams if meas else None,
+        mandi_size_grade=meas.mandi_size_grade if meas else None,
         mask_area_px=meas.mask_area_px if meas else None,
         scale_mm_per_px=meas.scale_mm_per_px if meas else None,
         projection_note=meas.projection_note if meas else None,
