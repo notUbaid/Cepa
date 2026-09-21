@@ -25,9 +25,9 @@ export const Colors = {
   accentTeal: '#0f766e',        // Calm agricultural teal accent
 
   // Mandi Quality Standards
-  gradeA: '#166534',            // Forest green
-  gradeABg: '#f0fdf4',          // Soft mint background
-  gradeABorder: '#bbf7d0',
+  gradeA: '#18181b',            // Restrained obsidian
+  gradeABg: '#f4f3ef',          // Clean warm surface
+  gradeABorder: '#e7e5e4',
 
   urs: '#9a3412',               // Warm ochre / amber
   ursBg: '#fffbeb',             // Pale cream
@@ -69,7 +69,7 @@ export const Radius = {
   md: 8,
   lg: 12,
   xl: 16,
-  pill: 9999,
+  pill: 4,                      // Abolished 9999px capsule; architectural micro-radius
 };
 
 export const Typography = {

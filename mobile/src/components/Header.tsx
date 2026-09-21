@@ -48,46 +48,26 @@ export const Header: React.FC<HeaderProps> = ({
           <View>
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>CEPA</Text>
-              <View style={styles.standardPill}>
-                <Text style={styles.standardText}>APMC Mandi</Text>
-              </View>
+              <Text style={styles.brandSubtitleInline}>• Mandi Protocol</Text>
             </View>
             <Text style={styles.subtitle}>Onion Quality & Procurement</Text>
           </View>
         </View>
 
-        <AnimatedPressable
-          haptic="selection"
-          style={[
-            styles.statusIndicator,
-            {
-              backgroundColor: serverConnected
-                ? Colors.gradeABg
-                : Colors.rejectBg,
-              borderColor: serverConnected
-                ? Colors.gradeABorder
-                : Colors.rejectBorder,
-            },
-          ]}
-        >
+        <View style={styles.statusIndicator}>
           <Animated.View
             style={[
               styles.dot,
               {
-                backgroundColor: serverConnected ? Colors.gradeA : Colors.reject,
+                backgroundColor: serverConnected ? Colors.textSecondary : Colors.reject,
                 opacity: serverConnected ? pulseAnim : 1,
               },
             ]}
           />
-          <Text
-            style={[
-              styles.statusText,
-              { color: serverConnected ? Colors.gradeA : Colors.reject },
-            ]}
-          >
+          <Text style={styles.statusText}>
             {serverConnected ? 'Online' : 'Offline'}
           </Text>
-        </AnimatedPressable>
+        </View>
       </View>
 
       {/* Sub-header strip: Standard & Center info */}
@@ -147,18 +127,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontWeight: '800',
   },
-  standardPill: {
-    backgroundColor: Colors.cardBgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.xs,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  standardText: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+  brandSubtitleInline: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '500',
   },
   subtitle: {
     fontSize: 11,
@@ -168,11 +140,8 @@ const styles = StyleSheet.create({
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
     gap: 6,
+    paddingVertical: 4,
   },
   dot: {
     width: 6,
@@ -181,7 +150,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: Colors.textSecondary,
   },
   subStrip: {
     flexDirection: 'row',

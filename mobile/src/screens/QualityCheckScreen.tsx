@@ -177,9 +177,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                   </Text>
                 )}
               </Text>
-              <View style={styles.redirectBadge}>
-                <Text style={styles.redirectText}>Opening Assessment Results...</Text>
-              </View>
+              <Text style={styles.redirectText}>Opening assessment results...</Text>
             </View>
           ) : (
             <View style={styles.failureContainer}>
@@ -220,8 +218,8 @@ const CheckItem: React.FC<{ label: string; passed: boolean }> = ({ label, passed
       style={[
         styles.checkDot,
         {
-          backgroundColor: passed ? Colors.gradeA : Colors.cardBgElevated,
-          borderColor: passed ? Colors.gradeA : Colors.borderMuted,
+          backgroundColor: passed ? Colors.accent : Colors.cardBgElevated,
+          borderColor: passed ? Colors.accent : Colors.borderMuted,
         },
       ]}
     >
@@ -331,23 +329,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   successBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.gradeABg,
-    borderWidth: 1.5,
-    borderColor: Colors.gradeA,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   successIcon: {
-    fontSize: 24,
-    color: Colors.gradeA,
+    fontSize: 20,
+    color: '#ffffff',
     fontWeight: '700',
   },
   successTitle: {
     ...Typography.title1,
-    color: Colors.gradeA,
+    color: Colors.text,
     marginTop: Spacing.md,
   },
   successSubtitle: {
@@ -361,19 +357,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '600',
   },
-  redirectBadge: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.cardBgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
   redirectText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: Spacing.lg,
+    fontWeight: '500',
   },
   failureContainer: {
     alignItems: 'center',

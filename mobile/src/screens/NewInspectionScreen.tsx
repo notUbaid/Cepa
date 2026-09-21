@@ -105,12 +105,9 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         {/* Step Header */}
         <FadeInView delay={50} distance={12}>
           <View style={styles.titleRow}>
-            <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>Step 1 of 3</Text>
-            </View>
             <Text style={styles.screenTitle}>Lot Details</Text>
             <Text style={styles.stepSubtitle}>
-              Enter consignment details and verify location before capturing the sample spread.
+              Step 1 of 3 • Consignment identification and APMC Mandi geolocation.
             </Text>
           </View>
         </FadeInView>
@@ -121,12 +118,12 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
             <View style={styles.gpsHeader}>
               <View style={styles.radarContainer}>
                 <RadarPulse
-                  size={30}
+                  size={26}
                   color={
                     location.status === 'locked'
-                      ? Colors.gradeA
-                      : location.status === 'fetching'
                       ? Colors.accent
+                      : location.status === 'fetching'
+                      ? Colors.textSecondary
                       : Colors.urs
                   }
                   active={location.status === 'fetching'}
@@ -318,7 +315,7 @@ const styles = StyleSheet.create({
   },
   gpsLockedText: {
     fontSize: 11,
-    color: Colors.gradeA,
+    color: Colors.textSecondary,
     fontWeight: '600',
     marginTop: 2,
   },

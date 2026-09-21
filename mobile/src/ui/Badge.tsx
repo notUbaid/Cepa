@@ -18,44 +18,44 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
       case 'GRADE_A':
         return {
           label: 'Grade A',
-          color: Colors.gradeA,
-          bg: Colors.gradeABg,
-          borderColor: Colors.gradeABorder,
+          color: Colors.text,
+          bg: Colors.cardBgElevated,
+          borderColor: Colors.border,
         };
       case 'URS':
         return {
           label: 'URS',
           color: Colors.urs,
-          bg: Colors.ursBg,
-          borderColor: Colors.ursBorder,
+          bg: Colors.cardBgElevated,
+          borderColor: Colors.border,
         };
       case 'REJECTED':
         return {
           label: 'Rejected',
           color: Colors.reject,
-          bg: Colors.rejectBg,
-          borderColor: Colors.rejectBorder,
+          bg: Colors.cardBgElevated,
+          borderColor: Colors.border,
         };
       case 'FINALIZED':
         return {
           label: 'Certified',
-          color: Colors.gradeA,
-          bg: Colors.gradeABg,
-          borderColor: Colors.gradeABorder,
+          color: Colors.text,
+          bg: Colors.cardBgElevated,
+          borderColor: Colors.border,
         };
       case 'PROCESSING':
         return {
           label: 'Processing',
-          color: Colors.accent,
-          bg: Colors.accentSubtle,
+          color: Colors.textSecondary,
+          bg: Colors.cardBgElevated,
           borderColor: Colors.border,
         };
       default:
         return {
           label: grade ? grade.replace(/_/g, ' ') : 'Review',
           color: Colors.review,
-          bg: Colors.reviewBg,
-          borderColor: Colors.reviewBorder,
+          bg: Colors.cardBgElevated,
+          borderColor: Colors.border,
         };
     }
   };
@@ -72,8 +72,8 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
         {
           backgroundColor: config.bg,
           borderColor: config.borderColor,
-          paddingHorizontal: isSmall ? 7 : isLarge ? 12 : 9,
-          paddingVertical: isSmall ? 2 : isLarge ? 5 : 3,
+          paddingHorizontal: isSmall ? 6 : isLarge ? 10 : 8,
+          paddingVertical: isSmall ? 2 : isLarge ? 4 : 2.5,
         },
         style,
       ]}
@@ -83,9 +83,9 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
           styles.dot,
           {
             backgroundColor: config.color,
-            width: isSmall ? 5 : isLarge ? 7 : 6,
-            height: isSmall ? 5 : isLarge ? 7 : 6,
-            borderRadius: isSmall ? 2.5 : isLarge ? 3.5 : 3,
+            width: isSmall ? 4 : isLarge ? 6 : 5,
+            height: isSmall ? 4 : isLarge ? 6 : 5,
+            borderRadius: isSmall ? 2 : isLarge ? 3 : 2.5,
           },
         ]}
       />
@@ -111,11 +111,11 @@ export const SizeTierBadge: React.FC<{ tier?: string | null; style?: ViewStyle }
   const getTierColor = () => {
     switch (tier?.toUpperCase()) {
       case 'SUPER':
-        return Colors.gradeA;
+        return Colors.text;
       case 'MADHYAM':
         return Colors.textSecondary;
       case 'JUMBO':
-        return Colors.accent;
+        return Colors.text;
       case 'GOLI':
         return Colors.urs;
       default:
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.pill,
+    borderRadius: Radius.xs,
     borderWidth: 1,
     gap: 5,
   },
