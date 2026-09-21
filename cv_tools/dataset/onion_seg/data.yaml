@@ -1,0 +1,6 @@
+path: D:/Projects/Cepa/cv_tools/dataset/onion_seg
+train: images/train
+val: images/val
+
+names:
+  0: onion

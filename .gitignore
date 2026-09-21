@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Storage & databases
+storage/
+backend/storage/
+*.db
+*.db-shm
+*.db-wal
+backend/*.db
+backend/cepa.db
+backend/test.db
+
+# Model weights (too large for git — use DVC or manual download)
+backend/weights/*.pt
+backend/weights/*.onnx
+backend/weights/*.tflite
+cv_tools/weights/
+
+# Alembic
+backend/alembic/versions/*.pyc
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/settings.json
+.idea/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Demo data (actual images may be large)
+demo/sample_images/*.jpg
+demo/sample_images/*.jpeg
+demo/sample_images/*.png
+
+# Dataset images (use DVC or separate storage)
+cv_tools/dataset/images/
+cv_tools/dataset/labels/
+
+# Secrets
+*.pem
+*.key
