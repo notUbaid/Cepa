@@ -177,6 +177,23 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         </View>
       </FadeInView>
 
+      {/* Uncalibrated Scale Warning Banner */}
+      {(!sample.marker_detected || !sample.scale_mm_per_px) && (
+        <FadeInView delay={80} distance={8}>
+          <View style={styles.uncalibratedBanner}>
+            <View style={styles.uncalibratedIconBadge}>
+              <Text style={styles.uncalibratedIcon}>!</Text>
+            </View>
+            <View style={styles.uncalibratedTextWrap}>
+              <Text style={styles.uncalibratedTitle}>Reference Marker Uncalibrated</Text>
+              <Text style={styles.uncalibratedSubtitle}>
+                ChArUco card was not detected. Millimetre caliper sizing and APMC standards require a reference marker in the frame.
+              </Text>
+            </View>
+          </View>
+        </FadeInView>
+      )}
+
       {/* View Mode Switcher */}
       <FadeInView delay={100} distance={10}>
         <View style={styles.viewModeToggleRow}>
@@ -299,13 +316,17 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     </View>
 
                     <View style={styles.telemetryRow}>
-                      <Text style={styles.diaText}>
-                        {item.equatorial_diameter_mm !== null && item.equatorial_diameter_mm !== undefined
-                          ? `Ø ${item.equatorial_diameter_mm.toFixed(1)}mm`
-                          : item.equivalent_diameter_mm !== null
-                          ? `Ø ${item.equivalent_diameter_mm.toFixed(1)}mm`
-                          : 'Ø N/A'}
-                      </Text>
+                      {item.equatorial_diameter_mm !== null && item.equatorial_diameter_mm !== undefined ? (
+                        <Text style={styles.diaText}>
+                          {`Ø ${item.equatorial_diameter_mm.toFixed(1)}mm`}
+                        </Text>
+                      ) : item.equivalent_diameter_mm !== null && item.equivalent_diameter_mm !== undefined ? (
+                        <Text style={styles.diaText}>
+                          {`Ø ${item.equivalent_diameter_mm.toFixed(1)}mm`}
+                        </Text>
+                      ) : (
+                        <Text style={styles.diaUncalibrated}>Uncalibrated</Text>
+                      )}
                       {item.estimated_weight_grams !== undefined && item.estimated_weight_grams !== null && (
                         <Text style={styles.weightText}>
                           {item.estimated_weight_grams.toFixed(0)}g
@@ -425,6 +446,44 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 1,
   },
+  uncalibratedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  uncalibratedIconBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uncalibratedIcon: {
+    color: '#d97706',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  uncalibratedTextWrap: {
+    flex: 1,
+  },
+  uncalibratedTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  uncalibratedSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: Colors.textMuted,
+  },
   viewModeToggleRow: {
     flexDirection: 'row',
     backgroundColor: Colors.cardBgElevated,
@@ -537,6 +596,12 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontWeight: '700',
     fontFamily: 'monospace',
+  },
+  diaUncalibrated: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   weightText: {
     fontSize: 11,
