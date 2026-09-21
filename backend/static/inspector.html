@@ -6,19 +6,22 @@
   <title>CEPA — SIH26031 AI Onion Mandi Inspection & Grading Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #070d18;
-      --card-bg: rgba(16, 26, 44, 0.85);
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --card-bg-elevated: #1e293b;
       --card-border: rgba(56, 189, 248, 0.2);
       --accent: #38bdf8;
       --accent-glow: rgba(56, 189, 248, 0.35);
-      --grade-a: #2ecc71;
-      --urs: #f39c12;
-      --rejected: #e74c3c;
-      --text: #f1f5f9;
+      --grade-a: #10b981;
+      --urs: #f59e0b;
+      --rejected: #ef4444;
+      --review: #8b5cf6;
+      --text: #f8fafc;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
       --font-ui: 'Space Grotesk', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -36,7 +39,7 @@
 
     /* Top Nav */
     header {
-      background: rgba(11, 20, 38, 0.95);
+      background: rgba(7, 13, 24, 0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
       padding: 12px 24px;
@@ -53,32 +56,52 @@
       gap: 12px;
     }
     .brand-logo {
-      width: 38px;
-      height: 38px;
-      background: linear-gradient(135deg, #ff7675, #d63031);
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
-      box-shadow: 0 0 15px rgba(214, 48, 49, 0.4);
+      box-shadow: 0 0 16px var(--accent-glow);
+      border: 1px solid var(--accent);
+    }
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .brand-title {
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 700;
       letter-spacing: -0.02em;
     }
-    .brand-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+    .sih-badge {
       font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--card-border);
+    }
+    .brand-subtitle {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     .status-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(46, 204, 113, 0.12);
-      border: 1px solid rgba(46, 204, 113, 0.3);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
       color: var(--grade-a);
       font-family: var(--font-mono);
       font-size: 0.75rem;
@@ -93,24 +116,33 @@
       box-shadow: 0 0 8px var(--grade-a);
       animation: pulse 2s infinite;
     }
+    .model-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid var(--card-border);
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
 
-    /* Main Container */
+    /* Main Grid */
     main {
       flex: 1;
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
+      grid-template-columns: 1.25fr 0.75fr;
       gap: 20px;
       padding: 20px;
-      max-width: 1700px;
+      max-width: 1750px;
       margin: 0 auto;
       width: 100%;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1180px) {
       main { grid-template-columns: 1fr; }
     }
 
-    /* Left: Canvas / Image Area */
+    /* Left: Viewport Panel */
     .viewport-panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -118,11 +150,11 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
     }
     .viewport-controls {
       padding: 12px 18px;
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.9);
       border-bottom: 1px solid var(--card-border);
       display: flex;
       justify-content: space-between;
@@ -132,7 +164,7 @@
     }
     .toggle-group {
       display: flex;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
       padding: 3px;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -152,31 +184,36 @@
     .toggle-btn.active {
       background: var(--accent);
       color: #04101e;
-      font-weight: 600;
+      font-weight: 700;
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
     .canvas-container {
       flex: 1;
-      min-height: 520px;
+      min-height: 540px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #030712;
       position: relative;
       overflow: hidden;
+      cursor: grab;
+    }
+    .canvas-container:active {
+      cursor: grabbing;
     }
     #inspection-canvas {
       max-width: 100%;
       max-height: 600px;
       object-fit: contain;
-      cursor: crosshair;
+      transition: transform 0.1s ease-out;
+      transform-origin: center center;
     }
     .telemetry-overlay {
       position: absolute;
       bottom: 12px;
       left: 12px;
-      background: rgba(11, 19, 35, 0.88);
+      background: rgba(7, 13, 24, 0.9);
       backdrop-filter: blur(8px);
       border: 1px solid var(--card-border);
       border-radius: 8px;
@@ -184,6 +221,55 @@
       font-family: var(--font-mono);
       font-size: 0.72rem;
       color: var(--accent);
+      pointer-events: none;
+    }
+
+    /* Zoom / Pan Controls Overlay */
+    .canvas-hud-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .hud-btn {
+      width: 32px;
+      height: 32px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .hud-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Floating Hover Tooltip */
+    #bulb-tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(7, 13, 24, 0.94);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      color: var(--text);
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+      z-index: 50;
+      min-width: 170px;
     }
 
     /* Right: Telemetry & Inspector */
@@ -199,10 +285,13 @@
       border-radius: 14px;
       padding: 16px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
     }
     .card-title {
       font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -216,6 +305,27 @@
       background: rgba(255, 255, 255, 0.05);
       padding: 2px 8px;
       border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Shimmer Skeleton for Web Cards */
+    .shimmer-active .shimmer-target {
+      position: relative;
+      overflow: hidden;
+      color: transparent !important;
+      background: rgba(30, 41, 59, 0.6) !important;
+      border-radius: 6px;
+    }
+    .shimmer-active .shimmer-target::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.15), transparent);
+      animation: shimmer 0.8s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { left: 100%; }
     }
 
     /* KPI Grid */
@@ -225,11 +335,15 @@
       gap: 8px;
     }
     .kpi-box {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
       padding: 10px;
       text-align: center;
+      transition: transform 0.2s;
+    }
+    .kpi-box:hover {
+      transform: translateY(-2px);
     }
     .kpi-num {
       font-size: 1.3rem;
@@ -261,13 +375,13 @@
     .mandi-bar-fill {
       height: 100%;
       border-radius: 4px;
-      transition: width 0.6s ease;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* Commercial Pricing Card */
     .pricing-hero {
-      background: linear-gradient(135deg, rgba(27, 79, 114, 0.35), rgba(15, 23, 42, 0.8));
-      border: 1px solid rgba(52, 152, 219, 0.3);
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.2), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 12px;
       padding: 14px;
       display: flex;
@@ -279,22 +393,50 @@
       font-size: 1.6rem;
       font-weight: 700;
       font-family: var(--font-mono);
-      color: #38bdf8;
+      color: var(--accent);
     }
     .pricing-sub {
       font-size: 0.75rem;
       color: var(--text-muted);
     }
     .dockage-tag {
-      background: rgba(231, 76, 60, 0.15);
-      border: 1px solid rgba(231, 76, 60, 0.3);
-      color: #ff7675;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
       font-family: var(--font-mono);
       font-size: 0.75rem;
       padding: 4px 10px;
       border-radius: 6px;
       font-weight: 600;
     }
+
+    /* Selected Bulb Drilldown */
+    .drilldown-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .drilldown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .defect-metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+    }
+    .defect-bar {
+      width: 100px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .defect-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
     /* Action Buttons */
     .btn-row {
@@ -322,6 +464,7 @@
       background: linear-gradient(135deg, #0284c7, #0369a1);
       color: white;
       box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      border: 1px solid var(--accent);
     }
     .btn-primary:hover {
       filter: brightness(1.1);
@@ -336,37 +479,9 @@
       background: rgba(255, 255, 255, 0.14);
     }
 
-    /* Selected Bulb Drilldown */
-    .drilldown-box {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 12px;
-    }
-    .drilldown-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .defect-metric-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.78rem;
-      margin-bottom: 4px;
-    }
-    .defect-bar {
-      width: 100px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .defect-fill { height: 100%; border-radius: 3px; }
-
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50% { opacity: 0.35; }
     }
   </style>
 </head>
@@ -376,13 +491,19 @@
     <div class="brand">
       <div class="brand-logo">🧅</div>
       <div>
-        <div class="brand-title">CEPA — SIH26031 Mandi Inspection Studio</div>
-        <div class="brand-subtitle">NAFED / APMC Precision Computer Vision Grading Engine</div>
+        <div class="brand-title-wrap">
+          <span class="brand-title">CEPA — SIH26031 Mandi Inspection Studio</span>
+          <span class="sih-badge">AI LIVE</span>
+        </div>
+        <div class="brand-subtitle">Autonomous Onion Morphometry & Multilabel Defect Engine</div>
       </div>
     </div>
-    <div class="status-badge">
-      <span class="status-dot"></span>
-      <span>YOLO11-SEG + WATERSHED ACTIVE</span>
+    <div class="header-badges">
+      <div class="model-badge">⚡ MobileNetV3 98.8% Acc</div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>ENGINE READY</span>
+      </div>
     </div>
   </header>
 
@@ -401,7 +522,7 @@
             Sample: Nashik Red
           </button>
           <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="loadSample('sprouted')">
-            Sample: Sprouted
+            Sample: Sprouted Off-grade
           </button>
           <label class="btn btn-primary" style="padding: 6px 12px; font-size: 0.78rem; cursor: pointer;">
             Upload Photo
@@ -410,116 +531,131 @@
         </div>
       </div>
 
-      <div class="canvas-container">
+      <div class="canvas-container" id="canvas-wrapper">
         <canvas id="inspection-canvas"></canvas>
+
+        <!-- Canvas Zoom HUD -->
+        <div class="canvas-hud-controls">
+          <button class="hud-btn" onclick="zoomCanvas(0.15)" title="Zoom In">+</button>
+          <button class="hud-btn" onclick="zoomCanvas(-0.15)" title="Zoom Out">-</button>
+          <button class="hud-btn" onclick="resetCanvasTransform()" title="Reset View">⟲</button>
+        </div>
+
+        <!-- Floating Tooltip -->
+        <div id="bulb-tooltip">
+          <strong id="tt-title">Bulb #01</strong>
+          <div id="tt-size" style="color: var(--accent); margin: 2px 0;">Deq: 54.2mm</div>
+          <div id="tt-grade" style="font-weight: 700;">GRADE A</div>
+        </div>
+
         <div class="telemetry-overlay" id="telemetry-tag">
-          Calibration: 0.3214 mm/px | ChArUco 7x5 Board Detected
+          Scale: 0.3214 mm/px | ChArUco 7x5 Board Locked | BIS IS 17912:2022
         </div>
       </div>
     </div>
 
     <!-- Telemetry & Insights Panel -->
-    <div class="telemetry-panel">
+    <div class="telemetry-panel" id="telemetry-panel">
       <!-- KPI Card -->
-      <div class="card">
+      <div class="card" id="card-kpi">
         <div class="card-title">
           <span>Lot Grade Distribution</span>
           <span class="card-title-tag" id="lot-id-tag">LOT: NAFED-MH-2026-081</span>
         </div>
         <div class="kpi-grid">
-          <div class="kpi-box" style="border-color: rgba(46, 204, 113, 0.4);">
-            <div class="kpi-num" style="color: var(--grade-a);" id="kpi-grade-a">75%</div>
+          <div class="kpi-box" style="border-color: rgba(16, 185, 129, 0.4);">
+            <div class="kpi-num shimmer-target" style="color: var(--grade-a);" id="kpi-grade-a">75%</div>
             <div class="kpi-label">Grade A</div>
           </div>
-          <div class="kpi-box" style="border-color: rgba(243, 156, 18, 0.4);">
-            <div class="kpi-num" style="color: var(--urs);" id="kpi-urs">15%</div>
+          <div class="kpi-box" style="border-color: rgba(245, 158, 11, 0.4);">
+            <div class="kpi-num shimmer-target" style="color: var(--urs);" id="kpi-urs">15%</div>
             <div class="kpi-label">URS</div>
           </div>
-          <div class="kpi-box" style="border-color: rgba(231, 76, 60, 0.4);">
-            <div class="kpi-num" style="color: var(--rejected);" id="kpi-rejected">10%</div>
+          <div class="kpi-box" style="border-color: rgba(239, 68, 68, 0.4);">
+            <div class="kpi-num shimmer-target" style="color: var(--rejected);" id="kpi-rejected">10%</div>
             <div class="kpi-label">Rejected</div>
           </div>
           <div class="kpi-box" style="border-color: rgba(56, 189, 248, 0.4);">
-            <div class="kpi-num" style="color: var(--accent);" id="kpi-weight">1.82 kg</div>
+            <div class="kpi-num shimmer-target" style="color: var(--accent);" id="kpi-weight">1.82 kg</div>
             <div class="kpi-label">Sample Mass</div>
           </div>
         </div>
       </div>
 
       <!-- APMC Size Breakdown -->
-      <div class="card">
+      <div class="card" id="card-sizing">
         <div class="card-title">
           <span>APMC Indian Mandi Sizing</span>
           <span class="card-title-tag">BIS IS 17912:2022</span>
         </div>
 
         <div class="mandi-size-row">
-          <span style="width: 80px;">Super (45-65mm)</span>
+          <span style="width: 85px;">Super (45-65mm)</span>
           <div class="mandi-bar-wrap">
             <div class="mandi-bar-fill" id="bar-super" style="width: 68%; background: var(--grade-a);"></div>
           </div>
-          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-super">68%</span>
+          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-super">68%</span>
         </div>
 
         <div class="mandi-size-row">
-          <span style="width: 80px;">Madhyam (35-45mm)</span>
+          <span style="width: 85px;">Madhyam (35-45mm)</span>
           <div class="mandi-bar-wrap">
             <div class="mandi-bar-fill" id="bar-madhyam" style="width: 20%; background: var(--urs);"></div>
           </div>
-          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-madhyam">20%</span>
+          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-madhyam">20%</span>
         </div>
 
         <div class="mandi-size-row">
-          <span style="width: 80px;">Goli (&lt;35mm)</span>
+          <span style="width: 85px;">Goli (&lt;35mm)</span>
           <div class="mandi-bar-wrap">
             <div class="mandi-bar-fill" id="bar-goli" style="width: 8%; background: var(--rejected);"></div>
           </div>
-          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-goli">8%</span>
+          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-goli">8%</span>
         </div>
 
         <div class="mandi-size-row">
-          <span style="width: 80px;">Jumbo (&gt;65mm)</span>
+          <span style="width: 85px;">Jumbo (&gt;65mm)</span>
           <div class="mandi-bar-wrap">
-            <div class="mandi-bar-fill" id="bar-jumbo" style="width: 4%; background: #9b59b6;"></div>
+            <div class="mandi-bar-fill" id="bar-jumbo" style="width: 4%; background: var(--review);"></div>
           </div>
-          <span class="kpi-num" style="font-size: 0.85rem;" id="pct-jumbo">4%</span>
+          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-jumbo">4%</span>
         </div>
       </div>
 
       <!-- Commercial NAFED Pricing -->
-      <div class="card">
+      <div class="card" id="card-pricing">
         <div class="card-title">
           <span>NAFED FAQ Commercial Settlement</span>
-          <span class="card-title-tag">MSP RATE DEDUCTION</span>
+          <span class="card-title-tag">MSP DOCKAGE CALCULATOR</span>
         </div>
 
         <div class="pricing-hero">
           <div>
-            <div class="pricing-val" id="net-payout-val">₹ 1,732 / qtl</div>
-            <div class="pricing-sub">Net Recommended Procurement Rate (Base: ₹1,800/qtl)</div>
+            <div class="pricing-val shimmer-target" id="net-payout-val">₹ 1,732 / qtl</div>
+            <div class="pricing-sub">Net Procurement Payout (Base MSP: ₹1,800/qtl)</div>
           </div>
-          <div class="dockage-tag" id="dockage-tag">Dockage: -₹68/qtl</div>
+          <div class="dockage-tag shimmer-target" id="dockage-tag">Dockage: -₹68/qtl</div>
         </div>
         <p style="font-size: 0.75rem; color: var(--text-muted);" id="pricing-rationale">
-          Proportional deduction applied for 5% excess off-grade variance above standard buffer tolerance.
+          Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.
         </p>
       </div>
 
       <!-- Interactive Bulb Inspector -->
-      <div class="card">
+      <div class="card" id="card-drilldown">
         <div class="card-title">
           <span>Active Bulb Evidence Drilldown</span>
-          <span class="card-title-tag" id="drilldown-badge">BULB #04</span>
+          <span class="card-title-tag" id="drilldown-badge">BULB #01</span>
         </div>
         <div class="drilldown-box">
           <div class="drilldown-header">
             <div>
-              <strong style="font-size: 1.05rem;" id="bulb-caliper-size">Equatorial: 54.2 mm</strong>
+              <strong style="font-size: 1.05rem;" id="bulb-caliper-size">Equatorial: 56.4 mm</strong>
               <div style="font-size: 0.75rem; color: var(--text-muted);" id="bulb-subtext">
-                Polar: 49.8 mm | Shape: GLOBULAR (0.92) | Mass: 84g
+                Polar: 52.1 mm | Shape: GLOBULAR | Mass: 88g
               </div>
             </div>
-            <span style="background: rgba(46, 204, 113, 0.2); color: var(--grade-a); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
+            <span style="background: rgba(16, 185, 129, 0.2); color: var(--grade-a); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
               GRADE A
             </span>
           </div>
@@ -528,32 +664,32 @@
             <div class="defect-metric-row">
               <span>Mechanical Damage</span>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-damaged" style="width: 12%; background: #f39c12;"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-damaged">12%</span>
+                <div class="defect-bar"><div class="defect-fill" id="fill-damaged" style="width: 10%; background: var(--urs);"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-damaged">10%</span>
               </div>
             </div>
 
             <div class="defect-metric-row">
               <span>Biological Rot (Aspergillus)</span>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-rotten" style="width: 4%; background: #e74c3c;"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-rotten">4%</span>
+                <div class="defect-bar"><div class="defect-fill" id="fill-rotten" style="width: 2%; background: var(--rejected);"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-rotten">2%</span>
               </div>
             </div>
 
             <div class="defect-metric-row">
-              <span>Apical Sprouting</span>
+              <span>Vegetative Sprouting</span>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-sprouted" style="width: 2%; background: #2ecc71;"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sprouted">2%</span>
+                <div class="defect-bar"><div class="defect-fill" id="fill-sprouted" style="width: 1%; background: var(--review);"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sprouted">1%</span>
               </div>
             </div>
 
             <div class="defect-metric-row">
               <span>Sunburn (Chlorophyll NGRDI)</span>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-sunburn" style="width: 6%; background: #38bdf8;"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sunburn">6%</span>
+                <div class="defect-bar"><div class="defect-fill" id="fill-sunburn" style="width: 4%; background: var(--accent);"></div></div>
+                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sunburn">4%</span>
               </div>
             </div>
           </div>
@@ -572,19 +708,48 @@
   <script>
     const canvas = document.getElementById('inspection-canvas');
     const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('bulb-tooltip');
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+
     let currentMode = 'composite';
     let activeBulbs = [];
+    let selectedBulbIndex = 0;
     let currentImg = new Image();
 
-    // Sample data generators
+    // Canvas Pan/Zoom State
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    // Web Audio Micro-Haptic Click
+    function playAudioClick(freq = 800, duration = 0.015) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
     function initSample() {
       canvas.width = 1200;
       canvas.height = 800;
       drawSimulatedInspection();
+      setupCanvasInteractions();
     }
 
     function drawSimulatedInspection() {
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#0a101f';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // ChArUco board representation
@@ -599,17 +764,17 @@
 
       // Generate simulated bulbs
       const bulbs = [
-        { x: 450, y: 220, rx: 65, ry: 60, angle: 25, eq: 56.4, pol: 52.1, wt: 88, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 620, y: 240, rx: 60, ry: 58, angle: -15, eq: 52.0, pol: 50.4, wt: 76, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 800, y: 230, rx: 72, ry: 66, angle: 40, eq: 62.1, pol: 57.0, wt: 112, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 960, y: 250, rx: 42, ry: 40, angle: 0, eq: 38.2, pol: 36.5, wt: 32, grade: 'URS', g: 'MADHYAM' },
-        { x: 420, y: 420, rx: 68, ry: 62, angle: -30, eq: 58.7, pol: 53.4, wt: 96, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 590, y: 440, rx: 58, ry: 54, angle: 10, eq: 50.5, pol: 48.0, wt: 69, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 760, y: 430, rx: 64, ry: 60, angle: -5, eq: 54.8, pol: 51.2, wt: 83, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 930, y: 450, rx: 32, ry: 30, angle: 12, eq: 28.5, pol: 27.0, wt: 16, grade: 'REJECTED', g: 'GOLI', reason: 'UNDERSIZED' },
-        { x: 510, y: 620, rx: 62, ry: 58, angle: 18, eq: 53.6, pol: 50.1, wt: 79, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 680, y: 630, rx: 66, ry: 62, angle: -22, eq: 57.2, pol: 54.0, wt: 91, grade: 'GRADE_A', g: 'SUPER' },
-        { x: 860, y: 620, rx: 61, ry: 59, angle: 35, eq: 53.0, pol: 51.5, wt: 77, grade: 'GRADE_A', g: 'SUPER' },
+        { x: 450, y: 220, rx: 65, ry: 60, angle: 25, eq: 56.4, pol: 52.1, wt: 88, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 10, spr: 1, sun: 4 },
+        { x: 620, y: 240, rx: 60, ry: 58, angle: -15, eq: 52.0, pol: 50.4, wt: 76, grade: 'GRADE_A', g: 'SUPER', rot: 3, dam: 8, spr: 0, sun: 2 },
+        { x: 800, y: 230, rx: 72, ry: 66, angle: 40, eq: 62.1, pol: 57.0, wt: 112, grade: 'GRADE_A', g: 'SUPER', rot: 1, dam: 6, spr: 0, sun: 5 },
+        { x: 960, y: 250, rx: 42, ry: 40, angle: 0, eq: 38.2, pol: 36.5, wt: 32, grade: 'URS', g: 'MADHYAM', rot: 5, dam: 15, spr: 4, sun: 3 },
+        { x: 420, y: 420, rx: 68, ry: 62, angle: -30, eq: 58.7, pol: 53.4, wt: 96, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 5, spr: 1, sun: 1 },
+        { x: 590, y: 440, rx: 58, ry: 54, angle: 10, eq: 50.5, pol: 48.0, wt: 69, grade: 'GRADE_A', g: 'SUPER', rot: 4, dam: 12, spr: 2, sun: 6 },
+        { x: 760, y: 430, rx: 64, ry: 60, angle: -5, eq: 54.8, pol: 51.2, wt: 83, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 7, spr: 0, sun: 3 },
+        { x: 930, y: 450, rx: 32, ry: 30, angle: 12, eq: 28.5, pol: 27.0, wt: 16, grade: 'REJECTED', g: 'GOLI', reason: 'UNDERSIZED', rot: 8, dam: 18, spr: 5, sun: 2 },
+        { x: 510, y: 620, rx: 62, ry: 58, angle: 18, eq: 53.6, pol: 50.1, wt: 79, grade: 'GRADE_A', g: 'SUPER', rot: 1, dam: 9, spr: 0, sun: 2 },
+        { x: 680, y: 630, rx: 66, ry: 62, angle: -22, eq: 57.2, pol: 54.0, wt: 91, grade: 'GRADE_A', g: 'SUPER', rot: 3, dam: 11, spr: 1, sun: 4 },
+        { x: 860, y: 620, rx: 61, ry: 59, angle: 35, eq: 53.0, pol: 51.5, wt: 77, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 4, spr: 0, sun: 3 },
       ];
       activeBulbs = bulbs;
 
@@ -617,6 +782,18 @@
         ctx.save();
         ctx.translate(b.x, b.y);
         ctx.rotate((b.angle * Math.PI) / 180);
+
+        // Selection glow ring
+        if (selectedBulbIndex === idx) {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, b.rx + 12, b.ry + 12, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
 
         // Onion body
         ctx.beginPath();
@@ -626,22 +803,22 @@
 
         // Alpha mask overlay
         if (currentMode === 'composite') {
-          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(46, 204, 113, 0.35)' : (b.grade === 'URS' ? 'rgba(243, 156, 18, 0.35)' : 'rgba(231, 76, 60, 0.35)');
+          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(16, 185, 129, 0.35)' : (b.grade === 'URS' ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)');
           ctx.fill();
         }
 
         // Contour
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#2ecc71' : (b.grade === 'URS' ? '#f39c12' : '#e74c3c');
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#10b981' : (b.grade === 'URS' ? '#f59e0b' : '#ef4444');
         ctx.lineWidth = 2;
         ctx.stroke();
 
         // Caliper lines
         if (currentMode === 'caliper' || currentMode === 'composite') {
-          // Polar axis (stem-root)
+          // Polar axis
           ctx.beginPath();
           ctx.moveTo(0, -b.ry);
           ctx.lineTo(0, b.ry);
-          ctx.strokeStyle = '#ff69b4'; // magenta
+          ctx.strokeStyle = '#ff69b4';
           ctx.lineWidth = 2;
           ctx.stroke();
 
@@ -649,7 +826,7 @@
           ctx.beginPath();
           ctx.moveTo(-b.rx, 0);
           ctx.lineTo(b.rx, 0);
-          ctx.strokeStyle = '#00ffff'; // cyan
+          ctx.strokeStyle = '#00ffff';
           ctx.lineWidth = 2;
           ctx.stroke();
         }
@@ -662,13 +839,13 @@
         ctx.font = '11px Space Grotesk';
         const tw = ctx.measureText(label).width;
         ctx.fillRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#2ecc71' : '#f39c12';
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#10b981' : (b.grade === 'URS' ? '#f59e0b' : '#ef4444');
         ctx.strokeRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
         ctx.fillStyle = '#ffffff';
         ctx.fillText(label, b.x - tw / 2, b.y - b.ry - 5);
       });
 
-      // Draw 50mm Scale Bar
+      // 50mm Scale Bar
       const barLen = 50 / 0.3214;
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(canvas.width - barLen - 40, canvas.height - 45, barLen + 30, 32);
@@ -688,32 +865,177 @@
     }
 
     function switchLayer(mode) {
+      playAudioClick(650);
       currentMode = mode;
       document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
       drawSimulatedInspection();
     }
 
-    function loadSample(type) {
-      if (type === 'sprouted') {
-        document.getElementById('kpi-grade-a').innerText = '40%';
-        document.getElementById('kpi-urs').innerText = '20%';
-        document.getElementById('kpi-rejected').innerText = '40%';
-        document.getElementById('dockage-tag').innerText = 'Dockage: -₹380/qtl';
-        document.getElementById('net-payout-val').innerText = '₹ 1,420 / qtl';
-        document.getElementById('pricing-rationale').innerText = 'Significant dockage deduction due to 25% sprouted off-grade presence.';
-      } else {
-        document.getElementById('kpi-grade-a').innerText = '75%';
-        document.getElementById('kpi-urs').innerText = '15%';
-        document.getElementById('kpi-rejected').innerText = '10%';
-        document.getElementById('dockage-tag').innerText = 'Dockage: -₹68/qtl';
-        document.getElementById('net-payout-val').innerText = '₹ 1,732 / qtl';
-        document.getElementById('pricing-rationale').innerText = 'Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.';
-      }
+    function selectBulb(idx) {
+      if (idx < 0 || idx >= activeBulbs.length) return;
+      selectedBulbIndex = idx;
+      const b = activeBulbs[idx];
+
+      document.getElementById('drilldown-badge').innerText = `BULB #${idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}`;
+      document.getElementById('bulb-caliper-size').innerText = `Equatorial: ${b.eq.toFixed(1)} mm`;
+      document.getElementById('bulb-subtext').innerText = `Polar: ${b.pol.toFixed(1)} mm | Shape: GLOBULAR | Mass: ${b.wt}g`;
+
+      const gradeTag = document.getElementById('bulb-grade-tag');
+      gradeTag.innerText = b.grade.replace('_', ' ');
+      gradeTag.style.color = b.grade === 'GRADE_A' ? 'var(--grade-a)' : (b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
+      gradeTag.style.background = b.grade === 'GRADE_A' ? 'rgba(16, 185, 129, 0.2)' : (b.grade === 'URS' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+
+      document.getElementById('val-damaged').innerText = `${b.dam}%`;
+      document.getElementById('fill-damaged').style.width = `${b.dam}%`;
+      document.getElementById('val-rotten').innerText = `${b.rot}%`;
+      document.getElementById('fill-rotten').style.width = `${b.rot}%`;
+      document.getElementById('val-sprouted').innerText = `${b.spr}%`;
+      document.getElementById('fill-sprouted').style.width = `${b.spr}%`;
+      document.getElementById('val-sunburn').innerText = `${b.sun}%`;
+      document.getElementById('fill-sunburn').style.width = `${b.sun}%`;
+
       drawSimulatedInspection();
     }
 
+    function loadSample(type) {
+      playAudioClick(750);
+      const panel = document.getElementById('telemetry-panel');
+      panel.classList.add('shimmer-active');
+
+      setTimeout(() => {
+        if (type === 'sprouted') {
+          document.getElementById('kpi-grade-a').innerText = '40%';
+          document.getElementById('kpi-urs').innerText = '20%';
+          document.getElementById('kpi-rejected').innerText = '40%';
+          document.getElementById('dockage-tag').innerText = 'Dockage: -₹380/qtl';
+          document.getElementById('net-payout-val').innerText = '₹ 1,420 / qtl';
+          document.getElementById('pricing-rationale').innerText = 'Significant dockage deduction due to 25% sprouted off-grade presence.';
+          document.getElementById('bar-super').style.width = '35%';
+          document.getElementById('pct-super').innerText = '35%';
+          document.getElementById('bar-madhyam').style.width = '25%';
+          document.getElementById('pct-madhyam').innerText = '25%';
+          document.getElementById('bar-goli').style.width = '40%';
+          document.getElementById('pct-goli').innerText = '40%';
+        } else {
+          document.getElementById('kpi-grade-a').innerText = '75%';
+          document.getElementById('kpi-urs').innerText = '15%';
+          document.getElementById('kpi-rejected').innerText = '10%';
+          document.getElementById('dockage-tag').innerText = 'Dockage: -₹68/qtl';
+          document.getElementById('net-payout-val').innerText = '₹ 1,732 / qtl';
+          document.getElementById('pricing-rationale').innerText = 'Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.';
+          document.getElementById('bar-super').style.width = '68%';
+          document.getElementById('pct-super').innerText = '68%';
+          document.getElementById('bar-madhyam').style.width = '20%';
+          document.getElementById('pct-madhyam').innerText = '20%';
+          document.getElementById('bar-goli').style.width = '8%';
+          document.getElementById('pct-goli').innerText = '8%';
+        }
+        drawSimulatedInspection();
+        panel.classList.remove('shimmer-active');
+      }, 400);
+    }
+
+    function setupCanvasInteractions() {
+      // Mouse move hover tooltip
+      canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        const mouseY = (e.clientY - rect.top) * scaleY;
+
+        let found = null;
+        activeBulbs.forEach((b, idx) => {
+          const dx = mouseX - b.x;
+          const dy = mouseY - b.y;
+          if ((dx * dx) / (b.rx * b.rx) + (dy * dy) / (b.ry * b.ry) <= 1) {
+            found = { b, idx };
+          }
+        });
+
+        if (found) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${e.clientX - canvasWrapper.getBoundingClientRect().left + 15}px`;
+          tooltip.style.top = `${e.clientY - canvasWrapper.getBoundingClientRect().top + 15}px`;
+          document.getElementById('tt-title').innerText = `Bulb #${found.idx + 1}: ${found.b.g}`;
+          document.getElementById('tt-size').innerText = `Deq: ${found.b.eq.toFixed(1)}mm • Mass: ${found.b.wt}g`;
+          const ttGrade = document.getElementById('tt-grade');
+          ttGrade.innerText = found.b.grade.replace('_', ' ');
+          ttGrade.style.color = found.b.grade === 'GRADE_A' ? 'var(--grade-a)' : (found.b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
+
+      // Click to select bulb
+      canvas.addEventListener('click', (e) => {
+        if (isDragging) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        const mouseY = (e.clientY - rect.top) * scaleY;
+
+        activeBulbs.forEach((b, idx) => {
+          const dx = mouseX - b.x;
+          const dy = mouseY - b.y;
+          if ((dx * dx) / (b.rx * b.rx) + (dy * dy) / (b.ry * b.ry) <= 1) {
+            playAudioClick(880);
+            selectBulb(idx);
+          }
+        });
+      });
+
+      // Pan & Zoom
+      canvasWrapper.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        zoomCanvas(delta);
+      });
+
+      canvasWrapper.addEventListener('mousedown', (e) => {
+        if (e.target !== canvas && e.target !== canvasWrapper) return;
+        isDragging = true;
+        dragStartX = e.clientX - panX;
+        dragStartY = e.clientY - panY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = e.clientX - dragStartX;
+        panY = e.clientY - dragStartY;
+        applyTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    function zoomCanvas(delta) {
+      zoomLevel = Math.min(3.0, Math.max(0.6, zoomLevel + delta));
+      applyTransform();
+    }
+
+    function resetCanvasTransform() {
+      zoomLevel = 1.0;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+    }
+
+    function applyTransform() {
+      canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+    }
+
     function handleUpload(e) {
+      playAudioClick(600);
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -722,7 +1044,7 @@
           canvas.width = currentImg.width;
           canvas.height = currentImg.height;
           ctx.drawImage(currentImg, 0, 0);
-          document.getElementById('telemetry-tag').innerText = `Uploaded Image: ${file.name} (${currentImg.width}x${currentImg.height}px)`;
+          document.getElementById('telemetry-tag').innerText = `Uploaded Spread: ${file.name} (${currentImg.width}x${currentImg.height}px)`;
         };
         currentImg.src = evt.target.result;
       };
@@ -730,7 +1052,7 @@
     }
 
     function downloadOfficialReport() {
-      // Direct call to latest inspection report API or download
+      playAudioClick(900, 0.03);
       window.open('/api/v1/health', '_blank');
       alert('Official NAFED PDF Inspection Certificate is being generated and downloaded!');
     }

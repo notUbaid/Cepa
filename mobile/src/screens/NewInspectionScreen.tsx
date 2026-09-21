@@ -7,12 +7,21 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { ApiClient } from '../api/client';
 import { InspectionDetail } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  Haptics,
+  RadarPulse,
+  Radius,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface NewInspectionScreenProps {
   onInspectionCreated: (inspection: InspectionDetail) => void;
@@ -64,6 +73,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
   }, []);
 
   const handleStartCapture = async () => {
+    Haptics.heavy();
     setSubmitting(true);
     try {
       const inspection = await ApiClient.createInspection({
@@ -78,6 +88,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
       });
       onInspectionCreated(inspection);
     } catch (err: any) {
+      Haptics.error();
       alert(`Could not create inspection: ${err.message}`);
     } finally {
       setSubmitting(false);
@@ -89,114 +100,145 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.titleRow}>
-          <Text style={styles.screenTitle}>New Lot Inspection</Text>
-          <Text style={styles.stepIndicator}>Step 1 of 3: Lot Information</Text>
-        </View>
-
-        {/* GPS Status Box */}
-        <View style={styles.gpsCard}>
-          <Text style={styles.gpsTitle}>🛰️ GEOLOCATION VERIFICATION</Text>
-          {location.status === 'fetching' ? (
-            <View style={styles.gpsRow}>
-              <ActivityIndicator size="small" color="#38bdf8" />
-              <Text style={styles.gpsText}>Acquiring GPS coordinates...</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Step Header */}
+        <FadeInView delay={50} distance={12}>
+          <View style={styles.titleRow}>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>STEP 1 OF 3</Text>
             </View>
-          ) : location.status === 'locked' ? (
-            <Text style={styles.gpsLockedText}>
-              ✓ GPS Locked: {location.lat?.toFixed(5)}°N, {location.lon?.toFixed(5)}°E (±
-              {location.accuracy?.toFixed(0)}m)
+            <Text style={styles.screenTitle}>Lot Identification</Text>
+            <Text style={styles.stepSubtitle}>
+              Enter consignment details & verify GPS coordinates before spread capture.
             </Text>
-          ) : (
-            <Text style={styles.gpsDeniedText}>
-              ⚠️ Location unavailable ({location.status}). Honest null will be recorded.
-            </Text>
-          )}
-        </View>
-
-        {/* Form Inputs */}
-        <View style={styles.formCard}>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Lot Identifier / Batch Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. LOT-2026-NASHIK-409"
-              placeholderTextColor="#64748b"
-              value={lotId}
-              onChangeText={setLotId}
-            />
           </View>
+        </FadeInView>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Procurement Centre / Mandi Location</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Lasalgaon APMC Mandi, Nashik"
-              placeholderTextColor="#64748b"
-              value={procurementCentre}
-              onChangeText={setProcurementCentre}
-            />
+        {/* GPS Radar Card */}
+        <FadeInView delay={100} distance={12}>
+          <View style={styles.gpsCard}>
+            <View style={styles.gpsHeader}>
+              <View style={styles.radarContainer}>
+                <RadarPulse
+                  size={32}
+                  color={
+                    location.status === 'locked'
+                      ? Colors.gradeA
+                      : location.status === 'fetching'
+                      ? Colors.accent
+                      : Colors.urs
+                  }
+                  active={location.status === 'fetching'}
+                />
+              </View>
+              <View style={styles.gpsInfo}>
+                <Text style={styles.gpsTitle}>GEOLOCATION TELEMETRY</Text>
+                {location.status === 'fetching' ? (
+                  <Text style={styles.gpsText}>Acquiring high-accuracy GNSS fix...</Text>
+                ) : location.status === 'locked' ? (
+                  <Text style={styles.gpsLockedText}>
+                    Locked: {location.lat?.toFixed(5)}°N, {location.lon?.toFixed(5)}°E (±
+                    {location.accuracy?.toFixed(0)}m)
+                  </Text>
+                ) : (
+                  <Text style={styles.gpsDeniedText}>
+                    GPS Offline ({location.status}) — recorded as verifiable null.
+                  </Text>
+                )}
+              </View>
+            </View>
           </View>
+        </FadeInView>
 
-          <View style={styles.rowFields}>
-            <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>Officer Name</Text>
+        {/* Form Inputs Card */}
+        <FadeInView delay={160} distance={15}>
+          <View style={styles.formCard}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>LOT IDENTIFIER / BATCH ID</Text>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. Rajesh Sharma"
-                placeholderTextColor="#64748b"
-                value={officerName}
-                onChangeText={setOfficerName}
+                placeholder="e.g. LOT-2026-NASHIK-409"
+                placeholderTextColor={Colors.textDim}
+                value={lotId}
+                onChangeText={setLotId}
               />
             </View>
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Officer ID</Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>PROCUREMENT MANDI / APMC YARD</Text>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. NAFED-4821"
-                placeholderTextColor="#64748b"
-                value={officerId}
-                onChangeText={setOfficerId}
+                placeholder="e.g. Lasalgaon APMC Mandi, Nashik"
+                placeholderTextColor={Colors.textDim}
+                value={procurementCentre}
+                onChangeText={setProcurementCentre}
+              />
+            </View>
+
+            <View style={styles.rowFields}>
+              <View style={[styles.fieldGroup, { flex: 1, marginRight: Spacing.sm }]}>
+                <Text style={styles.label}>OFFICER NAME</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Rajesh Sharma"
+                  placeholderTextColor={Colors.textDim}
+                  value={officerName}
+                  onChangeText={setOfficerName}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>BADGE / NAFED ID</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. NAFED-4821"
+                  placeholderTextColor={Colors.textDim}
+                  value={officerId}
+                  onChangeText={setOfficerId}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>CONSIGNMENT & FARMER REMARKS</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g. Farmer: Ramdas Patil, Nashik Red rabi variety, 60 quintal lot sampled."
+                placeholderTextColor={Colors.textDim}
+                multiline={true}
+                numberOfLines={3}
+                value={notes}
+                onChangeText={setNotes}
               />
             </View>
           </View>
+        </FadeInView>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Consignment Remarks / Farmer Details</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="e.g. Farmer: Ramdas Patil, Variety: Rabi Red, 50 bags sampled"
-              placeholderTextColor="#64748b"
-              multiline={true}
-              numberOfLines={3}
-              value={notes}
-              onChangeText={setNotes}
-            />
+        {/* Action Buttons */}
+        <FadeInView delay={220} distance={15}>
+          <View style={styles.btnRow}>
+            <AnimatedPressable
+              haptic="light"
+              style={styles.cancelBtn}
+              onPress={onCancel}
+              disabled={submitting}
+            >
+              <Text style={styles.cancelBtnText}>Back</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="heavy"
+              style={styles.submitBtn}
+              onPress={handleStartCapture}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color={Colors.text} size="small" />
+              ) : (
+                <Text style={styles.submitBtnText}>Proceed to Camera Capture →</Text>
+              )}
+            </AnimatedPressable>
           </View>
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.btnRow}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={onCancel}
-            disabled={submitting}
-          >
-            <Text style={styles.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.submitBtn}
-            onPress={handleStartCapture}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.submitBtnText}>Proceed to Camera →</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        </FadeInView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -205,65 +247,94 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.bg,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.hero,
   },
   titleRow: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
+  },
+  stepBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accentSubtle,
+    borderRadius: Radius.xs,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 6,
+  },
+  stepBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.accent,
+    letterSpacing: 0.8,
   },
   screenTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#f8f9fa',
+    ...Typography.title1,
+    color: Colors.text,
   },
-  stepIndicator: {
+  stepSubtitle: {
     fontSize: 12,
-    color: '#38bdf8',
-    marginTop: 2,
-    fontWeight: '600',
+    color: Colors.textMuted,
+    marginTop: 4,
+    lineHeight: 18,
   },
   gpsCard: {
-    backgroundColor: '#162232',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: '#223348',
+    borderColor: Colors.borderMuted,
+  },
+  gpsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  radarContainer: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gpsInfo: {
+    flex: 1,
   },
   gpsTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#94a3b8',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  gpsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    color: Colors.textDim,
+    letterSpacing: 0.8,
   },
   gpsText: {
-    fontSize: 11,
-    color: '#94a3b8',
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
   gpsLockedText: {
     fontSize: 11,
-    color: '#2ecc71',
+    color: Colors.gradeA,
     fontWeight: '600',
+    marginTop: 2,
+    fontFamily: 'monospace',
   },
   gpsDeniedText: {
     fontSize: 11,
-    color: '#e67e22',
+    color: Colors.urs,
+    marginTop: 2,
   },
   formCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.md,
     borderWidth: 1,
-    borderColor: '#2e3d52',
+    borderColor: Colors.borderMuted,
   },
   fieldGroup: {
     gap: 4,
@@ -272,51 +343,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#cbd5e1',
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.textMuted,
+    letterSpacing: 0.6,
   },
   input: {
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: Colors.borderMuted,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 10,
-    color: '#f8f9fa',
+    color: Colors.text,
     fontSize: 13,
   },
   textArea: {
-    minHeight: 70,
+    minHeight: 74,
     textAlignVertical: 'top',
   },
   btnRow: {
     flexDirection: 'row',
-    marginTop: 20,
-    gap: 12,
+    marginTop: Spacing.xl,
+    gap: Spacing.md,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#334155',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.cardBgElevated,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   cancelBtnText: {
-    color: '#cbd5e1',
+    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '700',
   },
   submitBtn: {
-    flex: 2,
+    flex: 2.2,
     paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: '#0284c7',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accentDark,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.accent,
   },
   submitBtnText: {
-    color: '#fff',
+    color: Colors.text,
     fontSize: 13,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });

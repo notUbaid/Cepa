@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { ApiClient } from './src/api/client';
 import { Header } from './src/components/Header';
 import { CaptureScreen } from './src/screens/CaptureScreen';
@@ -9,6 +15,7 @@ import { NewInspectionScreen } from './src/screens/NewInspectionScreen';
 import { QualityCheckScreen } from './src/screens/QualityCheckScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { InspectionDetail, SampleDetail } from './src/types';
+import { Colors } from './src/ui';
 
 type Screen =
   | 'HOME'
@@ -25,8 +32,27 @@ export default function App() {
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
 
   const [serverOnline, setServerOnline] = useState(true);
-  const [policyVersion, setPolicyVersion] = useState('DEMO_ASSUMPTION_v1');
-  const [isMockActive, setIsMockActive] = useState(true);
+  const [policyVersion, setPolicyVersion] = useState('BIS_IS_17912_2022');
+  const [isMockActive, setIsMockActive] = useState(false);
+
+  // Smooth Screen Cross-fade
+  const screenFade = useRef(new Animated.Value(1)).current;
+
+  const navigateTo = (screen: Screen) => {
+    Animated.sequence([
+      Animated.timing(screenFade, {
+        toValue: 0.85,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(screenFade, {
+        toValue: 1,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    setCurrentScreen(screen);
+  };
 
   // Poll health on startup and periodically
   useEffect(() => {
@@ -52,15 +78,15 @@ export default function App() {
       setActiveInspection(inspection);
 
       if (inspection.status === 'FINALIZED') {
-        setCurrentScreen('FINAL_REPORT');
+        navigateTo('FINAL_REPORT');
       } else if (inspection.sample_ids.length > 0) {
         // Load the latest sample
         const latestSampleId = inspection.sample_ids[inspection.sample_ids.length - 1];
         const sample = await ApiClient.getSample(inspection.id, latestSampleId);
         setActiveSample(sample);
-        setCurrentScreen('RESULTS');
+        navigateTo('RESULTS');
       } else {
-        setCurrentScreen('CAPTURE');
+        navigateTo('CAPTURE');
       }
     } catch (e: any) {
       alert(`Could not load inspection: ${e.message}`);
@@ -69,17 +95,17 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1b263b" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       <Header
         serverConnected={serverOnline}
         policyVersion={policyVersion}
         isMockActive={isMockActive}
       />
 
-      <View style={styles.content}>
+      <Animated.View style={[styles.content, { opacity: screenFade }]}>
         {currentScreen === 'HOME' && (
           <HomeScreen
-            onStartNewInspection={() => setCurrentScreen('NEW_INSPECTION')}
+            onStartNewInspection={() => navigateTo('NEW_INSPECTION')}
             onSelectInspection={handleSelectInspection}
           />
         )}
@@ -88,9 +114,9 @@ export default function App() {
           <NewInspectionScreen
             onInspectionCreated={(inspection) => {
               setActiveInspection(inspection);
-              setCurrentScreen('CAPTURE');
+              navigateTo('CAPTURE');
             }}
-            onCancel={() => setCurrentScreen('HOME')}
+            onCancel={() => navigateTo('HOME')}
           />
         )}
 
@@ -99,9 +125,9 @@ export default function App() {
             inspection={activeInspection}
             onPhotoCaptured={(uri) => {
               setCapturedPhotoUri(uri);
-              setCurrentScreen('QUALITY_CHECK');
+              navigateTo('QUALITY_CHECK');
             }}
-            onCancel={() => setCurrentScreen('HOME')}
+            onCancel={() => navigateTo('HOME')}
           />
         )}
 
@@ -111,9 +137,9 @@ export default function App() {
             photoUri={capturedPhotoUri}
             onCheckPassed={(sample) => {
               setActiveSample(sample);
-              setCurrentScreen('RESULTS');
+              navigateTo('RESULTS');
             }}
-            onRetake={() => setCurrentScreen('CAPTURE')}
+            onRetake={() => navigateTo('CAPTURE')}
           />
         )}
 
@@ -123,9 +149,9 @@ export default function App() {
             sample={activeSample}
             onFinalize={(finalized) => {
               setActiveInspection(finalized);
-              setCurrentScreen('FINAL_REPORT');
+              navigateTo('FINAL_REPORT');
             }}
-            onAddSample={() => setCurrentScreen('CAPTURE')}
+            onAddSample={() => navigateTo('CAPTURE')}
           />
         )}
 
@@ -136,11 +162,11 @@ export default function App() {
               setActiveInspection(null);
               setActiveSample(null);
               setCapturedPhotoUri(null);
-              setCurrentScreen('HOME');
+              navigateTo('HOME');
             }}
           />
         )}
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -148,7 +174,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.bg,
   },
   content: {
     flex: 1,

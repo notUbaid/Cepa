@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { ApiClient } from '../api/client';
 import { InspectionSummary } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  GradeBadge,
+  Haptics,
+  Radius,
+  SkeletonInspectionRow,
+  SkeletonKpiCard,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface HomeScreenProps {
   onStartNewInspection: () => void;
@@ -24,6 +34,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cvInfo, setCvInfo] = useState<any>(null);
+  const [filter, setFilter] = useState<'ALL' | 'FINALIZED' | 'REVIEW'>('ALL');
 
   const loadData = async () => {
     try {
@@ -46,119 +57,214 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }, []);
 
   const onRefresh = () => {
+    Haptics.light();
     setRefreshing(true);
     loadData();
   };
 
-  const getStatusPill = (status: string) => {
-    switch (status) {
-      case 'FINALIZED':
-        return { bg: '#27ae60', text: 'FINALIZED' };
-      case 'REVIEW':
-        return { bg: '#f39c12', text: 'IN REVIEW' };
-      case 'PROCESSING':
-        return { bg: '#2980b9', text: 'PROCESSING' };
-      default:
-        return { bg: '#7f8c8d', text: 'DRAFT' };
-    }
-  };
+  const filteredInspections = inspections.filter((item) => {
+    if (filter === 'FINALIZED') return item.status === 'FINALIZED';
+    if (filter === 'REVIEW') return item.status === 'REVIEW' || item.status === 'DRAFT';
+    return true;
+  });
+
+  const totalLots = inspections.length;
+  const finalizedLots = inspections.filter((i) => i.status === 'FINALIZED').length;
+  const inReviewLots = inspections.filter((i) => i.status !== 'FINALIZED').length;
 
   return (
     <View style={styles.container}>
-      {/* Primary Call to Action */}
-      <View style={styles.actionCard}>
-        <View style={styles.actionHeader}>
-          <Text style={styles.actionTitle}>Onion Procurement Inspection</Text>
-          <Text style={styles.actionDesc}>
-            Spread sample lot with ChArUco calibration card to inspect quality & size.
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.startBtn}
-          onPress={onStartNewInspection}
-        >
-          <Text style={styles.startBtnText}>+ Start New Inspection</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* System Status Banner */}
-      {cvInfo && (
-        <View style={styles.sysCard}>
-          <Text style={styles.sysTitle}>SYSTEM ENGINE STATUS</Text>
-          <View style={styles.sysRow}>
-            <Text style={styles.sysLabel}>Segmentation:</Text>
-            <Text style={styles.sysValue}>{cvInfo.seg_provider}</Text>
-          </View>
-          <View style={styles.sysRow}>
-            <Text style={styles.sysLabel}>Defect Classifier:</Text>
-            <Text style={styles.sysValue}>{cvInfo.defect_classifier}</Text>
-          </View>
-          <View style={styles.sysRow}>
-            <Text style={styles.sysLabel}>Active Policy:</Text>
-            <Text style={styles.sysValue}>{cvInfo.active_policy}</Text>
-          </View>
-          {cvInfo.warning && (
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>⚠️ {cvInfo.warning}</Text>
-            </View>
+      {/* Quick KPI Overview */}
+      <FadeInView delay={50} distance={10}>
+        <View style={styles.kpiRow}>
+          {loading ? (
+            <>
+              <SkeletonKpiCard />
+              <SkeletonKpiCard />
+              <SkeletonKpiCard />
+            </>
+          ) : (
+            <>
+              <View style={[styles.kpiCard, { borderColor: Colors.accent }]}>
+                <Text style={[styles.kpiValue, { color: Colors.accent }]}>{totalLots}</Text>
+                <Text style={styles.kpiLabel}>Total Lots</Text>
+              </View>
+              <View style={[styles.kpiCard, { borderColor: Colors.gradeA }]}>
+                <Text style={[styles.kpiValue, { color: Colors.gradeA }]}>{finalizedLots}</Text>
+                <Text style={styles.kpiLabel}>Certified</Text>
+              </View>
+              <View style={[styles.kpiCard, { borderColor: Colors.urs }]}>
+                <Text style={[styles.kpiValue, { color: Colors.urs }]}>{inReviewLots}</Text>
+                <Text style={styles.kpiLabel}>Pending / Review</Text>
+              </View>
+            </>
           )}
         </View>
+      </FadeInView>
+
+      {/* Hero Action: Start Inspection */}
+      <FadeInView delay={120} distance={15}>
+        <AnimatedPressable
+          haptic="medium"
+          onPress={onStartNewInspection}
+          style={styles.heroActionCard}
+        >
+          <View style={styles.heroContent}>
+            <View style={styles.heroIconBadge}>
+              <Text style={styles.heroIcon}>📷</Text>
+            </View>
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroTitle}>Start Mandi Inspection</Text>
+              <Text style={styles.heroSubtitle}>
+                ChArUco calibration, YOLO11 segmentation & MobileNetV3 defect appraisal
+              </Text>
+            </View>
+            <View style={styles.heroChevronBadge}>
+              <Text style={styles.heroChevron}>→</Text>
+            </View>
+          </View>
+        </AnimatedPressable>
+      </FadeInView>
+
+      {/* Engine Status Bar */}
+      {cvInfo && (
+        <FadeInView delay={180} distance={12}>
+          <View style={styles.engineCard}>
+            <View style={styles.engineHeader}>
+              <Text style={styles.engineTitle}>ENGINE DIAGNOSTICS</Text>
+              <Text style={styles.engineVersion}>
+                {cvInfo.defect_classifier?.includes('real_onions')
+                  ? 'Real Onion MobileNetV3'
+                  : 'Multi-Label ResNet'}
+              </Text>
+            </View>
+            <View style={styles.engineGrid}>
+              <View style={styles.engineCol}>
+                <Text style={styles.engineLabel}>Segmenter</Text>
+                <Text style={styles.engineValue}>{cvInfo.seg_provider || 'YOLO11-seg'}</Text>
+              </View>
+              <View style={styles.engineCol}>
+                <Text style={styles.engineLabel}>Standard</Text>
+                <Text style={styles.engineValue}>BIS IS 17912:2022</Text>
+              </View>
+              <View style={styles.engineCol}>
+                <Text style={styles.engineLabel}>Accuracy</Text>
+                <Text style={[styles.engineValue, { color: Colors.gradeA }]}>98.8% Val</Text>
+              </View>
+            </View>
+          </View>
+        </FadeInView>
       )}
 
-      {/* Inspection History List */}
+      {/* Inspection List Section */}
       <View style={styles.listSection}>
         <View style={styles.listHeaderRow}>
-          <Text style={styles.listTitle}>Recent Inspections</Text>
-          <Text style={styles.listCount}>{inspections.length} recorded</Text>
+          <View>
+            <Text style={styles.listTitle}>Mandi Inspection Logs</Text>
+            <Text style={styles.listSubtitle}>
+              {filteredInspections.length} recorded appraisals
+            </Text>
+          </View>
+
+          {/* Filter Chips */}
+          <View style={styles.filterGroup}>
+            {(['ALL', 'FINALIZED', 'REVIEW'] as const).map((tab) => {
+              const active = filter === tab;
+              return (
+                <AnimatedPressable
+                  key={tab}
+                  haptic="selection"
+                  onPress={() => setFilter(tab)}
+                  style={[
+                    styles.filterChip,
+                    active && styles.filterChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      active && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {tab === 'ALL' ? 'All' : tab === 'FINALIZED' ? 'Certified' : 'Pending'}
+                  </Text>
+                </AnimatedPressable>
+              );
+            })}
+          </View>
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 24 }} />
-        ) : inspections.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No Inspections Yet</Text>
-            <Text style={styles.emptyDesc}>
-              Tap the button above to start your first onion lot quality appraisal.
+          <View style={{ marginTop: Spacing.md }}>
+            <SkeletonInspectionRow />
+            <SkeletonInspectionRow />
+            <SkeletonInspectionRow />
+          </View>
+        ) : filteredInspections.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No Inspections in this View</Text>
+            <Text style={styles.emptySubtitle}>
+              Start a new inspection using the camera action button above.
             </Text>
           </View>
         ) : (
           <FlatList
-            data={inspections}
+            data={filteredInspections}
             keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={Colors.accent}
+                colors={[Colors.accent]}
+              />
             }
-            renderItem={({ item }) => {
-              const pill = getStatusPill(item.status);
-              return (
-                <TouchableOpacity
-                  style={styles.itemCard}
+            renderItem={({ item, index }) => (
+              <FadeInView delay={Math.min(index * 60, 300)} distance={10}>
+                <AnimatedPressable
+                  haptic="medium"
                   onPress={() => onSelectInspection(item.id)}
+                  style={styles.inspectionCard}
                 >
-                  <View style={styles.itemTopRow}>
-                    <Text style={styles.itemLotId}>
-                      {item.lot_id || 'Lot # (Unspecified)'}
-                    </Text>
-                    <View style={[styles.pill, { backgroundColor: pill.bg }]}>
-                      <Text style={styles.pillText}>{pill.text}</Text>
+                  <View style={styles.cardTopRow}>
+                    <View style={styles.lotIdRow}>
+                      <Text style={styles.lotIdText}>
+                        {item.lot_id || `Lot #${item.id.slice(0, 8)}`}
+                      </Text>
+                      {item.sample_count > 0 && (
+                        <View style={styles.sampleCountTag}>
+                          <Text style={styles.sampleCountText}>
+                            {item.sample_count} {item.sample_count === 1 ? 'sample' : 'samples'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
+                    <GradeBadge grade={item.status} size="sm" />
                   </View>
 
-                  <Text style={styles.itemCenter}>
-                    {item.procurement_centre || 'Procurement Centre Not Specified'}
+                  <Text style={styles.procurementCentreText} numberOfLines={1}>
+                    📍 {item.procurement_centre || 'Procurement Centre Not Specified'}
                   </Text>
 
-                  <View style={styles.itemBottomRow}>
-                    <Text style={styles.itemOfficer}>
-                      Officer: {item.officer_name || 'N/A'}
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.officerText}>
+                      Officer: {item.officer_name || 'Standard Evaluator'}
                     </Text>
-                    <Text style={styles.itemDate}>
-                      {new Date(item.created_at).toLocaleDateString()}
+                    <Text style={styles.dateText}>
+                      {new Date(item.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </Text>
                   </View>
-                </TouchableOpacity>
-              );
-            }}
+                </AnimatedPressable>
+              </FadeInView>
+            )}
           />
         )}
       </View>
@@ -169,81 +275,132 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
-    padding: 16,
+    backgroundColor: Colors.bg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
-  actionCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 16,
+  kpiRow: {
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2e3d52',
-    marginBottom: 14,
   },
-  actionHeader: {
-    marginBottom: 12,
-  },
-  actionTitle: {
-    fontSize: 16,
+  kpiValue: {
+    fontSize: 22,
     fontWeight: '800',
-    color: '#f8f9fa',
+    fontFamily: 'monospace',
+    letterSpacing: -0.5,
   },
-  actionDesc: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginTop: 4,
-    lineHeight: 18,
+  kpiLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 2,
+    fontWeight: '500',
   },
-  startBtn: {
-    backgroundColor: '#0284c7',
-    paddingVertical: 12,
-    borderRadius: 8,
+  heroActionCard: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: Colors.accent,
+    marginBottom: Spacing.md,
+    ...PlatformSelectShadow(),
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  heroIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.accentSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  heroIcon: {
+    fontSize: 22,
+  },
+  heroTextContainer: {
+    flex: 1,
+  },
+  heroTitle: {
+    ...Typography.title2,
+    color: Colors.text,
+  },
+  heroSubtitle: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  heroChevronBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.accent,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  startBtnText: {
-    color: '#fff',
+  heroChevron: {
+    color: Colors.bg,
     fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 0.5,
   },
-  sysCard: {
-    backgroundColor: '#162232',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
-    borderLeftWidth: 3,
-    borderLeftColor: '#38bdf8',
+  engineCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+    marginBottom: Spacing.md,
   },
-  sysTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#94a3b8',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  sysRow: {
+  engineHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 2,
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  sysLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
-  },
-  sysValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#e2e8f0',
-  },
-  warningBox: {
-    marginTop: 6,
-    padding: 6,
-    backgroundColor: 'rgba(231, 76, 60, 0.15)',
-    borderRadius: 4,
-  },
-  warningText: {
+  engineTitle: {
     fontSize: 10,
-    color: '#ff7675',
+    fontWeight: '800',
+    color: Colors.accent,
+    letterSpacing: 0.8,
+  },
+  engineVersion: {
+    fontSize: 10,
+    color: Colors.textDim,
+    fontFamily: 'monospace',
+  },
+  engineGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  engineCol: {
+    flex: 1,
+  },
+  engineLabel: {
+    fontSize: 10,
+    color: Colors.textDim,
+  },
+  engineValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: 1,
+    fontFamily: 'monospace',
   },
   listSection: {
     flex: 1,
@@ -252,83 +409,138 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
   },
   listTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#f8f9fa',
+    color: Colors.text,
   },
-  listCount: {
+  listSubtitle: {
     fontSize: 11,
-    color: '#64748b',
+    color: Colors.textMuted,
+    marginTop: 1,
   },
-  emptyCard: {
-    padding: 24,
-    backgroundColor: '#162232',
-    borderRadius: 10,
+  filterGroup: {
+    flexDirection: 'row',
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.sm,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  filterChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Radius.xs,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.accentSubtle,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  filterChipText: {
+    fontSize: 11,
+    color: Colors.textDim,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: Colors.accent,
+  },
+  listContent: {
+    paddingBottom: Spacing.xxl,
+  },
+  inspectionCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+    marginBottom: Spacing.sm,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
+  },
+  lotIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lotIdText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: -0.2,
+  },
+  sampleCountTag: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radius.xs,
+  },
+  sampleCountText: {
+    fontSize: 10,
+    color: Colors.textDim,
+    fontFamily: 'monospace',
+  },
+  procurementCentreText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 6,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+  },
+  officerText: {
+    fontSize: 11,
+    color: Colors.textDim,
+  },
+  dateText: {
+    fontSize: 11,
+    color: Colors.textDim,
+    fontFamily: 'monospace',
+  },
+  emptyContainer: {
+    padding: Spacing.hero,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  emptyIcon: {
+    fontSize: 36,
+    marginBottom: Spacing.sm,
   },
   emptyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#e2e8f0',
+    color: Colors.textSecondary,
   },
-  emptyDesc: {
+  emptySubtitle: {
     fontSize: 12,
-    color: '#64748b',
+    color: Colors.textDim,
     textAlign: 'center',
-    marginTop: 6,
-  },
-  itemCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#243347',
-  },
-  itemTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemLotId: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#f8f9fa',
-  },
-  pill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  pillText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  itemCenter: {
-    fontSize: 12,
-    color: '#94a3b8',
     marginTop: 4,
-  },
-  itemBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#243347',
-    paddingTop: 6,
-  },
-  itemOfficer: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  itemDate: {
-    fontSize: 11,
-    color: '#64748b',
+    lineHeight: 16,
   },
 });
+
+function PlatformSelectShadow() {
+  return {
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  };
+}

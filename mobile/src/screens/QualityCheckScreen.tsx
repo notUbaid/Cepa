@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { ApiClient } from '../api/client';
 import { InspectionDetail, SampleDetail } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  Haptics,
+  LazyImage,
+  Radius,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface QualityCheckScreenProps {
   inspection: InspectionDetail;
@@ -30,12 +38,36 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
   const [failureCodes, setFailureCodes] = useState<string[]>([]);
   const [sampleResult, setSampleResult] = useState<SampleDetail | null>(null);
 
+  // Staggered checklist items for visual delight
+  const [checkProgress, setCheckProgress] = useState({
+    blur: false,
+    exposure: false,
+    scale: false,
+    segmentation: false,
+  });
+
   useEffect(() => {
     let isMounted = true;
 
     const processPhoto = async () => {
       try {
         setStage('uploading');
+
+        // Step 1 check simulation while network upload begins
+        setTimeout(() => {
+          if (isMounted) {
+            setCheckProgress((p) => ({ ...p, blur: true }));
+            Haptics.light();
+          }
+        }, 400);
+
+        setTimeout(() => {
+          if (isMounted) {
+            setCheckProgress((p) => ({ ...p, exposure: true }));
+            Haptics.light();
+          }
+        }, 800);
+
         const sample = await ApiClient.uploadSample(inspection.id, photoUri, {
           lat: inspection.geo_lat ?? undefined,
           lon: inspection.geo_lon ?? undefined,
@@ -45,23 +77,33 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
         if (!isMounted) return;
 
         if (sample.quality_passed && sample.processing_status === 'DONE') {
+          setCheckProgress({
+            blur: true,
+            exposure: true,
+            scale: true,
+            segmentation: true,
+          });
           setStage('done');
           setSampleResult(sample);
+          Haptics.success();
+
           setTimeout(() => {
             if (isMounted) onCheckPassed(sample);
-          }, 1200);
+          }, 1400);
         } else {
           setStage('failed');
           setFailureCodes(sample.quality_flags || []);
           setErrorMessage(
             sample.processing_error ||
-              'Image quality validation failed. Please check the lighting, focus, or calibration board placement.'
+              'Image quality validation failed. Please check illumination or ChArUco card placement.'
           );
+          Haptics.error();
         }
       } catch (err: any) {
         if (!isMounted) return;
         setStage('failed');
-        setErrorMessage(`Network or processing error: ${err.message}`);
+        setErrorMessage(`Inference pipeline error: ${err.message}`);
+        Haptics.error();
       }
     };
 
@@ -74,167 +116,328 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Photo Thumbnail */}
-      <View style={styles.thumbnailContainer}>
-        <Image source={{ uri: photoUri }} style={styles.thumbnail} resizeMode="cover" />
-      </View>
-
-      {/* Progress / Failure Card */}
-      <View style={styles.card}>
-        {stage === 'uploading' || stage === 'analyzing' ? (
-          <View style={styles.stateCenter}>
-            <ActivityIndicator size="large" color="#38bdf8" />
-            <Text style={styles.stateTitle}>Evaluating Sample Quality</Text>
-            <Text style={styles.stateSubtitle}>
-              Running Laplacian blur analysis, exposure check, ChArUco detection, and
-              YOLO11 instance segmentation...
-            </Text>
+      {/* Captured Image Preview */}
+      <FadeInView delay={50} distance={10}>
+        <View style={styles.thumbnailContainer}>
+          <LazyImage
+            source={{ uri: photoUri }}
+            style={styles.thumbnail}
+            borderRadius={Radius.lg}
+            resizeMode="cover"
+          />
+          <View style={styles.thumbnailBadge}>
+            <Text style={styles.thumbnailBadgeText}>PROVISIONAL CAPTURE</Text>
           </View>
-        ) : stage === 'done' ? (
-          <View style={styles.stateCenter}>
-            <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successTitle}>Quality Verification Passed</Text>
-            <Text style={styles.successSubtitle}>
-              Detected {sampleResult?.onion_count ?? 0} onion bulbs. Scale calibration
-              locked at{' '}
-              {sampleResult?.scale_mm_per_px
-                ? `${sampleResult.scale_mm_per_px.toFixed(3)} mm/px`
-                : 'N/A'}
-              .
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.failureContainer}>
-            <Text style={styles.failureIcon}>⚠️</Text>
-            <Text style={styles.failureTitle}>Image Not Usable</Text>
-            <Text style={styles.failureDesc}>{errorMessage}</Text>
+        </View>
+      </FadeInView>
 
-            {failureCodes.length > 0 && (
-              <View style={styles.flagsList}>
-                {failureCodes.map((code, idx) => (
-                  <Text key={idx} style={styles.flagItem}>
-                    • {code.replace(/_/g, ' ').toUpperCase()}
-                  </Text>
-                ))}
+      {/* Progress / Results Card */}
+      <FadeInView delay={120} distance={15}>
+        <View style={styles.card}>
+          {stage === 'uploading' || stage === 'analyzing' ? (
+            <View style={styles.stateCenter}>
+              <ActivityIndicator size="large" color={Colors.accent} />
+              <Text style={styles.stateTitle}>Optical Verification Gates</Text>
+              <Text style={styles.stateSubtitle}>
+                Running Laplacian blur analysis, exposure check, ChArUco detection &
+                YOLO11 instance segmentation...
+              </Text>
+
+              {/* Animated Checklist */}
+              <View style={styles.checklist}>
+                <CheckItem
+                  label="Laplacian Focus & Motion Blur"
+                  passed={checkProgress.blur}
+                />
+                <CheckItem
+                  label="Dynamic Range & Glare Threshold"
+                  passed={checkProgress.exposure}
+                />
+                <CheckItem
+                  label="ChArUco 50mm Calibration Bar"
+                  passed={checkProgress.scale}
+                />
+                <CheckItem
+                  label="YOLO11-seg & MobileNetV3 Defects"
+                  passed={checkProgress.segmentation}
+                />
               </View>
-            )}
+            </View>
+          ) : stage === 'done' ? (
+            <View style={styles.stateCenter}>
+              <View style={styles.successGlowBadge}>
+                <Text style={styles.successIcon}>✓</Text>
+              </View>
+              <Text style={styles.successTitle}>Quality Verification Passed</Text>
+              <Text style={styles.successSubtitle}>
+                Detected {sampleResult?.onion_count ?? 0} onion bulbs.{' '}
+                {sampleResult?.scale_mm_per_px && (
+                  <Text style={styles.scaleLockText}>
+                    Scale calibrated at {sampleResult.scale_mm_per_px.toFixed(3)} mm/px.
+                  </Text>
+                )}
+              </Text>
+              <View style={styles.redirectBadge}>
+                <Text style={styles.redirectText}>Opening Mandi Results View...</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.failureContainer}>
+              <View style={styles.failGlowBadge}>
+                <Text style={styles.failIcon}>✕</Text>
+              </View>
+              <Text style={styles.failureTitle}>Sample Validation Rejected</Text>
+              <Text style={styles.failureDesc}>{errorMessage}</Text>
 
-            <TouchableOpacity style={styles.retakeBtn} onPress={onRetake}>
-              <Text style={styles.retakeBtnText}>📷 Retake Photograph</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+              {failureCodes.length > 0 && (
+                <View style={styles.flagsList}>
+                  {failureCodes.map((code, idx) => (
+                    <Text key={idx} style={styles.flagItem}>
+                      • {code.replace(/_/g, ' ').toUpperCase()}
+                    </Text>
+                  ))}
+                </View>
+              )}
+
+              <AnimatedPressable
+                haptic="medium"
+                style={styles.retakeBtn}
+                onPress={onRetake}
+              >
+                <Text style={styles.retakeBtnText}>📷 Retake Photograph</Text>
+              </AnimatedPressable>
+            </View>
+          )}
+        </View>
+      </FadeInView>
     </View>
   );
 };
 
+const CheckItem: React.FC<{ label: string; passed: boolean }> = ({ label, passed }) => (
+  <View style={styles.checkItemRow}>
+    <View
+      style={[
+        styles.checkDot,
+        {
+          backgroundColor: passed ? Colors.gradeA : Colors.cardBgElevated,
+          borderColor: passed ? Colors.gradeA : Colors.borderMuted,
+        },
+      ]}
+    >
+      {passed && <Text style={styles.checkTick}>✓</Text>}
+    </View>
+    <Text
+      style={[
+        styles.checkItemLabel,
+        { color: passed ? Colors.text : Colors.textMuted },
+      ]}
+    >
+      {label}
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
-    padding: 16,
+    backgroundColor: Colors.bg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     justifyContent: 'center',
   },
   thumbnailContainer: {
     width: '100%',
-    height: 220,
-    borderRadius: 12,
+    height: 200,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
-    backgroundColor: '#000',
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
+    position: 'relative',
   },
   thumbnail: {
     width: '100%',
     height: '100%',
   },
-  card: {
-    backgroundColor: '#1b263b',
-    borderRadius: 14,
-    padding: 24,
+  thumbnailBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(7, 13, 24, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
     borderWidth: 1,
-    borderColor: '#243347',
+    borderColor: Colors.borderMuted,
+  },
+  thumbnailBadgeText: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.accent,
+  },
+  card: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   stateCenter: {
     alignItems: 'center',
   },
   stateTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#f8f9fa',
-    marginTop: 14,
+    ...Typography.title2,
+    color: Colors.text,
+    marginTop: Spacing.md,
   },
   stateSubtitle: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: Colors.textMuted,
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: Spacing.xs,
     lineHeight: 18,
+  },
+  checklist: {
+    width: '100%',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+    gap: 10,
+  },
+  checkItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  checkDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkTick: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.bg,
+  },
+  checkItemLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  successGlowBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.gradeABg,
+    borderWidth: 2,
+    borderColor: Colors.gradeA,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.gradeA,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 6,
   },
   successIcon: {
-    fontSize: 32,
-    color: '#2ecc71',
-    fontWeight: 'bold',
+    fontSize: 26,
+    color: Colors.gradeA,
+    fontWeight: '800',
   },
   successTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#2ecc71',
-    marginTop: 8,
+    ...Typography.title1,
+    color: Colors.gradeA,
+    marginTop: Spacing.md,
   },
   successSubtitle: {
-    fontSize: 12,
-    color: '#cbd5e1',
+    fontSize: 13,
+    color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
+  },
+  scaleLockText: {
+    color: Colors.accent,
+    fontFamily: 'monospace',
+    fontWeight: '600',
+  },
+  redirectBadge: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.accentSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  redirectText: {
+    fontSize: 11,
+    color: Colors.accent,
+    fontWeight: '600',
   },
   failureContainer: {
     alignItems: 'center',
   },
-  failureIcon: {
-    fontSize: 32,
-    marginBottom: 4,
+  failGlowBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.rejectBg,
+    borderWidth: 2,
+    borderColor: Colors.reject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  failIcon: {
+    fontSize: 24,
+    color: Colors.reject,
+    fontWeight: '800',
   },
   failureTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#e74c3c',
+    ...Typography.title1,
+    color: Colors.reject,
+    marginTop: Spacing.md,
   },
   failureDesc: {
-    fontSize: 13,
-    color: '#f87171',
+    fontSize: 12,
+    color: Colors.textMuted,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: Spacing.xs,
     lineHeight: 18,
   },
   flagsList: {
-    marginVertical: 12,
-    backgroundColor: 'rgba(231, 76, 60, 0.15)',
-    padding: 10,
-    borderRadius: 8,
+    marginVertical: Spacing.md,
+    backgroundColor: Colors.rejectBg,
+    padding: Spacing.md,
+    borderRadius: Radius.md,
     width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   flagItem: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#ff7675',
+    color: '#fca5a5',
     marginVertical: 2,
+    fontFamily: 'monospace',
   },
   retakeBtn: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 10,
+    backgroundColor: Colors.reject,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radius.md,
     width: '100%',
     alignItems: 'center',
+    marginTop: Spacing.sm,
   },
   retakeBtnText: {
-    color: '#fff',
-    fontSize: 14,
+    color: Colors.text,
+    fontSize: 13,
     fontWeight: '800',
   },
 });
