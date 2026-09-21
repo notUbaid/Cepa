@@ -17,45 +17,45 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
     switch (grade) {
       case 'GRADE_A':
         return {
-          label: 'GRADE A',
+          label: 'Grade A',
           color: Colors.gradeA,
           bg: Colors.gradeABg,
-          borderColor: 'rgba(16, 185, 129, 0.35)',
+          borderColor: Colors.gradeABorder,
         };
       case 'URS':
         return {
           label: 'URS',
           color: Colors.urs,
           bg: Colors.ursBg,
-          borderColor: 'rgba(245, 158, 11, 0.35)',
+          borderColor: Colors.ursBorder,
         };
       case 'REJECTED':
         return {
-          label: 'REJECTED',
+          label: 'Rejected',
           color: Colors.reject,
           bg: Colors.rejectBg,
-          borderColor: 'rgba(239, 68, 68, 0.35)',
+          borderColor: Colors.rejectBorder,
         };
       case 'FINALIZED':
         return {
-          label: 'FINALIZED',
+          label: 'Certified',
           color: Colors.gradeA,
           bg: Colors.gradeABg,
-          borderColor: 'rgba(16, 185, 129, 0.35)',
+          borderColor: Colors.gradeABorder,
         };
       case 'PROCESSING':
         return {
-          label: 'PROCESSING',
+          label: 'Processing',
           color: Colors.accent,
           bg: Colors.accentSubtle,
-          borderColor: 'rgba(56, 189, 248, 0.35)',
+          borderColor: Colors.border,
         };
       default:
         return {
-          label: grade || 'REVIEW',
+          label: grade ? grade.replace(/_/g, ' ') : 'Review',
           color: Colors.review,
           bg: Colors.reviewBg,
-          borderColor: 'rgba(139, 92, 246, 0.35)',
+          borderColor: Colors.reviewBorder,
         };
     }
   };
@@ -72,8 +72,8 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
         {
           backgroundColor: config.bg,
           borderColor: config.borderColor,
-          paddingHorizontal: isSmall ? 6 : isLarge ? 12 : 8,
-          paddingVertical: isSmall ? 2 : isLarge ? 6 : 4,
+          paddingHorizontal: isSmall ? 7 : isLarge ? 12 : 9,
+          paddingVertical: isSmall ? 2 : isLarge ? 5 : 3,
         },
         style,
       ]}
@@ -83,10 +83,9 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
           styles.dot,
           {
             backgroundColor: config.color,
-            shadowColor: config.color,
-            width: isSmall ? 5 : isLarge ? 8 : 6,
-            height: isSmall ? 5 : isLarge ? 8 : 6,
-            borderRadius: isSmall ? 2.5 : isLarge ? 4 : 3,
+            width: isSmall ? 5 : isLarge ? 7 : 6,
+            height: isSmall ? 5 : isLarge ? 7 : 6,
+            borderRadius: isSmall ? 2.5 : isLarge ? 3.5 : 3,
           },
         ]}
       />
@@ -95,7 +94,7 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
           styles.label,
           {
             color: config.color,
-            fontSize: isSmall ? 10 : isLarge ? 13 : 11,
+            fontSize: isSmall ? 10 : isLarge ? 12 : 11,
           },
         ]}
       >
@@ -114,9 +113,9 @@ export const SizeTierBadge: React.FC<{ tier?: string | null; style?: ViewStyle }
       case 'SUPER':
         return Colors.gradeA;
       case 'MADHYAM':
-        return Colors.accent;
+        return Colors.textSecondary;
       case 'JUMBO':
-        return '#a855f7';
+        return Colors.accent;
       case 'GOLI':
         return Colors.urs;
       default:
@@ -131,7 +130,8 @@ export const SizeTierBadge: React.FC<{ tier?: string | null; style?: ViewStyle }
       style={[
         styles.sizeBadge,
         {
-          borderColor: color,
+          borderColor: Colors.border,
+          backgroundColor: Colors.cardBgElevated,
         },
         style,
       ]}
@@ -152,25 +152,21 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   dot: {
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 4,
-    elevation: 3,
+    // No neon glow halos
   },
   label: {
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   sizeBadge: {
     borderWidth: 1,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.xs,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
   },
   sizeLabel: {
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

@@ -15,6 +15,7 @@ import {
   GradeBadge,
   Haptics,
   Radius,
+  Shadows,
   SkeletonInspectionRow,
   SkeletonKpiCard,
   Spacing,
@@ -85,17 +86,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </>
           ) : (
             <>
-              <View style={[styles.kpiCard, { borderColor: Colors.accent }]}>
-                <Text style={[styles.kpiValue, { color: Colors.accent }]}>{totalLots}</Text>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiValue}>{totalLots}</Text>
                 <Text style={styles.kpiLabel}>Total Lots</Text>
               </View>
-              <View style={[styles.kpiCard, { borderColor: Colors.gradeA }]}>
-                <Text style={[styles.kpiValue, { color: Colors.gradeA }]}>{finalizedLots}</Text>
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiDotRow}>
+                  <View style={[styles.kpiDot, { backgroundColor: Colors.gradeA }]} />
+                  <Text style={styles.kpiValue}>{finalizedLots}</Text>
+                </View>
                 <Text style={styles.kpiLabel}>Certified</Text>
               </View>
-              <View style={[styles.kpiCard, { borderColor: Colors.urs }]}>
-                <Text style={[styles.kpiValue, { color: Colors.urs }]}>{inReviewLots}</Text>
-                <Text style={styles.kpiLabel}>Pending / Review</Text>
+              <View style={styles.kpiCard}>
+                <View style={styles.kpiDotRow}>
+                  <View style={[styles.kpiDot, { backgroundColor: Colors.urs }]} />
+                  <Text style={styles.kpiValue}>{inReviewLots}</Text>
+                </View>
+                <Text style={styles.kpiLabel}>In Review</Text>
               </View>
             </>
           )}
@@ -103,20 +110,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </FadeInView>
 
       {/* Hero Action: Start Inspection */}
-      <FadeInView delay={120} distance={15}>
+      <FadeInView delay={100} distance={12}>
         <AnimatedPressable
           haptic="medium"
           onPress={onStartNewInspection}
           style={styles.heroActionCard}
         >
           <View style={styles.heroContent}>
-            <View style={styles.heroIconBadge}>
-              <Text style={styles.heroIcon}>📷</Text>
-            </View>
             <View style={styles.heroTextContainer}>
-              <Text style={styles.heroTitle}>Start Mandi Inspection</Text>
+              <Text style={styles.heroTitle}>New Inspection</Text>
               <Text style={styles.heroSubtitle}>
-                ChArUco calibration, YOLO11 segmentation & MobileNetV3 defect appraisal
+                Calibrate reference marker, capture representative spread, and compute net mandi valuation
               </Text>
             </View>
             <View style={styles.heroChevronBadge}>
@@ -126,41 +130,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </AnimatedPressable>
       </FadeInView>
 
-      {/* Engine Status Bar */}
-      {cvInfo && (
-        <FadeInView delay={180} distance={12}>
-          <View style={styles.engineCard}>
-            <View style={styles.engineHeader}>
-              <Text style={styles.engineTitle}>ENGINE DIAGNOSTICS</Text>
-              <Text style={styles.engineVersion}>
-                {cvInfo.defect_classifier?.includes('real_onions')
-                  ? 'Real Onion MobileNetV3'
-                  : 'Multi-Label ResNet'}
-              </Text>
-            </View>
-            <View style={styles.engineGrid}>
-              <View style={styles.engineCol}>
-                <Text style={styles.engineLabel}>Segmenter</Text>
-                <Text style={styles.engineValue}>{cvInfo.seg_provider || 'YOLO11-seg'}</Text>
-              </View>
-              <View style={styles.engineCol}>
-                <Text style={styles.engineLabel}>Standard</Text>
-                <Text style={styles.engineValue}>BIS IS 17912:2022</Text>
-              </View>
-              <View style={styles.engineCol}>
-                <Text style={styles.engineLabel}>Accuracy</Text>
-                <Text style={[styles.engineValue, { color: Colors.gradeA }]}>98.8% Val</Text>
-              </View>
-            </View>
-          </View>
-        </FadeInView>
-      )}
-
       {/* Inspection List Section */}
       <View style={styles.listSection}>
         <View style={styles.listHeaderRow}>
           <View>
-            <Text style={styles.listTitle}>Mandi Inspection Logs</Text>
+            <Text style={styles.listTitle}>Inspection Records</Text>
             <Text style={styles.listSubtitle}>
               {filteredInspections.length} recorded appraisals
             </Text>
@@ -202,10 +176,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
         ) : filteredInspections.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
             <Text style={styles.emptyTitle}>No Inspections in this View</Text>
             <Text style={styles.emptySubtitle}>
-              Start a new inspection using the camera action button above.
+              Begin a new onion lot appraisal using the button above.
             </Text>
           </View>
         ) : (
@@ -246,12 +219,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </View>
 
                   <Text style={styles.procurementCentreText} numberOfLines={1}>
-                    📍 {item.procurement_centre || 'Procurement Centre Not Specified'}
+                    {item.procurement_centre || 'APMC Mandi Yard'}
                   </Text>
 
                   <View style={styles.cardFooter}>
                     <Text style={styles.officerText}>
-                      Officer: {item.officer_name || 'Standard Evaluator'}
+                      Officer: {item.officer_name || 'Assessor'}
                     </Text>
                     <Text style={styles.dateText}>
                       {new Date(item.created_at).toLocaleDateString(undefined, {
@@ -292,12 +265,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.card,
+  },
+  kpiDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  kpiDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   kpiValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    letterSpacing: -0.5,
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: -0.3,
   },
   kpiLabel: {
     fontSize: 11,
@@ -306,101 +291,45 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   heroActionCard: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.accent,
     borderRadius: Radius.lg,
-    padding: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: Colors.accent,
+    padding: Spacing.lg,
     marginBottom: Spacing.md,
-    ...PlatformSelectShadow(),
+    ...Shadows.card,
   },
   heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.md,
-  },
-  heroIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.accentSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  heroIcon: {
-    fontSize: 22,
   },
   heroTextContainer: {
     flex: 1,
   },
   heroTitle: {
-    ...Typography.title2,
-    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.2,
   },
   heroSubtitle: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 2,
-    lineHeight: 15,
+    fontSize: 12,
+    color: '#a1a1aa',
+    marginTop: 3,
+    lineHeight: 17,
   },
   heroChevronBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.accent,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   heroChevron: {
-    color: Colors.bg,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  engineCard: {
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.borderMuted,
-    marginBottom: Spacing.md,
-  },
-  engineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  engineTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.accent,
-    letterSpacing: 0.8,
-  },
-  engineVersion: {
-    fontSize: 10,
-    color: Colors.textDim,
-    fontFamily: 'monospace',
-  },
-  engineGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 4,
-  },
-  engineCol: {
-    flex: 1,
-  },
-  engineLabel: {
-    fontSize: 10,
-    color: Colors.textDim,
-  },
-  engineValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginTop: 1,
-    fontFamily: 'monospace',
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   listSection: {
     flex: 1,
@@ -423,29 +352,28 @@ const styles = StyleSheet.create({
   },
   filterGroup: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.sm,
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.pill,
     padding: 2,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   filterChip: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: Radius.xs,
+    borderRadius: Radius.pill,
   },
   filterChipActive: {
-    backgroundColor: Colors.accentSubtle,
-    borderWidth: 1,
-    borderColor: Colors.accent,
+    backgroundColor: Colors.accent,
   },
   filterChipText: {
     fontSize: 11,
-    color: Colors.textDim,
+    color: Colors.textSecondary,
     fontWeight: '600',
   },
   filterChipTextActive: {
-    color: Colors.accent,
+    color: '#ffffff',
+    fontWeight: '600',
   },
   listContent: {
     paddingBottom: Spacing.xxl,
@@ -455,8 +383,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
     marginBottom: Spacing.sm,
+    ...Shadows.card,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -469,7 +398,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lotIdText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.text,
     letterSpacing: -0.2,
@@ -479,11 +408,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: Radius.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   sampleCountText: {
     fontSize: 10,
-    color: Colors.textDim,
-    fontFamily: 'monospace',
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
   procurementCentreText: {
     fontSize: 12,
@@ -501,12 +432,11 @@ const styles = StyleSheet.create({
   },
   officerText: {
     fontSize: 11,
-    color: Colors.textDim,
+    color: Colors.textMuted,
   },
   dateText: {
     fontSize: 11,
-    color: Colors.textDim,
-    fontFamily: 'monospace',
+    color: Colors.textMuted,
   },
   emptyContainer: {
     padding: Spacing.hero,
@@ -515,32 +445,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: Spacing.sm,
+    borderColor: Colors.border,
   },
   emptyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: Colors.text,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: Colors.textDim,
+    color: Colors.textMuted,
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 16,
   },
 });
-
-function PlatformSelectShadow() {
-  return {
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  };
-}

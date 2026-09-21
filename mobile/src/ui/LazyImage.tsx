@@ -27,7 +27,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   style,
   containerStyle,
   resizeMode = 'cover',
-  fallbackText = '🧅',
+  fallbackText = 'C',
   borderRadius = Radius.md,
 }) => {
   const [loaded, setLoaded] = useState(false);
@@ -113,7 +113,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   fallbackIcon: {
-    fontSize: 24,
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textMuted,
     marginBottom: 4,
   },
   fallbackLabel: {

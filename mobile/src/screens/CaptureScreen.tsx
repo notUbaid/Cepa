@@ -77,7 +77,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.loadingText}>Calibrating optical sensor...</Text>
+        <Text style={styles.loadingText}>Initializing camera sensor...</Text>
       </View>
     );
   }
@@ -86,11 +86,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     return (
       <View style={styles.centerContainer}>
         <FadeInView delay={50} distance={15} style={styles.permCard}>
-          <Text style={styles.permIcon}>📷</Text>
+          <View style={styles.permBadge}>
+            <Text style={styles.permBadgeText}>Camera Permission</Text>
+          </View>
           <Text style={styles.permTitle}>Camera Access Required</Text>
           <Text style={styles.permDesc}>
-            Cepa requires high-resolution optical feed to segment touching onion bulbs
-            and detect ChArUco calibration cards.
+            Cepa requires camera access to measure onion diameters accurately and verify lot quality against APMC standards.
           </Text>
           <AnimatedPressable
             haptic="medium"
@@ -106,7 +107,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             onPress={pickFromGallery}
           >
             <Text style={styles.galleryFallbackText}>
-              📁 Choose Existing Photo / Sample Spread
+              Choose from Photo Library
             </Text>
           </AnimatedPressable>
         </FadeInView>
@@ -124,29 +125,29 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               <View style={styles.hudTopRow}>
                 <View style={styles.hudLotTag}>
                   <Text style={styles.hudLotText}>
-                    {inspection.lot_id || 'Lot #Pending'}
+                    {inspection.lot_id || 'Active Lot'}
                   </Text>
                 </View>
                 <View style={styles.hudLevelTag}>
                   <View style={styles.levelBubble} />
-                  <Text style={styles.hudLevelText}>PARALLEL LEVEL: OK</Text>
+                  <Text style={styles.hudLevelText}>Level Balanced</Text>
                 </View>
               </View>
               <Text style={styles.hudInstructions}>
-                Position phone ~70cm overhead. Ensure ChArUco card is visible in corner.
+                Position phone ~70 cm overhead. Ensure calibration card is placed in corner.
               </Text>
             </View>
           </FadeInView>
 
           {/* Center Target Frame */}
           <View style={styles.targetViewport}>
-            {/* ChArUco Board Placement Bracket */}
+            {/* Calibration Marker Placement Bracket */}
             <View style={styles.charucoReticle}>
               <View style={[styles.cornerMini, styles.tlMini]} />
               <View style={[styles.cornerMini, styles.trMini]} />
               <View style={[styles.cornerMini, styles.blMini]} />
               <View style={[styles.cornerMini, styles.brMini]} />
-              <Text style={styles.charucoLabel}>[ CHARUCO CARD ]</Text>
+              <Text style={styles.charucoLabel}>CALIBRATION CARD</Text>
             </View>
 
             {/* Main Onion Spread Frame */}
@@ -163,7 +164,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
               <View style={styles.frameLabelBadge}>
                 <Text style={styles.frameLabelText}>
-                  SPREAD 15–30 BULBS IN SINGLE LAYER
+                  Spread 15–30 bulbs flat in single layer
                 </Text>
               </View>
             </View>
@@ -184,14 +185,14 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               {/* Tactile Shutter Button */}
               <AnimatedPressable
                 haptic="heavy"
-                scaleTo={0.9}
+                scaleTo={0.92}
                 style={styles.shutterOuter}
                 onPress={takePhoto}
                 disabled={capturing}
               >
                 <View style={styles.shutterInner}>
                   {capturing ? (
-                    <ActivityIndicator color={Colors.accent} size="small" />
+                    <ActivityIndicator color="#18181b" size="small" />
                   ) : (
                     <View style={styles.shutterCore} />
                   )}
@@ -205,7 +206,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 onPress={pickFromGallery}
                 disabled={capturing}
               >
-                <Text style={styles.galleryIcon}>🖼️</Text>
                 <Text style={styles.galleryText}>Upload</Text>
               </AnimatedPressable>
             </View>
@@ -243,9 +243,19 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 360,
   },
-  permIcon: {
-    fontSize: 44,
-    marginBottom: Spacing.md,
+  permBadge: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.xs,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 8,
+  },
+  permBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   permTitle: {
     ...Typography.title1,
@@ -260,7 +270,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   permBtn: {
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: Radius.md,
@@ -270,7 +280,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   permBtnText: {
-    color: Colors.text,
+    color: '#ffffff',
     fontWeight: '700',
     fontSize: 14,
   },
@@ -279,7 +289,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   galleryFallbackText: {
-    color: Colors.accent,
+    color: Colors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -291,11 +301,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   hudCard: {
-    backgroundColor: 'rgba(7, 13, 24, 0.85)',
+    backgroundColor: 'rgba(24, 24, 27, 0.88)',
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   hudTopRow: {
     flexDirection: 'row',
@@ -304,24 +314,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   hudLotTag: {
-    backgroundColor: Colors.accentSubtle,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: Radius.xs,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   hudLotText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.accent,
-    fontFamily: 'monospace',
+    color: '#ffffff',
   },
   hudLevelTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: Radius.xs,
@@ -341,7 +350,7 @@ const styles = StyleSheet.create({
   },
   hudInstructions: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#d4d4d8',
     marginTop: 4,
     lineHeight: 16,
   },
@@ -355,11 +364,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    width: 120,
+    width: 130,
     height: 80,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
     borderStyle: 'dashed',
     borderRadius: Radius.sm,
     justifyContent: 'center',
@@ -368,16 +377,15 @@ const styles = StyleSheet.create({
   },
   charucoLabel: {
     fontSize: 9,
-    fontWeight: '800',
-    color: Colors.accent,
-    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: '#ffffff',
     letterSpacing: 0.5,
   },
   cornerMini: {
     position: 'absolute',
     width: 10,
     height: 10,
-    borderColor: Colors.accent,
+    borderColor: '#ffffff',
   },
   tlMini: { top: -1, left: -1, borderTopWidth: 2, borderLeftWidth: 2 },
   trMini: { top: -1, right: -1, borderTopWidth: 2, borderRightWidth: 2 },
@@ -394,7 +402,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 28,
     height: 28,
-    borderColor: Colors.accent,
+    borderColor: '#ffffff',
   },
   topLeft: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
   topRight: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
@@ -411,84 +419,78 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 18,
     height: 1.5,
-    backgroundColor: 'rgba(56, 189, 248, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   crosshairV: {
     position: 'absolute',
     height: 18,
     width: 1.5,
-    backgroundColor: 'rgba(56, 189, 248, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   frameLabelBadge: {
-    backgroundColor: 'rgba(7, 13, 24, 0.75)',
+    backgroundColor: 'rgba(24, 24, 27, 0.82)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: Radius.pill,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   frameLabelText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: 0.2,
   },
   controlsBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(7, 13, 24, 0.9)',
+    backgroundColor: 'rgba(24, 24, 27, 0.90)',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
     borderRadius: Radius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   cancelBtn: {
     padding: Spacing.sm,
   },
   cancelText: {
-    color: Colors.textMuted,
+    color: '#a1a1aa',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   shutterOuter: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: '#ffffff',
   },
   shutterInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.cardBg,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.text,
   },
   shutterCore: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.accent,
+    backgroundColor: '#18181b',
   },
   galleryBtn: {
     alignItems: 'center',
-    padding: Spacing.xs,
-  },
-  galleryIcon: {
-    fontSize: 20,
+    padding: Spacing.sm,
   },
   galleryText: {
-    color: Colors.textMuted,
-    fontSize: 10,
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '600',
-    marginTop: 2,
   },
 });

@@ -14,6 +14,7 @@ import {
   Haptics,
   LazyImage,
   Radius,
+  Shadows,
   Spacing,
   Typography,
 } from '../ui';
@@ -126,7 +127,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
             resizeMode="cover"
           />
           <View style={styles.thumbnailBadge}>
-            <Text style={styles.thumbnailBadgeText}>PROVISIONAL CAPTURE</Text>
+            <Text style={styles.thumbnailBadgeText}>Captured Spread</Text>
           </View>
         </View>
       </FadeInView>
@@ -137,40 +138,39 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
           {stage === 'uploading' || stage === 'analyzing' ? (
             <View style={styles.stateCenter}>
               <ActivityIndicator size="large" color={Colors.accent} />
-              <Text style={styles.stateTitle}>Optical Verification Gates</Text>
+              <Text style={styles.stateTitle}>Quality Verification</Text>
               <Text style={styles.stateSubtitle}>
-                Running Laplacian blur analysis, exposure check, ChArUco detection &
-                YOLO11 instance segmentation...
+                Checking image clarity, lighting uniformity, reference marker, and onion bulb separation...
               </Text>
 
               {/* Animated Checklist */}
               <View style={styles.checklist}>
                 <CheckItem
-                  label="Laplacian Focus & Motion Blur"
+                  label="1. Sharpness & Clarity"
                   passed={checkProgress.blur}
                 />
                 <CheckItem
-                  label="Dynamic Range & Glare Threshold"
+                  label="2. Lighting & Glare Check"
                   passed={checkProgress.exposure}
                 />
                 <CheckItem
-                  label="ChArUco 50mm Calibration Bar"
+                  label="3. Reference Scale Marker"
                   passed={checkProgress.scale}
                 />
                 <CheckItem
-                  label="YOLO11-seg & MobileNetV3 Defects"
+                  label="4. Onion Separation & Defect Scan"
                   passed={checkProgress.segmentation}
                 />
               </View>
             </View>
           ) : stage === 'done' ? (
             <View style={styles.stateCenter}>
-              <View style={styles.successGlowBadge}>
+              <View style={styles.successBadge}>
                 <Text style={styles.successIcon}>✓</Text>
               </View>
               <Text style={styles.successTitle}>Quality Verification Passed</Text>
               <Text style={styles.successSubtitle}>
-                Detected {sampleResult?.onion_count ?? 0} onion bulbs.{' '}
+                Identified {sampleResult?.onion_count ?? 0} onion bulbs.{' '}
                 {sampleResult?.scale_mm_per_px && (
                   <Text style={styles.scaleLockText}>
                     Scale calibrated at {sampleResult.scale_mm_per_px.toFixed(3)} mm/px.
@@ -178,22 +178,22 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                 )}
               </Text>
               <View style={styles.redirectBadge}>
-                <Text style={styles.redirectText}>Opening Mandi Results View...</Text>
+                <Text style={styles.redirectText}>Opening Assessment Results...</Text>
               </View>
             </View>
           ) : (
             <View style={styles.failureContainer}>
-              <View style={styles.failGlowBadge}>
+              <View style={styles.failBadge}>
                 <Text style={styles.failIcon}>✕</Text>
               </View>
-              <Text style={styles.failureTitle}>Sample Validation Rejected</Text>
+              <Text style={styles.failureTitle}>Verification Incomplete</Text>
               <Text style={styles.failureDesc}>{errorMessage}</Text>
 
               {failureCodes.length > 0 && (
                 <View style={styles.flagsList}>
                   {failureCodes.map((code, idx) => (
                     <Text key={idx} style={styles.flagItem}>
-                      • {code.replace(/_/g, ' ').toUpperCase()}
+                      • {code.replace(/_/g, ' ')}
                     </Text>
                   ))}
                 </View>
@@ -204,7 +204,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                 style={styles.retakeBtn}
                 onPress={onRetake}
               >
-                <Text style={styles.retakeBtnText}>📷 Retake Photograph</Text>
+                <Text style={styles.retakeBtnText}>Retake Photograph</Text>
               </AnimatedPressable>
             </View>
           )}
@@ -255,6 +255,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     position: 'relative',
+    ...Shadows.card,
   },
   thumbnail: {
     width: '100%',
@@ -264,18 +265,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'rgba(7, 13, 24, 0.85)',
+    backgroundColor: Colors.cardBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: Radius.xs,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   thumbnailBadgeText: {
-    fontSize: 9,
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    color: Colors.accent,
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   card: {
     backgroundColor: Colors.cardBg,
@@ -283,6 +283,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     borderWidth: 1,
     borderColor: Colors.border,
+    ...Shadows.card,
   },
   stateCenter: {
     alignItems: 'center',
@@ -323,31 +324,26 @@ const styles = StyleSheet.create({
   checkTick: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.bg,
+    color: '#ffffff',
   },
   checkItemLabel: {
     fontSize: 12,
     fontWeight: '500',
   },
-  successGlowBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  successBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.gradeABg,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.gradeA,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.gradeA,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 6,
   },
   successIcon: {
-    fontSize: 26,
+    fontSize: 24,
     color: Colors.gradeA,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   successTitle: {
     ...Typography.title1,
@@ -362,8 +358,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   scaleLockText: {
-    color: Colors.accent,
-    fontFamily: 'monospace',
+    color: Colors.text,
     fontWeight: '600',
   },
   redirectBadge: {
@@ -371,32 +366,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radius.pill,
-    backgroundColor: Colors.accentSubtle,
+    backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   redirectText: {
     fontSize: 11,
-    color: Colors.accent,
+    color: Colors.textSecondary,
     fontWeight: '600',
   },
   failureContainer: {
     alignItems: 'center',
   },
-  failGlowBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  failBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.rejectBg,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.reject,
     justifyContent: 'center',
     alignItems: 'center',
   },
   failIcon: {
-    fontSize: 24,
+    fontSize: 22,
     color: Colors.reject,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   failureTitle: {
     ...Typography.title1,
@@ -417,27 +412,27 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: Colors.rejectBorder,
   },
   flagItem: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#fca5a5',
+    fontWeight: '600',
+    color: Colors.reject,
     marginVertical: 2,
-    fontFamily: 'monospace',
   },
   retakeBtn: {
-    backgroundColor: Colors.reject,
-    paddingVertical: 14,
+    backgroundColor: Colors.accent,
+    paddingVertical: 13,
     paddingHorizontal: Spacing.xl,
     borderRadius: Radius.md,
     width: '100%',
     alignItems: 'center',
     marginTop: Spacing.sm,
+    ...Shadows.card,
   },
   retakeBtnText: {
-    color: Colors.text,
+    color: '#ffffff',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

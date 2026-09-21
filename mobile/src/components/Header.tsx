@@ -10,7 +10,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   serverConnected = true,
-  policyVersion = 'DEMO_ASSUMPTION_v1',
+  policyVersion = 'BIS_IS_17912_2022',
   isMockActive = false,
 }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -21,13 +21,13 @@ export const Header: React.FC<HeaderProps> = ({
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 0.35,
-          duration: 1000,
+          toValue: 0.4,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
@@ -42,17 +42,17 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Brand & Connection Row */}
       <View style={styles.topRow}>
         <View style={styles.brandRow}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>🧅</Text>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoLetter}>C</Text>
           </View>
           <View>
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>CEPA</Text>
-              <View style={styles.sihTag}>
-                <Text style={styles.sihTagText}>SIH26031</Text>
+              <View style={styles.standardPill}>
+                <Text style={styles.standardText}>APMC Mandi</Text>
               </View>
             </View>
-            <Text style={styles.subtitle}>Autonomous Onion Mandi Inspection</Text>
+            <Text style={styles.subtitle}>Onion Quality & Procurement</Text>
           </View>
         </View>
 
@@ -65,8 +65,8 @@ export const Header: React.FC<HeaderProps> = ({
                 ? Colors.gradeABg
                 : Colors.rejectBg,
               borderColor: serverConnected
-                ? 'rgba(16, 185, 129, 0.4)'
-                : 'rgba(239, 68, 68, 0.4)',
+                ? Colors.gradeABorder
+                : Colors.rejectBorder,
             },
           ]}
         >
@@ -85,29 +85,18 @@ export const Header: React.FC<HeaderProps> = ({
               { color: serverConnected ? Colors.gradeA : Colors.reject },
             ]}
           >
-            {serverConnected ? 'ONLINE' : 'OFFLINE'}
+            {serverConnected ? 'Online' : 'Offline'}
           </Text>
         </AnimatedPressable>
       </View>
 
-      {/* Badges Strip */}
-      <View style={styles.badgesRow}>
-        <View style={styles.policyBadge}>
-          <Text style={styles.policyLabel}>Standard:</Text>
-          <Text style={styles.policyText}>
-            {policyVersion.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022')}
-          </Text>
-        </View>
-
-        {isMockActive ? (
-          <View style={styles.mockBadge}>
-            <Text style={styles.mockText}>MOCK CLASSIFIER</Text>
-          </View>
-        ) : (
-          <View style={styles.realModelBadge}>
-            <Text style={styles.realModelText}>⚡ MobileNetV3 (98.8% Acc)</Text>
-          </View>
-        )}
+      {/* Sub-header strip: Standard & Center info */}
+      <View style={styles.subStrip}>
+        <Text style={styles.subStripText}>
+          Grading Standard: {policyVersion.includes('BIS') ? 'BIS IS 17912:2022' : 'NAFED FAQ Standard'}
+        </Text>
+        <Text style={styles.subStripDivider}>•</Text>
+        <Text style={styles.subStripText}>Optical Caliper</Text>
       </View>
     </View>
   );
@@ -115,9 +104,9 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.bg,
-    paddingTop: Platform.OS === 'android' ? 38 : 14,
-    paddingBottom: Spacing.md,
+    backgroundColor: Colors.cardBg,
+    paddingTop: Platform.OS === 'android' ? 40 : 16,
+    paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -132,18 +121,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
-  logoBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.cardBgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  logoMark: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoIcon: {
-    fontSize: 20,
+  logoLetter: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.5,
   },
   titleRow: {
     flexDirection: 'row',
@@ -151,23 +141,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brandTitle: {
-    ...Typography.title1,
+    ...Typography.title2,
+    fontSize: 17,
     color: Colors.text,
     letterSpacing: 0.5,
+    fontWeight: '800',
   },
-  sihTag: {
-    backgroundColor: Colors.accentSubtle,
+  standardPill: {
+    backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radius.xs,
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 1,
   },
-  sihTagText: {
-    fontSize: 9,
-    fontFamily: 'monospace',
-    color: Colors.accent,
-    fontWeight: '700',
+  standardText: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   subtitle: {
     fontSize: 11,
@@ -177,74 +168,36 @@ const styles = StyleSheet.create({
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: Radius.pill,
     borderWidth: 1,
     gap: 6,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-    flexWrap: 'wrap',
-  },
-  policyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.cardBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.borderMuted,
-    gap: 4,
-  },
-  policyLabel: {
-    fontSize: 10,
-    color: Colors.textDim,
-  },
-  policyText: {
-    fontSize: 10,
-    color: Colors.accent,
-    fontWeight: '600',
-    fontFamily: 'monospace',
-  },
-  realModelBadge: {
-    backgroundColor: Colors.gradeABg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  realModelText: {
-    fontSize: 10,
-    color: Colors.gradeA,
+    fontSize: 11,
     fontWeight: '600',
   },
-  mockBadge: {
-    backgroundColor: Colors.rejectBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+  subStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+    gap: 6,
   },
-  mockText: {
-    fontSize: 9,
-    color: Colors.reject,
-    fontWeight: '700',
+  subStripText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  subStripDivider: {
+    fontSize: 10,
+    color: Colors.borderHighlight,
   },
 });
