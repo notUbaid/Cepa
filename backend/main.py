@@ -78,6 +78,19 @@ app.add_middleware(
 settings.ensure_dirs()
 app.mount("/static", StaticFiles(directory=str(settings.storage_dir)), name="static")
 
+# ── Interactive Mandi Inspector Web Studio ────────────────────────────────────
+from fastapi.responses import FileResponse
+static_ui_dir = Path(__file__).parent / "static"
+if static_ui_dir.exists():
+    app.mount("/ui", StaticFiles(directory=str(static_ui_dir)), name="ui")
+
+@app.get("/inspector", include_in_schema=False)
+async def serve_inspector():
+    index_path = static_ui_dir / "inspector.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "Inspector UI not found"}
+
 # ── Register Routers ──────────────────────────────────────────────────────────
 app.include_router(health.router)
 app.include_router(inspections.router)

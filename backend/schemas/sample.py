@@ -59,6 +59,11 @@ class OnionInstanceSummary(BaseModel):
 
     # Flattened from child models for quick grid display
     equivalent_diameter_mm: float | None = None
+    equatorial_diameter_mm: float | None = None
+    polar_length_mm: float | None = None
+    shape_class: str | None = None
+    estimated_weight_grams: float | None = None
+    mandi_size_grade: str | None = None
     damaged_prob: float | None = None
     rotten_prob: float | None = None
     sprouted_prob: float | None = None
@@ -95,11 +100,18 @@ class OnionInstanceDetail(BaseModel):
     is_mock_defect: bool
     has_human_correction: bool = False
     corrected_by: str | None = None
+    morphology: dict = Field(default_factory=dict)
 
     # Measurement
     equivalent_diameter_mm: float | None
     major_axis_mm: float | None
     minor_axis_mm: float | None
+    equatorial_diameter_mm: float | None = None
+    polar_length_mm: float | None = None
+    shape_index: float | None = None
+    shape_class: str | None = None
+    estimated_weight_grams: float | None = None
+    mandi_size_grade: str | None = None
     mask_area_px: int | None
     scale_mm_per_px: float | None
     projection_note: str | None

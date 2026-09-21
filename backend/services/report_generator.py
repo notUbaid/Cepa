@@ -221,7 +221,103 @@ def generate_pdf_report(
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
     story.append(defect_table)
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── APMC Mandi Size Distribution & Biomass Weight ────────────────────────
+    story.append(Paragraph("APMC Mandi Size & Biomass Distribution", styles["Heading2"]))
+
+    sizes_mm: list[float] = []
+    weights_g: list[float] = []
+    for s in inspection.samples:
+        for inst in s.onion_instances:
+            if inst.measurement:
+                sz = inst.measurement.equatorial_diameter_mm or inst.measurement.equivalent_diameter_mm
+                if sz:
+                    sizes_mm.append(sz)
+                if inst.measurement.estimated_weight_grams:
+                    weights_g.append(inst.measurement.estimated_weight_grams)
+
+    from grading.statistics import (
+        compute_apmc_size_distribution,
+        compute_commercial_pricing,
+        compute_lot_weight_statistics,
+    )
+    apmc = compute_apmc_size_distribution(sizes_mm)
+    weights = compute_lot_weight_statistics(weights_g)
+
+    mandi_data = [
+        ["Mandi Size Grade", "Specification", "Count", "Percentage"],
+        ["Goli (Baby)", "< 35 mm", str(apmc.goli_count), f"{apmc.goli_pct:.1f}%"],
+        ["Madhyam (Medium)", "35 – 45 mm", str(apmc.madhyam_count), f"{apmc.madhyam_pct:.1f}%"],
+        ["Super (Grade A Target)", "45 – 65 mm", str(apmc.super_count), f"{apmc.super_pct:.1f}%"],
+        ["Jumbo (Oversized)", "> 65 mm", str(apmc.jumbo_count), f"{apmc.jumbo_pct:.1f}%"],
+        ["Estimated Sample Weight", f"{weights.total_sample_weight_kg:.2f} kg",
+         f"Mean: {weights.mean_bulb_weight_g:.0f}g / bulb", f"Range: {weights.min_bulb_weight_g:.0f}–{weights.max_bulb_weight_g:.0f}g"],
+    ]
+
+    mandi_table = Table(mandi_data, colWidths=[5 * cm, 4 * cm, 3 * cm, 3 * cm])
+    mandi_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bdc3c7")),
+        ("BACKGROUND", (0, 3), (-1, 3), colors.HexColor("#e8f8f5")),  # highlight Super
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f4f6f7")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(mandi_table)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── NAFED Commercial FAQ & Price Dockage Appraisal ───────────────────────
+    story.append(Paragraph("NAFED Commercial FAQ & Rate Deduction Appraisal", styles["Heading2"]))
+
+    rot_cnt = int(defect_counts.get("rotten", 0) if isinstance(defect_counts.get("rotten"), (int, float)) else 0)
+    spr_cnt = int(defect_counts.get("sprouted", 0) if isinstance(defect_counts.get("sprouted"), (int, float)) else 0)
+    crit_pct = 100.0 * (rot_cnt + spr_cnt) / max(report.total_bulbs, 1)
+
+    pricing = compute_commercial_pricing(
+        grade_a_pct=report.grade_a_pct,
+        urs_pct=report.urs_pct,
+        rejected_pct=report.rejected_pct,
+        critical_defect_pct=crit_pct,
+    )
+
+    pricing_data = [
+        ["Commercial Metric", "Appraisal Value"],
+        ["Benchmark Mandi MSP Base Rate", f"Rs. {pricing.benchmark_mandi_rate_inr_per_qtl:.0f} / quintal"],
+        ["Permissible Off-Grade Tolerance", f"{pricing.allowable_tolerance_pct:.1f}%"],
+        ["Excess Off-Grade Variance", f"{pricing.excess_defects_pct:.1f}%"],
+        ["Applicable FAQ Dockage Rate", f"Rs. {pricing.dockage_rate_inr_per_qtl:.1f} / quintal"],
+        ["Net Recommended Procurement Payout", f"Rs. {pricing.net_procurement_rate_inr_per_qtl:.1f} / quintal"],
+        ["Commercial Decision", f"{pricing.payment_tier} ({pricing.pricing_rationale})"],
+    ]
+
+    tier_color = colors.HexColor("#27ae60") if pricing.payment_tier == "FULL_PRICE" else (
+        colors.HexColor("#f39c12") if pricing.payment_tier == "PROPORTIONAL_DOCKAGE" else colors.HexColor("#e74c3c")
+    )
+
+    pricing_table = Table(pricing_data, colWidths=[7 * cm, 9 * cm])
+    pricing_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1b4f72")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bdc3c7")),
+        ("BACKGROUND", (0, 5), (-1, 5), colors.HexColor("#fcf3cf")),  # highlight Net Rate
+        ("FONTNAME", (0, 5), (-1, 5), "Helvetica-Bold"),
+        ("TEXTCOLOR", (1, 6), (1, 6), tier_color),
+        ("FONTNAME", (1, 6), (1, 6), "Helvetica-Bold"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(pricing_table)
+    story.append(Spacer(1, 0.4 * cm))
 
     # ── Sampling note ──────────────────────────────────────────────────────────
     story.append(Paragraph("Sampling", styles["Heading2"]))
