@@ -85,9 +85,19 @@ def extract_crops(
             continue
 
         # ── Extract masked crop ────────────────────────────────────────────────
-        # Apply the mask to zero out background pixels
-        masked_img = rectified_image.copy()
-        masked_img[mask == 0] = 0  # background → black
+        # Fill internal contour holes so shadows and onion neck/root crevices are preserved
+        mask_filled = mask.copy()
+        contours, _ = cv2.findContours(mask_filled, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(mask_filled, contours, -1, 255, thickness=-1)
+
+        # Anti-aliased alpha feathering for crisp, editorial packhouse crop presentation
+        # Background is warm off-white stone (#f4f3ef -> BGR: [239, 243, 244])
+        bg_color = np.array([239, 243, 244], dtype=np.float32)
+        mask_feather = cv2.GaussianBlur(mask_filled, (5, 5), 1.5).astype(np.float32) / 255.0
+        alpha = mask_feather[:, :, np.newaxis]
+
+        blended = rectified_image.astype(np.float32) * alpha + bg_color * (1.0 - alpha)
+        masked_img = np.clip(blended, 0, 255).astype(np.uint8)
 
         # Compute padded bounding box, clamped to image bounds
         x = max(0, det.bbox_x - _CROP_PADDING)

@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import {
   Animated,
   GestureResponderEvent,
+  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -32,11 +33,18 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Flatten style so flex and layout styles properly propagate to the outer Pressable
+  const flattened = (StyleSheet.flatten(style) || {}) as ViewStyle;
+  const pressableStyle: ViewStyle = {};
+  if (flattened.flex !== undefined) pressableStyle.flex = flattened.flex;
+  if (flattened.width !== undefined) pressableStyle.width = flattened.width;
+  if (flattened.alignSelf !== undefined) pressableStyle.alignSelf = flattened.alignSelf;
+
   const handlePressIn = () => {
     if (disabled) return;
     Animated.spring(scaleAnim, {
       toValue: scaleTo,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       speed: 35,
       bounciness: 4,
     }).start();
@@ -46,7 +54,7 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
     if (disabled) return;
     Animated.spring(scaleAnim, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       speed: 25,
       bounciness: 6,
     }).start();
@@ -69,6 +77,7 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
       onPressOut={handlePressOut}
       onPress={handlePress}
       onLongPress={onLongPress}
+      style={pressableStyle}
     >
       <Animated.View
         style={[

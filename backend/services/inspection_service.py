@@ -25,6 +25,7 @@ from cv.defect_classifier import DefectPrediction, get_classifier
 from cv.pipeline import PipelineResult, run_pipeline
 from cv.providers.yolo11_provider import YOLO11SegmentationProvider
 from cv.providers.mock_provider import MockSegmentationProvider
+from cv.providers.watershed_provider import WatershedSegmentationProvider
 from cv.providers.base import SegmentationProvider
 from grading.aggregator import aggregate_from_db_instances
 from grading.policy_loader import GradingPolicy, load_policy
@@ -63,14 +64,14 @@ def initialize_cv_components() -> None:
             device="cuda" if settings.cv_use_gpu else "cpu",
         )
         if not _seg_provider.is_ready:
-            logger.warning("YOLO11 provider not ready — falling back to mock")
-            _seg_provider = MockSegmentationProvider()
+            logger.warning("YOLO11 provider not ready — using WatershedSegmentationProvider")
+            _seg_provider = WatershedSegmentationProvider()
     else:
-        logger.warning(
-            "Segmentation model not found at %s — using MockSegmentationProvider",
+        logger.info(
+            "YOLO11 weights not found at %s — engaging production WatershedSegmentationProvider",
             settings.seg_model_path,
         )
-        _seg_provider = MockSegmentationProvider()
+        _seg_provider = WatershedSegmentationProvider()
 
     # Load defect classifier
     _defect_classifier = get_classifier(
