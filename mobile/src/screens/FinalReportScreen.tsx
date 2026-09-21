@@ -17,6 +17,7 @@ import {
   GradeBadge,
   Haptics,
   Radius,
+  Shadows,
   SkeletonBox,
   Spacing,
   Typography,
@@ -114,7 +115,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       <FadeInView delay={50} distance={10}>
         <View style={styles.celebrationBanner}>
           <View style={styles.certStamp}>
-            <Text style={styles.certStampIcon}>🛡️</Text>
+            <Text style={styles.certStampIcon}>✓</Text>
           </View>
           <View style={styles.certHeaderInfo}>
             <View style={styles.badgeRow}>
@@ -127,7 +128,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             </View>
             <Text style={styles.certTitle}>Onion Quality Appraisal Record</Text>
             <Text style={styles.certSub}>
-              Cepa Autonomous Inspection Engine • SIH26031
+              Cepa Quality Record • Mandi Procurement Protocol
             </Text>
           </View>
         </View>
@@ -136,7 +137,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Lot Metadata Card */}
       <FadeInView delay={100} distance={12}>
         <View style={styles.certCard}>
-          <Text style={styles.sectionHeaderTitle}>CONSIGNMENT & APMC METADATA</Text>
+          <Text style={styles.sectionHeaderTitle}>Consignment Metadata</Text>
 
           <View style={styles.metaGrid}>
             <View style={styles.metaRow}>
@@ -170,7 +171,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Lot Grade Distribution */}
       <FadeInView delay={150} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>LOT GRADE DISTRIBUTION</Text>
+          <Text style={styles.sectionHeaderTitle}>Lot Grade Distribution</Text>
 
           <View style={styles.gradeRow}>
             <View style={styles.gradeLeft}>
@@ -212,7 +213,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Commercial NAFED Settlement Calculator */}
       <FadeInView delay={200} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>COMMERCIAL SETTLEMENT ESTIMATE (NAFED MSP)</Text>
+          <Text style={styles.sectionHeaderTitle}>Commercial Settlement Estimate</Text>
           <View style={styles.settlementGrid}>
             <View style={styles.settlementRow}>
               <Text style={styles.settlementLabel}>Benchmark MSP (Nashik FAQ):</Text>
@@ -235,7 +236,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Defect Occurrences */}
       <FadeInView delay={250} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>DEFECT OCCURRENCES</Text>
+          <Text style={styles.sectionHeaderTitle}>Defect Appraisal Summary</Text>
           <View style={styles.defectGrid}>
             <View style={styles.defectCell}>
               <Text style={[styles.defectCount, { color: Colors.reject }]}>
@@ -268,7 +269,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Share / Verification Link Card */}
       <FadeInView delay={300} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>ONLINE VERIFICATION & AUDIT LINK</Text>
+          <Text style={styles.sectionHeaderTitle}>Online Verification & Audit</Text>
           <Text style={styles.shareDesc}>
             Mandi commissioners and farmers can view this immutable inspection audit online:
           </Text>
@@ -278,7 +279,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             onPress={handleOpenShareLink}
           >
             <Text style={styles.shareLinkText} numberOfLines={1}>
-              🔗 {report.share_url}
+              {report.share_url}
             </Text>
           </AnimatedPressable>
         </View>
@@ -287,7 +288,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Mandatory Audit Disclaimer */}
       <FadeInView delay={350} distance={12}>
         <View style={styles.disclaimerCard}>
-          <Text style={styles.disclaimerTitle}>MANDATORY APMC AUDIT DISCLAIMER</Text>
+          <Text style={styles.disclaimerTitle}>Regulatory Disclaimer</Text>
           <Text style={styles.disclaimerText}>{report.limitations_note}</Text>
         </View>
       </FadeInView>
@@ -300,7 +301,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             style={styles.pdfBtn}
             onPress={handleDownloadPdf}
           >
-            <Text style={styles.pdfBtnText}>📄 Download Official PDF Certificate</Text>
+            <Text style={styles.pdfBtnText}>Download Official PDF Certificate</Text>
           </AnimatedPressable>
 
           <AnimatedPressable
@@ -308,7 +309,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             style={styles.nextBtn}
             onPress={onStartNewInspection}
           >
-            <Text style={styles.nextBtnText}>+ Start Next Lot Inspection</Text>
+            <Text style={styles.nextBtnText}>Start Next Lot Inspection →</Text>
           </AnimatedPressable>
         </View>
       </FadeInView>
@@ -349,25 +350,28 @@ const styles = StyleSheet.create({
   celebrationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: Colors.border,
     gap: Spacing.md,
+    ...Shadows.sm,
   },
   certStamp: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.gradeABg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.gradeA,
     justifyContent: 'center',
     alignItems: 'center',
   },
   certStampIcon: {
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.gradeA,
   },
   certHeaderInfo: {
     flex: 1,
@@ -380,31 +384,31 @@ const styles = StyleSheet.create({
   },
   verifiedPill: {
     backgroundColor: Colors.gradeABg,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: Radius.xs,
     borderWidth: 1,
     borderColor: Colors.gradeA,
   },
   verifiedPillText: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '700',
     color: Colors.gradeA,
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   certDate: {
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textDim,
     fontFamily: 'monospace',
   },
   certTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: Colors.text,
     letterSpacing: -0.2,
   },
   certSub: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textMuted,
     marginTop: 2,
   },
@@ -413,14 +417,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   sectionHeaderTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.accent,
-    letterSpacing: 0.8,
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
   metaGrid: {
     gap: 6,
@@ -428,7 +434,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderMuted,
   },
@@ -451,7 +457,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   gradeRow: {
     flexDirection: 'row',
@@ -546,7 +553,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   defectCount: {
     fontSize: 16,
@@ -560,10 +567,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   shareDesc: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textMuted,
     marginBottom: Spacing.sm,
-    lineHeight: 16,
+    lineHeight: 17,
   },
   shareLinkBox: {
     backgroundColor: Colors.cardBgElevated,
@@ -573,59 +580,60 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   shareLinkText: {
-    fontSize: 11,
-    color: Colors.accent,
+    fontSize: 12,
+    color: Colors.textSecondary,
     fontFamily: 'monospace',
   },
   disclaimerCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: Radius.md,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
     padding: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   disclaimerTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.textDim,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     marginBottom: 4,
   },
   disclaimerText: {
-    fontSize: 10,
-    color: Colors.textDim,
-    lineHeight: 15,
+    fontSize: 11,
+    color: Colors.textMuted,
+    lineHeight: 16,
   },
   btnColumn: {
     gap: Spacing.md,
     marginTop: Spacing.sm,
   },
   pdfBtn: {
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Colors.accent,
     paddingVertical: 14,
     borderRadius: Radius.md,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.accent,
   },
   pdfBtnText: {
-    color: Colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   nextBtn: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.cardBg,
     paddingVertical: 14,
     borderRadius: Radius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   nextBtnText: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: '600',
   },
   failGlowBadge: {
     width: 56,

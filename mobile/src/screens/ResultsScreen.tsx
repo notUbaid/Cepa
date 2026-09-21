@@ -22,6 +22,7 @@ import {
   Haptics,
   LazyImage,
   Radius,
+  Shadows,
   SizeTierBadge,
   SkeletonKpiCard,
   SkeletonOnionCard,
@@ -114,15 +115,17 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             onPress={() => setGradeFilter(gradeFilter === 'GRADE_A' ? 'ALL' : 'GRADE_A')}
             style={[
               styles.kpiCard,
-              { borderColor: Colors.gradeA },
               gradeFilter === 'GRADE_A' && styles.kpiCardSelected,
             ]}
           >
-            <Text style={[styles.kpiValue, { color: Colors.gradeA }]}>{gradeA}</Text>
+            <View style={styles.kpiDotRow}>
+              <View style={[styles.kpiDot, { backgroundColor: Colors.gradeA }]} />
+              <Text style={styles.kpiValue}>{gradeA}</Text>
+            </View>
             <Text style={styles.kpiPercent}>
               {total ? `${((gradeA / total) * 100).toFixed(0)}%` : '0%'}
             </Text>
-            <Text style={[styles.kpiLabel, { color: Colors.gradeA }]}>Grade A</Text>
+            <Text style={styles.kpiLabel}>Grade A</Text>
           </AnimatedPressable>
 
           <AnimatedPressable
@@ -130,15 +133,17 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             onPress={() => setGradeFilter(gradeFilter === 'URS' ? 'ALL' : 'URS')}
             style={[
               styles.kpiCard,
-              { borderColor: Colors.urs },
               gradeFilter === 'URS' && styles.kpiCardSelected,
             ]}
           >
-            <Text style={[styles.kpiValue, { color: Colors.urs }]}>{urs}</Text>
+            <View style={styles.kpiDotRow}>
+              <View style={[styles.kpiDot, { backgroundColor: Colors.urs }]} />
+              <Text style={styles.kpiValue}>{urs}</Text>
+            </View>
             <Text style={styles.kpiPercent}>
               {total ? `${((urs / total) * 100).toFixed(0)}%` : '0%'}
             </Text>
-            <Text style={[styles.kpiLabel, { color: Colors.urs }]}>URS</Text>
+            <Text style={styles.kpiLabel}>URS</Text>
           </AnimatedPressable>
 
           <AnimatedPressable
@@ -146,23 +151,28 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             onPress={() => setGradeFilter(gradeFilter === 'REJECTED' ? 'ALL' : 'REJECTED')}
             style={[
               styles.kpiCard,
-              { borderColor: Colors.reject },
               gradeFilter === 'REJECTED' && styles.kpiCardSelected,
             ]}
           >
-            <Text style={[styles.kpiValue, { color: Colors.reject }]}>{rejected}</Text>
+            <View style={styles.kpiDotRow}>
+              <View style={[styles.kpiDot, { backgroundColor: Colors.reject }]} />
+              <Text style={styles.kpiValue}>{rejected}</Text>
+            </View>
             <Text style={styles.kpiPercent}>
               {total ? `${((rejected / total) * 100).toFixed(0)}%` : '0%'}
             </Text>
-            <Text style={[styles.kpiLabel, { color: Colors.reject }]}>Reject</Text>
+            <Text style={styles.kpiLabel}>Reject</Text>
           </AnimatedPressable>
 
-          <View style={[styles.kpiCard, { borderColor: Colors.review }]}>
-            <Text style={[styles.kpiValue, { color: Colors.review }]}>{review}</Text>
+          <View style={styles.kpiCard}>
+            <View style={styles.kpiDotRow}>
+              <View style={[styles.kpiDot, { backgroundColor: Colors.review }]} />
+              <Text style={styles.kpiValue}>{review}</Text>
+            </View>
             <Text style={styles.kpiPercent}>
               {total ? `${((review / total) * 100).toFixed(0)}%` : '0%'}
             </Text>
-            <Text style={[styles.kpiLabel, { color: Colors.review }]}>Review</Text>
+            <Text style={styles.kpiLabel}>Review</Text>
           </View>
         </View>
       </FadeInView>
@@ -181,7 +191,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 viewMode === 'grid' && styles.viewModeTextActive,
               ]}
             >
-              📋 Interactive Grid ({filteredOnions.length})
+              Bulb Grid ({filteredOnions.length})
             </Text>
           </AnimatedPressable>
 
@@ -196,7 +206,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 viewMode === 'overlay' && styles.viewModeTextActive,
               ]}
             >
-              🖼️ AI Annotated Overlay
+              Annotated View
             </Text>
           </AnimatedPressable>
         </View>
@@ -231,11 +241,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               }}
               style={styles.annotatedFullImage}
               resizeMode="contain"
-              fallbackText="🖼️"
             />
           </View>
           <Text style={styles.overlayHint}>
-            {"Cyan lines = Equatorial Caliper (Deq) • Magenta = Polar Axis (Lpolar)"}
+            Cyan = Equatorial Diameter (Deq) • Magenta = Polar Length
           </Text>
         </FadeInView>
       ) : (
@@ -344,7 +353,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           disabled={finalizing}
         >
           {finalizing ? (
-            <ActivityIndicator color={Colors.text} size="small" />
+            <ActivityIndicator color="#ffffff" size="small" />
           ) : (
             <Text style={styles.finalizeBtnText}>Finalize & Certify Lot →</Text>
           )}
@@ -383,37 +392,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     borderWidth: 1,
+    borderColor: Colors.border,
   },
   kpiCardSelected: {
     backgroundColor: Colors.cardBgElevated,
-    borderWidth: 2,
+    borderWidth: 1.5,
+    borderColor: Colors.accent,
+  },
+  kpiDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  kpiDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   kpiValue: {
-    fontSize: 17,
-    fontWeight: '800',
-    fontFamily: 'monospace',
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
   },
   kpiPercent: {
     fontSize: 10,
     color: Colors.textMuted,
-    fontWeight: '600',
     marginTop: 1,
   },
   kpiLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    marginTop: 2,
-    letterSpacing: 0.4,
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: 1,
   },
   viewModeToggleRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBg,
+    backgroundColor: Colors.cardBgElevated,
     borderRadius: Radius.md,
     padding: 3,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   viewModeBtn: {
     flex: 1,
@@ -422,17 +441,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   viewModeBtnActive: {
-    backgroundColor: Colors.cardBgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.accent,
   },
   viewModeText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textDim,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   viewModeTextActive: {
-    color: Colors.accent,
+    color: '#ffffff',
+    fontWeight: '600',
   },
   gridContainer: {
     flex: 1,
@@ -595,12 +613,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(7, 13, 24, 0.94)',
+    backgroundColor: Colors.cardBg,
     padding: Spacing.md,
     flexDirection: 'row',
     gap: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    ...Shadows.modal,
   },
   addSampleBtn: {
     flex: 1,
@@ -609,26 +628,27 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   addSampleText: {
     color: Colors.textSecondary,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   finalizeBtn: {
     flex: 2.4,
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Colors.accent,
     paddingVertical: 13,
     borderRadius: Radius.md,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.accent,
+    ...Shadows.card,
   },
   finalizeBtnText: {
-    color: Colors.text,
+    color: '#ffffff',
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

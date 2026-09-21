@@ -19,6 +19,7 @@ import {
   Haptics,
   RadarPulse,
   Radius,
+  Shadows,
   Spacing,
   Typography,
 } from '../ui';
@@ -105,11 +106,11 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         <FadeInView delay={50} distance={12}>
           <View style={styles.titleRow}>
             <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>STEP 1 OF 3</Text>
+              <Text style={styles.stepBadgeText}>Step 1 of 3</Text>
             </View>
-            <Text style={styles.screenTitle}>Lot Identification</Text>
+            <Text style={styles.screenTitle}>Lot Details</Text>
             <Text style={styles.stepSubtitle}>
-              Enter consignment details & verify GPS coordinates before spread capture.
+              Enter consignment details and verify location before capturing the sample spread.
             </Text>
           </View>
         </FadeInView>
@@ -120,7 +121,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
             <View style={styles.gpsHeader}>
               <View style={styles.radarContainer}>
                 <RadarPulse
-                  size={32}
+                  size={30}
                   color={
                     location.status === 'locked'
                       ? Colors.gradeA
@@ -132,17 +133,16 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 />
               </View>
               <View style={styles.gpsInfo}>
-                <Text style={styles.gpsTitle}>GEOLOCATION TELEMETRY</Text>
+                <Text style={styles.gpsTitle}>Mandi Geolocation</Text>
                 {location.status === 'fetching' ? (
-                  <Text style={styles.gpsText}>Acquiring high-accuracy GNSS fix...</Text>
+                  <Text style={styles.gpsText}>Acquiring GPS location...</Text>
                 ) : location.status === 'locked' ? (
                   <Text style={styles.gpsLockedText}>
-                    Locked: {location.lat?.toFixed(5)}°N, {location.lon?.toFixed(5)}°E (±
-                    {location.accuracy?.toFixed(0)}m)
+                    GPS Locked: {location.lat?.toFixed(4)}° N, {location.lon?.toFixed(4)}° E (±{location.accuracy?.toFixed(0)} m)
                   </Text>
                 ) : (
                   <Text style={styles.gpsDeniedText}>
-                    GPS Offline ({location.status}) — recorded as verifiable null.
+                    GPS Offline ({location.status})
                   </Text>
                 )}
               </View>
@@ -154,7 +154,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         <FadeInView delay={160} distance={15}>
           <View style={styles.formCard}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>LOT IDENTIFIER / BATCH ID</Text>
+              <Text style={styles.label}>Lot Identifier</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g. LOT-2026-NASHIK-409"
@@ -165,7 +165,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>PROCUREMENT MANDI / APMC YARD</Text>
+              <Text style={styles.label}>APMC Mandi Yard</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g. Lasalgaon APMC Mandi, Nashik"
@@ -177,7 +177,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
 
             <View style={styles.rowFields}>
               <View style={[styles.fieldGroup, { flex: 1, marginRight: Spacing.sm }]}>
-                <Text style={styles.label}>OFFICER NAME</Text>
+                <Text style={styles.label}>Officer Name</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Rajesh Sharma"
@@ -187,7 +187,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>BADGE / NAFED ID</Text>
+                <Text style={styles.label}>Officer ID / Badge</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. NAFED-4821"
@@ -199,10 +199,10 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>CONSIGNMENT & FARMER REMARKS</Text>
+              <Text style={styles.label}>Consignment Notes</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="e.g. Farmer: Ramdas Patil, Nashik Red rabi variety, 60 quintal lot sampled."
+                placeholder="Farmer name, variety (e.g. Nashik Red Rabi), lot tonnage, or comments."
                 placeholderTextColor={Colors.textDim}
                 multiline={true}
                 numberOfLines={3}
@@ -232,9 +232,9 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color={Colors.text} size="small" />
+                <ActivityIndicator color="#ffffff" size="small" />
               ) : (
-                <Text style={styles.submitBtnText}>Proceed to Camera Capture →</Text>
+                <Text style={styles.submitBtnText}>Continue to Camera →</Text>
               )}
             </AnimatedPressable>
           </View>
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   stepBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.accentSubtle,
+    backgroundColor: Colors.cardBgElevated,
     borderRadius: Radius.xs,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -269,9 +269,9 @@ const styles = StyleSheet.create({
   },
   stepBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: Colors.accent,
-    letterSpacing: 0.8,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.3,
   },
   screenTitle: {
     ...Typography.title1,
@@ -289,7 +289,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.card,
   },
   gpsHeader: {
     flexDirection: 'row',
@@ -297,8 +298,8 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   radarContainer: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -306,10 +307,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gpsTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.textDim,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   gpsText: {
     fontSize: 12,
@@ -321,7 +321,6 @@ const styles = StyleSheet.create({
     color: Colors.gradeA,
     fontWeight: '600',
     marginTop: 2,
-    fontFamily: 'monospace',
   },
   gpsDeniedText: {
     fontSize: 11,
@@ -334,24 +333,24 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.card,
   },
   fieldGroup: {
-    gap: 4,
+    gap: 5,
   },
   rowFields: {
     flexDirection: 'row',
   },
   label: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.textMuted,
-    letterSpacing: 0.6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
   },
   input: {
     backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
@@ -369,31 +368,32 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: Radius.md,
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.cardBg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   cancelBtnText: {
     color: Colors.textSecondary,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   submitBtn: {
     flex: 2.2,
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: Radius.md,
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Colors.accent,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.accent,
+    ...Shadows.card,
   },
   submitBtnText: {
-    color: Colors.text,
+    color: '#ffffff',
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

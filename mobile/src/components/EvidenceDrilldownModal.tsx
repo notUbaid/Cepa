@@ -18,6 +18,7 @@ import {
   Haptics,
   LazyImage,
   Radius,
+  Shadows,
   SizeTierBadge,
   Spacing,
   Typography,
@@ -149,14 +150,13 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                     style={styles.cropImage}
                     borderRadius={Radius.md}
                     resizeMode="contain"
-                    fallbackText="🧅"
                   />
                 </View>
 
                 {onion.touches_border && (
                   <View style={styles.warningBox}>
                     <Text style={styles.warningText}>
-                      ⚠️ Bulb touches image boundary. Caliper measurement may be truncated.
+                      Bulb touches frame boundary. Sizing may be partially truncated.
                     </Text>
                   </View>
                 )}
@@ -167,7 +167,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             <FadeInView delay={100} distance={12}>
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>
-                  MORPHOMETRY & PHYSICAL SIZING (BIS IS 17912:2022)
+                  PHYSICAL SIZING (BIS IS 17912:2022)
                 </Text>
 
                 <View style={styles.metricRow}>
@@ -221,7 +221,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.explanation?.black_mold_pct && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Black Mold (Aspergillus niger):</Text>
+                    <Text style={styles.metricLabel}>Surface Mold (Aspergillus):</Text>
                     <Text style={[styles.metricValue, { color: Colors.reject }]}>
                       {onion.explanation.black_mold_pct}
                     </Text>
@@ -230,7 +230,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.explanation?.sunburn_pct && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Sunburn (Chlorophyll NGRDI):</Text>
+                    <Text style={styles.metricLabel}>Sunburn / Chlorophyll:</Text>
                     <Text style={styles.metricValue}>
                       {onion.explanation.sunburn_pct}
                     </Text>
@@ -239,7 +239,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.explanation?.skin_baldness_pct && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Tunic Loss (Peeled Flesh):</Text>
+                    <Text style={styles.metricLabel}>Tunic Loss (Peeled Skin):</Text>
                     <Text style={styles.metricValue}>
                       {onion.explanation.skin_baldness_pct}
                     </Text>
@@ -249,7 +249,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 {onion.rejection_reasons && onion.rejection_reasons.includes('DOUBLE_BULB') && (
                   <View style={styles.doubleBulbWarning}>
                     <Text style={styles.doubleBulbText}>
-                      ⚠️ TWIN / DOUBLE BULB: Deep contour concavity detected. Disqualified from Grade A.
+                      Twin / Double Bulb: Deep contour concavity detected. Disqualified from Grade A.
                     </Text>
                   </View>
                 )}
@@ -260,19 +260,19 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             <FadeInView delay={150} distance={12}>
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>MULTI-SPECTRAL DEFECT ANALYSIS</Text>
+                  <Text style={styles.sectionTitle}>DEFECT APPRAISAL</Text>
                   {onion.is_mock_defect && (
-                    <Text style={styles.mockTag}>[DEMO MOCK]</Text>
+                    <Text style={styles.mockTag}>DEMO</Text>
                   )}
                 </View>
 
                 <DefectBar
-                  label="Rotten / Fungal Decay"
+                  label="Rotten / Decay"
                   percent={((onion.rotten_prob ?? 0) * 100).toFixed(0)}
                   color={Colors.reject}
                 />
                 <DefectBar
-                  label="Mechanical Impact / Damage"
+                  label="Mechanical Damage"
                   percent={((onion.damaged_prob ?? 0) * 100).toFixed(0)}
                   color={Colors.urs}
                 />
@@ -285,7 +285,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 {onion.has_human_correction && (
                   <View style={styles.correctionNotice}>
                     <Text style={styles.correctionNoticeText}>
-                      ✓ Verified & Adjusted by: {onion.corrected_by || 'Procurement Officer'}
+                      Verified & Adjusted by: {onion.corrected_by || 'Procurement Officer'}
                     </Text>
                   </View>
                 )}
@@ -295,9 +295,9 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             {/* Applied Policy & Reasons */}
             <FadeInView delay={200} distance={12}>
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>MANDI RULE ENGINE AUDIT</Text>
+                <Text style={styles.sectionTitle}>GRADING RULE AUDIT</Text>
                 <Text style={styles.policyVersionText}>
-                  Rule Standard: {onion.ruleset_version || 'BIS_IS_17912_2022'}
+                  Rule Standard: {onion.ruleset_version ? onion.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022') : 'BIS IS 17912:2022'}
                 </Text>
 
                 {onion.rejection_reasons && onion.rejection_reasons.length > 0 && (
@@ -335,13 +335,13 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                     onPress={() => setIsCorrecting(true)}
                   >
                     <Text style={styles.overrideBtnText}>
-                      ✏️ Override / Correct AI Classification
+                      Edit Defect Percentages
                     </Text>
                   </AnimatedPressable>
                 ) : (
                   <View style={styles.correctionForm}>
                     <Text style={styles.formHint}>
-                      Input calibrated defect percentages to override AI appraisal:
+                      Input calibrated defect percentages to override automated appraisal:
                     </Text>
 
                     <View style={styles.inputRow}>
@@ -376,7 +376,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                     <TextInput
                       style={styles.remarksInput}
-                      placeholder="Officer audit remarks (e.g. Visual rot confirmed on root plate)"
+                      placeholder="Officer audit remarks (e.g. Confirmed rot at root plate)"
                       placeholderTextColor={Colors.textDim}
                       value={officerRemarks}
                       onChangeText={setOfficerRemarks}
@@ -399,7 +399,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                         disabled={saving}
                       >
                         {saving ? (
-                          <ActivityIndicator color={Colors.text} size="small" />
+                          <ActivityIndicator color="#ffffff" size="small" />
                         ) : (
                           <Text style={styles.saveBtnText}>Save & Re-evaluate</Text>
                         )}
@@ -446,7 +446,7 @@ const DefectBar: React.FC<{ label: string; percent: string; color: string }> = (
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(7, 13, 24, 0.85)',
+    backgroundColor: 'rgba(24, 24, 27, 0.45)',
     justifyContent: 'flex-end',
   },
   modalCard: {
@@ -461,10 +461,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   handleBar: {
-    width: 38,
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.borderMuted,
+    backgroundColor: Colors.borderHighlight,
     alignSelf: 'center',
     marginTop: 10,
     marginBottom: 4,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderMuted,
+    borderBottomColor: Colors.border,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -491,7 +491,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 2,
-    fontFamily: 'monospace',
   },
   headerRight: {
     flexDirection: 'row',
@@ -506,10 +505,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   closeButtonText: {
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     fontWeight: 'bold',
     fontSize: 13,
   },
@@ -526,7 +525,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.card,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -534,6 +534,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     padding: 3,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   toggleBtn: {
     paddingHorizontal: Spacing.md,
@@ -541,17 +543,17 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xs,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.accentSubtle,
+    backgroundColor: Colors.accent,
     borderWidth: 1,
     borderColor: Colors.accent,
   },
   toggleBtnText: {
     fontSize: 11,
-    color: Colors.textDim,
+    color: Colors.textSecondary,
     fontWeight: '600',
   },
   toggleBtnTextActive: {
-    color: Colors.accent,
+    color: '#ffffff',
     fontWeight: '700',
   },
   imageWrapper: {
@@ -571,7 +573,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderColor: Colors.rejectBorder,
     width: '100%',
   },
   warningText: {
@@ -584,7 +586,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
+    ...Shadows.card,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -601,7 +604,7 @@ const styles = StyleSheet.create({
   },
   mockTag: {
     fontSize: 9,
-    color: Colors.reject,
+    color: Colors.textDim,
     fontWeight: '700',
   },
   metricRow: {
@@ -619,7 +622,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Colors.text,
-    fontFamily: 'monospace',
   },
   doubleBulbWarning: {
     marginTop: Spacing.sm,
@@ -627,12 +629,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.ursBg,
     borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: Colors.urs,
+    borderColor: Colors.ursBorder,
   },
   doubleBulbText: {
     color: Colors.urs,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 16,
   },
   defectBarContainer: {
@@ -650,7 +652,6 @@ const styles = StyleSheet.create({
   defectPercent: {
     fontSize: 11,
     fontWeight: '700',
-    fontFamily: 'monospace',
   },
   progressBar: {
     height: 6,
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gradeABg,
     borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: Colors.gradeABorder,
   },
   correctionNoticeText: {
     color: Colors.gradeA,
@@ -677,8 +678,7 @@ const styles = StyleSheet.create({
   },
   policyVersionText: {
     fontSize: 11,
-    color: Colors.textDim,
-    fontFamily: 'monospace',
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   reasonsList: {
@@ -686,6 +686,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.rejectBg,
     padding: Spacing.sm,
     borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.rejectBorder,
   },
   reasonsTitle: {
     fontSize: 11,
@@ -695,9 +697,8 @@ const styles = StyleSheet.create({
   },
   reasonItem: {
     fontSize: 11,
-    color: '#fca5a5',
+    color: Colors.reject,
     marginLeft: 4,
-    fontFamily: 'monospace',
   },
   explanationBox: {
     backgroundColor: Colors.cardBgElevated,
@@ -707,9 +708,8 @@ const styles = StyleSheet.create({
   },
   explanationLine: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     marginVertical: 1,
-    fontFamily: 'monospace',
   },
   explanationKey: {
     fontWeight: '700',
@@ -722,10 +722,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Spacing.xs,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
   },
   overrideBtnText: {
-    color: Colors.accent,
+    color: Colors.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -747,9 +747,9 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   numInput: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.cardBg,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
     borderRadius: Radius.sm,
     width: 65,
     paddingHorizontal: 8,
@@ -757,12 +757,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 12,
     textAlign: 'center',
-    fontFamily: 'monospace',
   },
   remarksInput: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: Colors.cardBg,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: Colors.border,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
@@ -780,9 +779,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: Radius.sm,
     backgroundColor: Colors.cardBgElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   cancelBtnText: {
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -790,11 +791,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: 8,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.accentDark,
+    backgroundColor: Colors.accent,
   },
   saveBtnText: {
-    color: Colors.text,
+    color: '#ffffff',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });
