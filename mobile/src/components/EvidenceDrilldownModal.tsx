@@ -1,17 +1,27 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { ApiClient } from '../api/client';
 import { OnionInstanceDetail } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  GradeBadge,
+  Haptics,
+  LazyImage,
+  Radius,
+  SizeTierBadge,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface EvidenceDrilldownModalProps {
   visible: boolean;
@@ -45,6 +55,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
   const [saving, setSaving] = useState(false);
 
   const handleSaveCorrection = async () => {
+    Haptics.heavy();
     setSaving(true);
     try {
       const updated = await ApiClient.correctOnion(inspectionId, onion.id, {
@@ -54,25 +65,14 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
         corrected_by: 'Procurement Officer',
         notes: officerRemarks || undefined,
       });
+      Haptics.success();
       setIsCorrecting(false);
       onCorrectionSaved(updated);
     } catch (err: any) {
+      Haptics.error();
       alert(`Correction failed: ${err.message}`);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const getGradeColor = (grade: string | null) => {
-    switch (grade) {
-      case 'GRADE_A':
-        return '#27ae60';
-      case 'URS':
-        return '#f39c12';
-      case 'REJECTED':
-        return '#e74c3c';
-      default:
-        return '#3498db';
     }
   };
 
@@ -80,384 +80,335 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
+          {/* Swipe Indicator Handle */}
+          <View style={styles.handleBar} />
+
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.headerTitle}>Onion #{onion.display_number}</Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>Bulb #{onion.display_number}</Text>
+                <SizeTierBadge tier={onion.mandi_size_grade} />
+              </View>
               <Text style={styles.headerSubtitle}>
                 Confidence: {(onion.segmentation_conf * 100).toFixed(0)}% • Tier:{' '}
                 {onion.confidence_tier}
               </Text>
             </View>
+
             <View style={styles.headerRight}>
-              <View
-                style={[
-                  styles.gradePill,
-                  { backgroundColor: getGradeColor(onion.grade) },
-                ]}
+              <GradeBadge grade={onion.grade} size="md" />
+              <AnimatedPressable
+                haptic="light"
+                onPress={onClose}
+                style={styles.closeButton}
               >
-                <Text style={styles.gradePillText}>{onion.grade || 'PENDING'}</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
           </View>
 
-          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
             {/* Visual Evidence Toggle */}
-            <View style={styles.imageCard}>
-              <View style={styles.toggleRow}>
-                <TouchableOpacity
-                  style={[styles.toggleBtn, !showMask && styles.toggleBtnActive]}
-                  onPress={() => setShowMask(false)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleBtnText,
-                      !showMask && styles.toggleBtnTextActive,
-                    ]}
+            <FadeInView delay={50} distance={10}>
+              <View style={styles.imageCard}>
+                <View style={styles.toggleRow}>
+                  <AnimatedPressable
+                    haptic="selection"
+                    style={[styles.toggleBtn, !showMask && styles.toggleBtnActive]}
+                    onPress={() => setShowMask(false)}
                   >
-                    Isolated Bulb Crop
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.toggleBtn, showMask && styles.toggleBtnActive]}
-                  onPress={() => setShowMask(true)}
-                >
-                  <Text
-                    style={[
-                      styles.toggleBtnText,
-                      showMask && styles.toggleBtnTextActive,
-                    ]}
+                    <Text
+                      style={[
+                        styles.toggleBtnText,
+                        !showMask && styles.toggleBtnTextActive,
+                      ]}
+                    >
+                      Bulb Crop
+                    </Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    haptic="selection"
+                    style={[styles.toggleBtn, showMask && styles.toggleBtnActive]}
+                    onPress={() => setShowMask(true)}
                   >
-                    Binary Mask
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                    <Text
+                      style={[
+                        styles.toggleBtnText,
+                        showMask && styles.toggleBtnTextActive,
+                      ]}
+                    >
+                      Binary Mask
+                    </Text>
+                  </AnimatedPressable>
+                </View>
 
-              <View style={styles.imageWrapper}>
-                {showMask ? (
-                  onion.mask_url ? (
-                    <Image
-                      source={{ uri: onion.mask_url }}
-                      style={styles.cropImage}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <View style={styles.noImage}>
-                      <Text style={styles.noImageText}>Mask Not Available</Text>
-                    </View>
-                  )
-                ) : onion.crop_url ? (
-                  <Image
-                    source={{ uri: onion.crop_url }}
+                <View style={styles.imageWrapper}>
+                  <LazyImage
+                    source={{ uri: showMask ? onion.mask_url : onion.crop_url }}
                     style={styles.cropImage}
+                    borderRadius={Radius.md}
                     resizeMode="contain"
+                    fallbackText="🧅"
                   />
-                ) : (
-                  <View style={styles.noImage}>
-                    <Text style={styles.noImageText}>Crop Not Available</Text>
+                </View>
+
+                {onion.touches_border && (
+                  <View style={styles.warningBox}>
+                    <Text style={styles.warningText}>
+                      ⚠️ Bulb touches image boundary. Caliper measurement may be truncated.
+                    </Text>
                   </View>
                 )}
               </View>
-
-              {onion.touches_border && (
-                <View style={styles.warningBox}>
-                  <Text style={styles.warningText}>
-                    ⚠️ Bulb touches image frame boundary. Sizing may be truncated.
-                  </Text>
-                </View>
-              )}
-            </View>
+            </FadeInView>
 
             {/* Geometric Size Measurement */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Physical Sizing & Mandi Telemetry (BIS IS 17912:2022)</Text>
-              <View style={styles.metricRow}>
-                <Text style={styles.metricLabel}>Mandi Size Grade:</Text>
-                <Text style={[styles.metricValue, { color: '#38bdf8', fontWeight: '700' }]}>
-                  {onion.mandi_size_grade || onion.explanation?.mandi_size_grade || 'Standard'}
+            <FadeInView delay={100} distance={12}>
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>
+                  MORPHOMETRY & PHYSICAL SIZING (BIS IS 17912:2022)
                 </Text>
-              </View>
-              <View style={styles.metricRow}>
-                <Text style={styles.metricLabel}>Equatorial Caliper (Deq):</Text>
-                <Text style={styles.metricValue}>
-                  {onion.equatorial_diameter_mm
-                    ? `${onion.equatorial_diameter_mm.toFixed(1)} mm`
-                    : onion.equivalent_diameter_mm !== null
-                    ? `${onion.equivalent_diameter_mm.toFixed(1)} mm`
-                    : 'Uncalibrated'}
-                </Text>
-              </View>
-              {(onion.polar_length_mm || onion.explanation?.polar_length_mm) && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Polar Length (Stem-Root):</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.polar_length_mm
-                      ? `${onion.polar_length_mm.toFixed(1)} mm`
-                      : onion.explanation?.polar_length_mm}
-                  </Text>
-                </View>
-              )}
-              {(onion.shape_class || onion.explanation?.shape_class) && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Bulb Shape Classification:</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.shape_class || onion.explanation?.shape_class}
-                  </Text>
-                </View>
-              )}
-              {(onion.estimated_weight_grams || onion.explanation?.estimated_weight_grams) && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Estimated Bulb Weight:</Text>
-                  <Text style={[styles.metricValue, { color: '#2ecc71', fontWeight: '700' }]}>
-                    {onion.estimated_weight_grams
-                      ? `${onion.estimated_weight_grams.toFixed(0)} g`
-                      : onion.explanation?.estimated_weight_grams}
-                  </Text>
-                </View>
-              )}
-              {onion.major_axis_mm && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Fitted Ellipse (Maj/Min):</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.major_axis_mm.toFixed(1)} / {onion.minor_axis_mm?.toFixed(1)} mm
-                  </Text>
-                </View>
-              )}
-              {onion.explanation?.circularity && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Circularity (Isoperimetric Q):</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.explanation.circularity}
-                  </Text>
-                </View>
-              )}
-              {onion.explanation?.black_mold_pct && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Black Mold (Aspergillus):</Text>
-                  <Text style={[styles.metricValue, { color: '#e74c3c' }]}>
-                    {onion.explanation.black_mold_pct}
-                  </Text>
-                </View>
-              )}
-              {onion.explanation?.sunburn_pct && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Sunburn (Chlorophyll NGRDI):</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.explanation.sunburn_pct}
-                  </Text>
-                </View>
-              )}
-              {onion.explanation?.skin_baldness_pct && (
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Tunic Loss (Peeled Flesh):</Text>
-                  <Text style={styles.metricValue}>
-                    {onion.explanation.skin_baldness_pct}
-                  </Text>
-                </View>
-              )}
-              {onion.rejection_reasons && onion.rejection_reasons.includes('DOUBLE_BULB') && (
-                <View style={styles.doubleBulbWarning}>
-                  <Text style={styles.doubleBulbText}>
-                    ⚠️ FUSED / SPLIT DOUBLE BULB: Deep contour concavity detected. Disqualified from Grade A.
-                  </Text>
-                </View>
-              )}
-              <Text style={styles.caveatText}>
-                Note: Projected equivalent diameter from 2D top-down photograph.
-                Not equivalent to laboratory caliper measurement.
-              </Text>
-            </View>
 
-            {/* Defect Probability Breakdown */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Visible Surface Defects</Text>
-                {onion.is_mock_defect && (
-                  <Text style={styles.mockTag}>[DEMO MOCK]</Text>
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>APMC Mandi Grade:</Text>
+                  <Text style={[styles.metricValue, { color: Colors.accent }]}>
+                    {onion.mandi_size_grade || onion.explanation?.mandi_size_grade || 'Super'}
+                  </Text>
+                </View>
+
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Equatorial Caliper (Deq):</Text>
+                  <Text style={[styles.metricValue, { color: Colors.accent }]}>
+                    {onion.equatorial_diameter_mm
+                      ? `${onion.equatorial_diameter_mm.toFixed(1)} mm`
+                      : onion.equivalent_diameter_mm !== null
+                      ? `${onion.equivalent_diameter_mm.toFixed(1)} mm`
+                      : 'Uncalibrated'}
+                  </Text>
+                </View>
+
+                {(onion.polar_length_mm || onion.explanation?.polar_length_mm) && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Polar Axis (Stem-to-Root):</Text>
+                    <Text style={styles.metricValue}>
+                      {onion.polar_length_mm
+                        ? `${onion.polar_length_mm.toFixed(1)} mm`
+                        : onion.explanation?.polar_length_mm}
+                    </Text>
+                  </View>
+                )}
+
+                {(onion.shape_class || onion.explanation?.shape_class) && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Bulb Shape Classification:</Text>
+                    <Text style={styles.metricValue}>
+                      {onion.shape_class || onion.explanation?.shape_class}
+                    </Text>
+                  </View>
+                )}
+
+                {(onion.estimated_weight_grams || onion.explanation?.estimated_weight_grams) && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Volumetric Mass Estimate:</Text>
+                    <Text style={[styles.metricValue, { color: Colors.gradeA }]}>
+                      {onion.estimated_weight_grams
+                        ? `${onion.estimated_weight_grams.toFixed(0)} g`
+                        : onion.explanation?.estimated_weight_grams}
+                    </Text>
+                  </View>
+                )}
+
+                {onion.explanation?.black_mold_pct && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Black Mold (Aspergillus niger):</Text>
+                    <Text style={[styles.metricValue, { color: Colors.reject }]}>
+                      {onion.explanation.black_mold_pct}
+                    </Text>
+                  </View>
+                )}
+
+                {onion.explanation?.sunburn_pct && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Sunburn (Chlorophyll NGRDI):</Text>
+                    <Text style={styles.metricValue}>
+                      {onion.explanation.sunburn_pct}
+                    </Text>
+                  </View>
+                )}
+
+                {onion.explanation?.skin_baldness_pct && (
+                  <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>Tunic Loss (Peeled Flesh):</Text>
+                    <Text style={styles.metricValue}>
+                      {onion.explanation.skin_baldness_pct}
+                    </Text>
+                  </View>
+                )}
+
+                {onion.rejection_reasons && onion.rejection_reasons.includes('DOUBLE_BULB') && (
+                  <View style={styles.doubleBulbWarning}>
+                    <Text style={styles.doubleBulbText}>
+                      ⚠️ TWIN / DOUBLE BULB: Deep contour concavity detected. Disqualified from Grade A.
+                    </Text>
+                  </View>
                 )}
               </View>
+            </FadeInView>
 
-              <View style={styles.defectBarContainer}>
-                <View style={styles.defectLabelRow}>
-                  <Text style={styles.defectName}>Rotten / Decay:</Text>
-                  <Text style={styles.defectPercent}>
-                    {((onion.rotten_prob ?? 0) * 100).toFixed(0)}%
-                  </Text>
+            {/* Defect Probability Breakdown */}
+            <FadeInView delay={150} distance={12}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>MULTI-SPECTRAL DEFECT ANALYSIS</Text>
+                  {onion.is_mock_defect && (
+                    <Text style={styles.mockTag}>[DEMO MOCK]</Text>
+                  )}
                 </View>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.min(100, (onion.rotten_prob ?? 0) * 100)}%`,
-                        backgroundColor:
-                          (onion.rotten_prob ?? 0) >= 0.5 ? '#e74c3c' : '#2ecc71',
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
 
-              <View style={styles.defectBarContainer}>
-                <View style={styles.defectLabelRow}>
-                  <Text style={styles.defectName}>Mechanical Damage:</Text>
-                  <Text style={styles.defectPercent}>
-                    {((onion.damaged_prob ?? 0) * 100).toFixed(0)}%
-                  </Text>
-                </View>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.min(100, (onion.damaged_prob ?? 0) * 100)}%`,
-                        backgroundColor:
-                          (onion.damaged_prob ?? 0) >= 0.5 ? '#e67e22' : '#2ecc71',
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
+                <DefectBar
+                  label="Rotten / Fungal Decay"
+                  percent={((onion.rotten_prob ?? 0) * 100).toFixed(0)}
+                  color={Colors.reject}
+                />
+                <DefectBar
+                  label="Mechanical Impact / Damage"
+                  percent={((onion.damaged_prob ?? 0) * 100).toFixed(0)}
+                  color={Colors.urs}
+                />
+                <DefectBar
+                  label="Vegetative Sprouting"
+                  percent={((onion.sprouted_prob ?? 0) * 100).toFixed(0)}
+                  color={Colors.review}
+                />
 
-              <View style={styles.defectBarContainer}>
-                <View style={styles.defectLabelRow}>
-                  <Text style={styles.defectName}>Vegetative Sprouting:</Text>
-                  <Text style={styles.defectPercent}>
-                    {((onion.sprouted_prob ?? 0) * 100).toFixed(0)}%
-                  </Text>
-                </View>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.min(100, (onion.sprouted_prob ?? 0) * 100)}%`,
-                        backgroundColor:
-                          (onion.sprouted_prob ?? 0) >= 0.5 ? '#9b59b6' : '#2ecc71',
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-
-              {onion.has_human_correction && (
-                <View style={styles.correctionNotice}>
-                  <Text style={styles.correctionNoticeText}>
-                    ✓ Corrected by: {onion.corrected_by || 'Officer'}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Applied Policy & Explanation */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Applied Procurement Rule</Text>
-              <Text style={styles.policyVersionText}>
-                Active Policy: {onion.ruleset_version || 'DEMO_ASSUMPTION_v1'}
-              </Text>
-              {onion.rejection_reasons && onion.rejection_reasons.length > 0 && (
-                <View style={styles.reasonsList}>
-                  <Text style={styles.reasonsTitle}>Rejection Triggered By:</Text>
-                  {onion.rejection_reasons.map((r, i) => (
-                    <Text key={i} style={styles.reasonItem}>
-                      • {r}
+                {onion.has_human_correction && (
+                  <View style={styles.correctionNotice}>
+                    <Text style={styles.correctionNoticeText}>
+                      ✓ Verified & Adjusted by: {onion.corrected_by || 'Procurement Officer'}
                     </Text>
-                  ))}
-                </View>
-              )}
-              {onion.explanation && Object.keys(onion.explanation).length > 0 && (
-                <View style={styles.explanationBox}>
-                  {Object.entries(onion.explanation).map(([k, v]) => (
-                    <Text key={k} style={styles.explanationLine}>
-                      <Text style={styles.explanationKey}>{k}: </Text>
-                      {v}
+                  </View>
+                )}
+              </View>
+            </FadeInView>
+
+            {/* Applied Policy & Reasons */}
+            <FadeInView delay={200} distance={12}>
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>MANDI RULE ENGINE AUDIT</Text>
+                <Text style={styles.policyVersionText}>
+                  Rule Standard: {onion.ruleset_version || 'BIS_IS_17912_2022'}
+                </Text>
+
+                {onion.rejection_reasons && onion.rejection_reasons.length > 0 && (
+                  <View style={styles.reasonsList}>
+                    <Text style={styles.reasonsTitle}>Rejection Triggered By:</Text>
+                    {onion.rejection_reasons.map((r, i) => (
+                      <Text key={i} style={styles.reasonItem}>
+                        • {r.replace(/_/g, ' ')}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {onion.explanation && Object.keys(onion.explanation).length > 0 && (
+                  <View style={styles.explanationBox}>
+                    {Object.entries(onion.explanation).map(([k, v]) => (
+                      <Text key={k} style={styles.explanationLine}>
+                        <Text style={styles.explanationKey}>{k}: </Text>
+                        {v}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </FadeInView>
+
+            {/* Officer Manual Override */}
+            <FadeInView delay={250} distance={12}>
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>OFFICER AUDIT & MANUAL OVERRIDE</Text>
+                {!isCorrecting ? (
+                  <AnimatedPressable
+                    haptic="medium"
+                    style={styles.overrideBtn}
+                    onPress={() => setIsCorrecting(true)}
+                  >
+                    <Text style={styles.overrideBtnText}>
+                      ✏️ Override / Correct AI Classification
                     </Text>
-                  ))}
-                </View>
-              )}
-            </View>
+                  </AnimatedPressable>
+                ) : (
+                  <View style={styles.correctionForm}>
+                    <Text style={styles.formHint}>
+                      Input calibrated defect percentages to override AI appraisal:
+                    </Text>
 
-            {/* Officer Correction Section */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Officer Audit & Manual Override</Text>
-              {!isCorrecting ? (
-                <TouchableOpacity
-                  style={styles.overrideBtn}
-                  onPress={() => setIsCorrecting(true)}
-                >
-                  <Text style={styles.overrideBtnText}>
-                    ✏️ Override / Correct AI Classification
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.correctionForm}>
-                  <Text style={styles.formHint}>
-                    Adjust visual defect percentages if the AI made an error:
-                  </Text>
+                    <View style={styles.inputRow}>
+                      <Text style={styles.inputLabel}>Damaged (%):</Text>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="numeric"
+                        value={damagedInput}
+                        onChangeText={setDamagedInput}
+                      />
+                    </View>
 
-                  <View style={styles.inputRow}>
-                    <Text style={styles.inputLabel}>Damaged (%):</Text>
+                    <View style={styles.inputRow}>
+                      <Text style={styles.inputLabel}>Rotten (%):</Text>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="numeric"
+                        value={rottenInput}
+                        onChangeText={setRottenInput}
+                      />
+                    </View>
+
+                    <View style={styles.inputRow}>
+                      <Text style={styles.inputLabel}>Sprouted (%):</Text>
+                      <TextInput
+                        style={styles.numInput}
+                        keyboardType="numeric"
+                        value={sproutedInput}
+                        onChangeText={setSproutedInput}
+                      />
+                    </View>
+
                     <TextInput
-                      style={styles.numInput}
-                      keyboardType="numeric"
-                      value={damagedInput}
-                      onChangeText={setDamagedInput}
+                      style={styles.remarksInput}
+                      placeholder="Officer audit remarks (e.g. Visual rot confirmed on root plate)"
+                      placeholderTextColor={Colors.textDim}
+                      value={officerRemarks}
+                      onChangeText={setOfficerRemarks}
                     />
-                  </View>
 
-                  <View style={styles.inputRow}>
-                    <Text style={styles.inputLabel}>Rotten (%):</Text>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="numeric"
-                      value={rottenInput}
-                      onChangeText={setRottenInput}
-                    />
-                  </View>
+                    <View style={styles.formBtnRow}>
+                      <AnimatedPressable
+                        haptic="light"
+                        style={styles.cancelBtn}
+                        onPress={() => setIsCorrecting(false)}
+                        disabled={saving}
+                      >
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                      </AnimatedPressable>
 
-                  <View style={styles.inputRow}>
-                    <Text style={styles.inputLabel}>Sprouted (%):</Text>
-                    <TextInput
-                      style={styles.numInput}
-                      keyboardType="numeric"
-                      value={sproutedInput}
-                      onChangeText={setSproutedInput}
-                    />
+                      <AnimatedPressable
+                        haptic="heavy"
+                        style={styles.saveBtn}
+                        onPress={handleSaveCorrection}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <ActivityIndicator color={Colors.text} size="small" />
+                        ) : (
+                          <Text style={styles.saveBtnText}>Save & Re-evaluate</Text>
+                        )}
+                      </AnimatedPressable>
+                    </View>
                   </View>
-
-                  <TextInput
-                    style={styles.remarksInput}
-                    placeholder="Officer remarks (e.g. Visual skin cut verified)"
-                    value={officerRemarks}
-                    onChangeText={setOfficerRemarks}
-                  />
-
-                  <View style={styles.formBtnRow}>
-                    <TouchableOpacity
-                      style={styles.cancelBtn}
-                      onPress={() => setIsCorrecting(false)}
-                      disabled={saving}
-                    >
-                      <Text style={styles.cancelBtnText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.saveBtn}
-                      onPress={handleSaveCorrection}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        <Text style={styles.saveBtnText}>Save & Re-evaluate</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            </FadeInView>
           </ScrollView>
         </View>
       </View>
@@ -465,180 +416,224 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
   );
 };
 
+const DefectBar: React.FC<{ label: string; percent: string; color: string }> = ({
+  label,
+  percent,
+  color,
+}) => {
+  const pct = Math.min(100, Math.max(0, parseFloat(percent) || 0));
+  return (
+    <View style={styles.defectBarContainer}>
+      <View style={styles.defectLabelRow}>
+        <Text style={styles.defectName}>{label}</Text>
+        <Text style={[styles.defectPercent, { color }]}>{percent}%</Text>
+      </View>
+      <View style={styles.progressBar}>
+        <View
+          style={[
+            styles.progressFill,
+            {
+              width: `${pct}%`,
+              backgroundColor: pct >= 30 ? color : Colors.gradeA,
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(7, 13, 24, 0.85)',
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#0d1b2a',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    paddingBottom: 24,
+    backgroundColor: Colors.bg,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    maxHeight: '92%',
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: Colors.border,
+  },
+  handleBar: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.borderMuted,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: Colors.borderMuted,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#f8f9fa',
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  headerRight: {
+  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  gradePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  headerTitle: {
+    ...Typography.title1,
+    color: Colors.text,
   },
-  gradePillText: {
+  headerSubtitle: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#fff',
+    color: Colors.textMuted,
+    marginTop: 2,
+    fontFamily: 'monospace',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   closeButton: {
-    padding: 6,
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.cardBgElevated,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   closeButtonText: {
-    color: '#cbd5e1',
+    color: Colors.textMuted,
     fontWeight: 'bold',
+    fontSize: 13,
   },
   body: {
     flex: 1,
   },
   bodyContent: {
-    padding: 16,
-    gap: 12,
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   imageCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#0d1b2a',
-    borderRadius: 8,
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.sm,
     padding: 3,
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
   },
   toggleBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 5,
+    borderRadius: Radius.xs,
   },
   toggleBtnActive: {
-    backgroundColor: '#415a77',
+    backgroundColor: Colors.accentSubtle,
+    borderWidth: 1,
+    borderColor: Colors.accent,
   },
   toggleBtnText: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: Colors.textDim,
     fontWeight: '600',
   },
   toggleBtnTextActive: {
-    color: '#fff',
+    color: Colors.accent,
     fontWeight: '700',
   },
   imageWrapper: {
-    width: 220,
-    height: 220,
-    backgroundColor: '#000',
-    borderRadius: 8,
+    width: 200,
+    height: 200,
+    borderRadius: Radius.md,
     overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.skeletonBase,
   },
   cropImage: {
     width: '100%',
     height: '100%',
   },
-  noImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noImageText: {
-    color: '#64748b',
-    fontSize: 12,
-  },
   warningBox: {
-    marginTop: 8,
-    backgroundColor: 'rgba(231, 76, 60, 0.15)',
-    padding: 8,
-    borderRadius: 6,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.rejectBg,
+    padding: Spacing.sm,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: '#e74c3c',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    width: '100%',
   },
   warningText: {
-    color: '#ff7675',
+    color: Colors.reject,
     fontSize: 11,
+    textAlign: 'center',
   },
   sectionCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#e2e8f0',
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.accent,
+    letterSpacing: 0.8,
     marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   mockTag: {
     fontSize: 9,
-    color: '#ff7675',
+    color: Colors.reject,
     fontWeight: '700',
   },
   metricRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#243347',
+    borderBottomColor: Colors.borderMuted,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: Colors.textMuted,
   },
   metricValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#f8f9fa',
+    color: Colors.text,
+    fontFamily: 'monospace',
   },
-  caveatText: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 8,
-    fontStyle: 'italic',
+  doubleBulbWarning: {
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    backgroundColor: Colors.ursBg,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.urs,
+  },
+  doubleBulbText: {
+    color: Colors.urs,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   defectBarContainer: {
     marginVertical: 4,
@@ -646,20 +641,20 @@ const styles = StyleSheet.create({
   defectLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   defectName: {
     fontSize: 11,
-    color: '#cbd5e1',
+    color: Colors.textSecondary,
   },
   defectPercent: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#f8f9fa',
+    fontFamily: 'monospace',
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.cardBgElevated,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -668,69 +663,79 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   correctionNotice: {
-    marginTop: 8,
-    padding: 6,
-    backgroundColor: 'rgba(46, 204, 113, 0.15)',
-    borderRadius: 4,
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    backgroundColor: Colors.gradeABg,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   correctionNoticeText: {
-    color: '#2ecc71',
+    color: Colors.gradeA,
     fontSize: 11,
     fontWeight: '600',
   },
   policyVersionText: {
     fontSize: 11,
-    color: '#38bdf8',
+    color: Colors.textDim,
+    fontFamily: 'monospace',
     marginBottom: 6,
   },
   reasonsList: {
     marginBottom: 6,
+    backgroundColor: Colors.rejectBg,
+    padding: Spacing.sm,
+    borderRadius: Radius.sm,
   },
   reasonsTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#f87171',
+    color: Colors.reject,
     marginBottom: 2,
   },
   reasonItem: {
     fontSize: 11,
     color: '#fca5a5',
-    marginLeft: 6,
+    marginLeft: 4,
+    fontFamily: 'monospace',
   },
   explanationBox: {
-    backgroundColor: '#0d1b2a',
-    padding: 8,
-    borderRadius: 6,
+    backgroundColor: Colors.cardBgElevated,
+    padding: Spacing.sm,
+    borderRadius: Radius.sm,
     marginTop: 4,
   },
   explanationLine: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: Colors.textMuted,
     marginVertical: 1,
+    fontFamily: 'monospace',
   },
   explanationKey: {
     fontWeight: '700',
-    color: '#cbd5e1',
+    color: Colors.accent,
   },
   overrideBtn: {
-    backgroundColor: '#2b3a4a',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: Colors.cardBgElevated,
+    padding: Spacing.md,
+    borderRadius: Radius.md,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   overrideBtnText: {
-    color: '#38bdf8',
+    color: Colors.accent,
     fontSize: 12,
     fontWeight: '700',
   },
   correctionForm: {
-    marginTop: 8,
-    gap: 8,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   formHint: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: Colors.textMuted,
   },
   inputRow: {
     flexDirection: 'row',
@@ -739,69 +744,57 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: '#cbd5e1',
+    color: Colors.textSecondary,
   },
   numInput: {
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 6,
-    width: 60,
+    borderColor: Colors.borderMuted,
+    borderRadius: Radius.sm,
+    width: 65,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    color: '#fff',
+    color: Colors.text,
     fontSize: 12,
     textAlign: 'center',
+    fontFamily: 'monospace',
   },
   remarksInput: {
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.cardBgElevated,
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    color: '#fff',
+    borderColor: Colors.borderMuted,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    color: Colors.text,
     fontSize: 11,
   },
   formBtnRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 4,
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   cancelBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#334155',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.cardBgElevated,
   },
   cancelBtnText: {
-    color: '#cbd5e1',
+    color: Colors.textMuted,
     fontSize: 11,
+    fontWeight: '600',
   },
   saveBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#0284c7',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.accentDark,
   },
   saveBtnText: {
-    color: '#fff',
+    color: Colors.text,
     fontSize: 11,
-    fontWeight: '700',
-  },
-  doubleBulbWarning: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: 'rgba(243, 156, 18, 0.18)',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#f39c12',
-  },
-  doubleBulbText: {
-    color: '#f39c12',
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 16,
+    fontWeight: '800',
   },
 });

@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { ApiClient } from '../api/client';
@@ -16,6 +14,20 @@ import {
   OnionInstanceSummary,
   SampleDetail,
 } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  GradeBadge,
+  Haptics,
+  LazyImage,
+  Radius,
+  SizeTierBadge,
+  SkeletonKpiCard,
+  SkeletonOnionCard,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface ResultsScreenProps {
   inspection: InspectionDetail;
@@ -38,13 +50,18 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
     sample.onion_instances || []
   );
 
+  const [viewMode, setViewMode] = useState<'grid' | 'overlay'>('grid');
+  const [gradeFilter, setGradeFilter] = useState<'ALL' | 'GRADE_A' | 'URS' | 'REJECTED'>('ALL');
+
   const handleOpenOnionDetail = async (onionSummary: OnionInstanceSummary) => {
+    Haptics.medium();
     setLoadingDetail(true);
     try {
       const detail = await ApiClient.getOnionDetail(inspection.id, onionSummary.id);
       setSelectedOnion(detail);
       setModalVisible(true);
     } catch (err: any) {
+      Haptics.error();
       alert(`Could not load onion detail: ${err.message}`);
     } finally {
       setLoadingDetail(false);
@@ -53,236 +70,285 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
 
   const handleCorrectionSaved = (updated: OnionInstanceDetail) => {
     setSelectedOnion(updated);
-    // Update local list
     setOnionsList((prev) =>
       prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
     );
   };
 
   const handleFinalize = async () => {
+    Haptics.heavy();
     setFinalizing(true);
     try {
       const finalized = await ApiClient.finalizeInspection(inspection.id);
+      Haptics.success();
       onFinalize(finalized);
     } catch (err: any) {
+      Haptics.error();
       alert(`Finalization failed: ${err.message}`);
     } finally {
       setFinalizing(false);
     }
   };
 
-  const getGradePill = (grade: string | null) => {
-    switch (grade) {
-      case 'GRADE_A':
-        return { bg: '#27ae60', text: 'GRADE A' };
-      case 'URS':
-        return { bg: '#f39c12', text: 'URS' };
-      case 'REJECTED':
-        return { bg: '#e74c3c', text: 'REJECTED' };
-      default:
-        return { bg: '#3498db', text: 'NEEDS REVIEW' };
-    }
-  };
-
-  // Calculate local stats
+  // KPI Calculations
   const total = onionsList.length;
   const gradeA = onionsList.filter((o) => o.grade === 'GRADE_A').length;
   const urs = onionsList.filter((o) => o.grade === 'URS').length;
   const rejected = onionsList.filter((o) => o.grade === 'REJECTED').length;
   const review = onionsList.filter((o) => o.grade === 'NEEDS_REVIEW' || !o.grade).length;
 
-  const [viewMode, setViewMode] = useState<'grid' | 'overlay'>('grid');
+  const filteredOnions = onionsList.filter((o) => {
+    if (gradeFilter === 'GRADE_A') return o.grade === 'GRADE_A';
+    if (gradeFilter === 'URS') return o.grade === 'URS';
+    if (gradeFilter === 'REJECTED') return o.grade === 'REJECTED';
+    return true;
+  });
 
   return (
     <View style={styles.container}>
       {/* Top Lot KPI Cards */}
-      <View style={styles.kpiContainer}>
-        <View style={[styles.kpiCard, { borderColor: '#27ae60' }]}>
-          <Text style={styles.kpiValue}>{gradeA}</Text>
-          <Text style={styles.kpiPercent}>
-            {total ? `${((gradeA / total) * 100).toFixed(0)}%` : '0%'}
-          </Text>
-          <Text style={[styles.kpiLabel, { color: '#2ecc71' }]}>Grade A</Text>
-        </View>
+      <FadeInView delay={50} distance={10}>
+        <View style={styles.kpiContainer}>
+          <AnimatedPressable
+            haptic="selection"
+            onPress={() => setGradeFilter(gradeFilter === 'GRADE_A' ? 'ALL' : 'GRADE_A')}
+            style={[
+              styles.kpiCard,
+              { borderColor: Colors.gradeA },
+              gradeFilter === 'GRADE_A' && styles.kpiCardSelected,
+            ]}
+          >
+            <Text style={[styles.kpiValue, { color: Colors.gradeA }]}>{gradeA}</Text>
+            <Text style={styles.kpiPercent}>
+              {total ? `${((gradeA / total) * 100).toFixed(0)}%` : '0%'}
+            </Text>
+            <Text style={[styles.kpiLabel, { color: Colors.gradeA }]}>Grade A</Text>
+          </AnimatedPressable>
 
-        <View style={[styles.kpiCard, { borderColor: '#f39c12' }]}>
-          <Text style={styles.kpiValue}>{urs}</Text>
-          <Text style={styles.kpiPercent}>
-            {total ? `${((urs / total) * 100).toFixed(0)}%` : '0%'}
-          </Text>
-          <Text style={[styles.kpiLabel, { color: '#f39c12' }]}>URS</Text>
-        </View>
+          <AnimatedPressable
+            haptic="selection"
+            onPress={() => setGradeFilter(gradeFilter === 'URS' ? 'ALL' : 'URS')}
+            style={[
+              styles.kpiCard,
+              { borderColor: Colors.urs },
+              gradeFilter === 'URS' && styles.kpiCardSelected,
+            ]}
+          >
+            <Text style={[styles.kpiValue, { color: Colors.urs }]}>{urs}</Text>
+            <Text style={styles.kpiPercent}>
+              {total ? `${((urs / total) * 100).toFixed(0)}%` : '0%'}
+            </Text>
+            <Text style={[styles.kpiLabel, { color: Colors.urs }]}>URS</Text>
+          </AnimatedPressable>
 
-        <View style={[styles.kpiCard, { borderColor: '#e74c3c' }]}>
-          <Text style={styles.kpiValue}>{rejected}</Text>
-          <Text style={styles.kpiPercent}>
-            {total ? `${((rejected / total) * 100).toFixed(0)}%` : '0%'}
-          </Text>
-          <Text style={[styles.kpiLabel, { color: '#e74c3c' }]}>Rejected</Text>
-        </View>
+          <AnimatedPressable
+            haptic="selection"
+            onPress={() => setGradeFilter(gradeFilter === 'REJECTED' ? 'ALL' : 'REJECTED')}
+            style={[
+              styles.kpiCard,
+              { borderColor: Colors.reject },
+              gradeFilter === 'REJECTED' && styles.kpiCardSelected,
+            ]}
+          >
+            <Text style={[styles.kpiValue, { color: Colors.reject }]}>{rejected}</Text>
+            <Text style={styles.kpiPercent}>
+              {total ? `${((rejected / total) * 100).toFixed(0)}%` : '0%'}
+            </Text>
+            <Text style={[styles.kpiLabel, { color: Colors.reject }]}>Reject</Text>
+          </AnimatedPressable>
 
-        <View style={[styles.kpiCard, { borderColor: '#3498db' }]}>
-          <Text style={styles.kpiValue}>{review}</Text>
-          <Text style={styles.kpiPercent}>
-            {total ? `${((review / total) * 100).toFixed(0)}%` : '0%'}
-          </Text>
-          <Text style={[styles.kpiLabel, { color: '#38bdf8' }]}>Review</Text>
+          <View style={[styles.kpiCard, { borderColor: Colors.review }]}>
+            <Text style={[styles.kpiValue, { color: Colors.review }]}>{review}</Text>
+            <Text style={styles.kpiPercent}>
+              {total ? `${((review / total) * 100).toFixed(0)}%` : '0%'}
+            </Text>
+            <Text style={[styles.kpiLabel, { color: Colors.review }]}>Review</Text>
+          </View>
         </View>
-      </View>
+      </FadeInView>
 
       {/* View Mode Switcher */}
-      <View style={styles.viewModeToggleRow}>
-        <TouchableOpacity
-          style={[styles.viewModeBtn, viewMode === 'grid' && styles.viewModeBtnActive]}
-          onPress={() => setViewMode('grid')}
-        >
-          <Text
-            style={[
-              styles.viewModeText,
-              viewMode === 'grid' && styles.viewModeTextActive,
-            ]}
+      <FadeInView delay={100} distance={10}>
+        <View style={styles.viewModeToggleRow}>
+          <AnimatedPressable
+            haptic="selection"
+            style={[styles.viewModeBtn, viewMode === 'grid' && styles.viewModeBtnActive]}
+            onPress={() => setViewMode('grid')}
           >
-            📋 Interactive Grid
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewModeBtn, viewMode === 'overlay' && styles.viewModeBtnActive]}
-          onPress={() => setViewMode('overlay')}
-        >
-          <Text
-            style={[
-              styles.viewModeText,
-              viewMode === 'overlay' && styles.viewModeTextActive,
-            ]}
-          >
-            🖼️ AI Detection Overlay
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'grid' && styles.viewModeTextActive,
+              ]}
+            >
+              📋 Interactive Grid ({filteredOnions.length})
+            </Text>
+          </AnimatedPressable>
 
+          <AnimatedPressable
+            haptic="selection"
+            style={[styles.viewModeBtn, viewMode === 'overlay' && styles.viewModeBtnActive]}
+            onPress={() => setViewMode('overlay')}
+          >
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'overlay' && styles.viewModeTextActive,
+              ]}
+            >
+              🖼️ AI Annotated Overlay
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </FadeInView>
+
+      {/* Main View Area */}
       {viewMode === 'overlay' ? (
-        <View style={styles.overlayViewContainer}>
+        <FadeInView delay={150} distance={12} style={styles.overlayViewContainer}>
           <View style={styles.overlayLegendRow}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#2ecc71' }]} />
+              <View style={[styles.legendDot, { backgroundColor: Colors.gradeA }]} />
               <Text style={styles.legendText}>Grade A</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#f39c12' }]} />
+              <View style={[styles.legendDot, { backgroundColor: Colors.urs }]} />
               <Text style={styles.legendText}>URS</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#e74c3c' }]} />
-              <Text style={styles.legendText}>Rejected</Text>
+              <View style={[styles.legendDot, { backgroundColor: Colors.reject }]} />
+              <Text style={styles.legendText}>Reject</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#3498db' }]} />
-              <Text style={styles.legendText}>Review</Text>
+              <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+              <Text style={styles.legendText}>Caliper Bar</Text>
             </View>
           </View>
 
           <View style={styles.overlayImageCard}>
-            {sample.processed_image_url ? (
-              <Image
-                source={{ uri: sample.processed_image_url }}
-                style={styles.annotatedFullImage}
-                resizeMode="contain"
-              />
-            ) : sample.original_image_url ? (
-              <Image
-                source={{ uri: sample.original_image_url }}
-                style={styles.annotatedFullImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <View style={styles.noOverlayBox}>
-                <Text style={styles.noOverlayText}>Annotated overlay not available</Text>
-              </View>
-            )}
+            <LazyImage
+              source={{
+                uri: sample.processed_image_url || sample.original_image_url,
+              }}
+              style={styles.annotatedFullImage}
+              resizeMode="contain"
+              fallbackText="🖼️"
+            />
           </View>
           <Text style={styles.overlayHint}>
-            Pinch or zoom on device to inspect individual bulb segmentations and tags.
+            {"Cyan lines = Equatorial Caliper (Deq) • Magenta = Polar Axis (Lpolar)"}
           </Text>
-        </View>
+        </FadeInView>
       ) : (
-        <>
-          {/* Grid Header */}
-          <View style={styles.gridHeaderRow}>
-            <Text style={styles.gridTitle}>Detected Bulbs ({total})</Text>
-            <Text style={styles.gridSub}>Tap any bulb to inspect evidence or override</Text>
-          </View>
+        <View style={styles.gridContainer}>
+          {/* Quick Filter Bar */}
+          {gradeFilter !== 'ALL' && (
+            <View style={styles.activeFilterBanner}>
+              <Text style={styles.activeFilterText}>
+                Showing {gradeFilter.replace('_', ' ')} only ({filteredOnions.length})
+              </Text>
+              <AnimatedPressable
+                haptic="selection"
+                onPress={() => setGradeFilter('ALL')}
+                style={styles.clearFilterBtn}
+              >
+                <Text style={styles.clearFilterText}>Reset ✕</Text>
+              </AnimatedPressable>
+            </View>
+          )}
 
           {/* Onion Grid */}
           <FlatList
-            data={onionsList}
+            data={filteredOnions}
             keyExtractor={(item) => item.id}
             numColumns={2}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.gridContent}
             columnWrapperStyle={styles.gridRow}
-            renderItem={({ item }) => {
-              const pill = getGradePill(item.grade);
-          return (
-            <TouchableOpacity
-              style={styles.bulbCard}
-              onPress={() => handleOpenOnionDetail(item)}
-            >
-              <View style={styles.bulbImgWrapper}>
-                {item.crop_url ? (
-                  <Image
-                    source={{ uri: item.crop_url }}
-                    style={styles.bulbImg}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <View style={styles.noBulbImg}>
-                    <Text style={styles.noBulbText}>Bulb #{item.display_number}</Text>
+            renderItem={({ item, index }) => (
+              <FadeInView delay={Math.min(index * 40, 240)} distance={8} style={styles.bulbCardWrapper}>
+                <AnimatedPressable
+                  haptic="medium"
+                  style={styles.bulbCard}
+                  onPress={() => handleOpenOnionDetail(item)}
+                >
+                  <View style={styles.bulbImgWrapper}>
+                    <LazyImage
+                      source={{ uri: item.crop_url }}
+                      style={styles.bulbImg}
+                      borderRadius={Radius.md}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.badgePillContainer}>
+                      <GradeBadge grade={item.grade} size="sm" />
+                    </View>
                   </View>
-                )}
-                <View style={[styles.badgePill, { backgroundColor: pill.bg }]}>
-                  <Text style={styles.badgeText}>{pill.text}</Text>
-                </View>
-              </View>
 
-              <View style={styles.bulbInfo}>
-                <View style={styles.bulbNameRow}>
-                  <Text style={styles.bulbName}>Onion #{item.display_number}</Text>
-                  <Text style={styles.tierTag}>{item.confidence_tier}</Text>
-                </View>
-                <Text style={styles.bulbSize}>
-                  Size:{' '}
-                  {item.equivalent_diameter_mm !== null
-                    ? `${item.equivalent_diameter_mm.toFixed(1)} mm`
-                    : 'N/A'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
-        </>
+                  <View style={styles.bulbInfo}>
+                    <View style={styles.bulbNameRow}>
+                      <Text style={styles.bulbName}>#{item.display_number}</Text>
+                      <SizeTierBadge tier={item.mandi_size_grade} />
+                    </View>
+
+                    <View style={styles.telemetryRow}>
+                      <Text style={styles.diaText}>
+                        {item.equatorial_diameter_mm !== null && item.equatorial_diameter_mm !== undefined
+                          ? `Ø ${item.equatorial_diameter_mm.toFixed(1)}mm`
+                          : item.equivalent_diameter_mm !== null
+                          ? `Ø ${item.equivalent_diameter_mm.toFixed(1)}mm`
+                          : 'Ø N/A'}
+                      </Text>
+                      {item.estimated_weight_grams !== undefined && item.estimated_weight_grams !== null && (
+                        <Text style={styles.weightText}>
+                          {item.estimated_weight_grams.toFixed(0)}g
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Defect Warning Chip */}
+                    {(item.sprouted_prob ?? 0) > 0.3 ||
+                    (item.rotten_prob ?? 0) > 0.3 ||
+                    (item.damaged_prob ?? 0) > 0.3 ? (
+                      <View style={styles.defectAlertPill}>
+                        <Text style={styles.defectAlertText}>
+                          {(item.rotten_prob ?? 0) > 0.3
+                            ? 'Rotten'
+                            : (item.sprouted_prob ?? 0) > 0.3
+                            ? 'Sprouted'
+                            : 'Damaged'}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </AnimatedPressable>
+              </FadeInView>
+            )}
+          />
+        </View>
       )}
 
       {/* Bottom Sticky Action Bar */}
       <View style={styles.actionBar}>
-        <TouchableOpacity
+        <AnimatedPressable
+          haptic="light"
           style={styles.addSampleBtn}
           onPress={onAddSample}
           disabled={finalizing}
         >
           <Text style={styles.addSampleText}>+ Sample 2</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
 
-        <TouchableOpacity
+        <AnimatedPressable
+          haptic="heavy"
           style={styles.finalizeBtn}
           onPress={handleFinalize}
           disabled={finalizing}
         >
           {finalizing ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={Colors.text} size="small" />
           ) : (
-            <Text style={styles.finalizeBtnText}>Finalize & Generate Report →</Text>
+            <Text style={styles.finalizeBtnText}>Finalize & Certify Lot →</Text>
           )}
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
       {/* Evidence Drilldown Modal */}
@@ -300,74 +366,122 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    backgroundColor: Colors.bg,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   kpiContainer: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   kpiCard: {
     flex: 1,
-    backgroundColor: '#1b263b',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     borderWidth: 1,
   },
+  kpiCardSelected: {
+    backgroundColor: Colors.cardBgElevated,
+    borderWidth: 2,
+  },
   kpiValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
-    color: '#f8f9fa',
+    fontFamily: 'monospace',
   },
   kpiPercent: {
-    fontSize: 11,
-    color: '#94a3b8',
+    fontSize: 10,
+    color: Colors.textMuted,
     fontWeight: '600',
+    marginTop: 1,
   },
   kpiLabel: {
     fontSize: 9,
     fontWeight: '800',
     textTransform: 'uppercase',
     marginTop: 2,
+    letterSpacing: 0.4,
   },
-  gridHeaderRow: {
+  viewModeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.md,
+    padding: 3,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  viewModeBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: Radius.sm,
+  },
+  viewModeBtnActive: {
+    backgroundColor: Colors.cardBgElevated,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  viewModeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textDim,
+  },
+  viewModeTextActive: {
+    color: Colors.accent,
+  },
+  gridContainer: {
+    flex: 1,
+  },
+  activeFilterBanner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.sm,
+    marginBottom: Spacing.xs,
   },
-  gridTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#f8f9fa',
+  activeFilterText: {
+    fontSize: 11,
+    color: Colors.accent,
+    fontWeight: '600',
   },
-  gridSub: {
-    fontSize: 10,
-    color: '#64748b',
+  clearFilterBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  clearFilterText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '700',
   },
   gridContent: {
     paddingBottom: 85,
   },
   gridRow: {
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
+  },
+  bulbCardWrapper: {
+    width: '48.5%',
   },
   bulbCard: {
-    width: '48.5%',
-    backgroundColor: '#1b263b',
-    borderRadius: 10,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#243347',
+    borderColor: Colors.borderMuted,
   },
   bulbImgWrapper: {
     width: '100%',
-    height: 120,
-    backgroundColor: '#000',
+    height: 115,
+    backgroundColor: Colors.skeletonBase,
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
@@ -376,29 +490,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  noBulbImg: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noBulbText: {
-    color: '#64748b',
-    fontSize: 11,
-  },
-  badgePill: {
+  badgePillContainer: {
     position: 'absolute',
     top: 6,
     right: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 8,
-    fontWeight: '800',
   },
   bulbInfo: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   bulbNameRow: {
     flexDirection: 'row',
@@ -406,137 +504,131 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bulbName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#f8f9fa',
-  },
-  tierTag: {
-    fontSize: 8,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  bulbSize: {
-    fontSize: 11,
-    color: '#38bdf8',
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  actionBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#1b263b',
-    padding: 12,
-    flexDirection: 'row',
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#243347',
-  },
-  addSampleBtn: {
-    flex: 1,
-    backgroundColor: '#334155',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  addSampleText: {
-    color: '#cbd5e1',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  finalizeBtn: {
-    flex: 2.5,
-    backgroundColor: '#0284c7',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  finalizeBtnText: {
-    color: '#fff',
     fontSize: 13,
     fontWeight: '800',
+    color: Colors.text,
   },
-  viewModeToggleRow: {
+  telemetryRow: {
     flexDirection: 'row',
-    backgroundColor: '#1b263b',
-    borderRadius: 8,
-    padding: 3,
-    marginBottom: 10,
-    gap: 4,
-  },
-  viewModeBtn: {
-    flex: 1,
-    paddingVertical: 7,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 6,
+    marginTop: 4,
   },
-  viewModeBtnActive: {
-    backgroundColor: '#0284c7',
-  },
-  viewModeText: {
-    fontSize: 11,
+  diaText: {
+    fontSize: 12,
+    color: Colors.accent,
     fontWeight: '700',
-    color: '#94a3b8',
+    fontFamily: 'monospace',
   },
-  viewModeTextActive: {
-    color: '#fff',
+  weightText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontFamily: 'monospace',
+  },
+  defectAlertPill: {
+    backgroundColor: Colors.rejectBg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  defectAlertText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: Colors.reject,
   },
   overlayViewContainer: {
     flex: 1,
-    paddingBottom: 75,
+    paddingBottom: 85,
   },
   overlayLegendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 16,
-    marginBottom: 8,
-    backgroundColor: '#1b263b',
-    paddingVertical: 6,
-    borderRadius: 6,
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.cardBg,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   legendText: {
     fontSize: 10,
-    color: '#cbd5e1',
+    color: Colors.textMuted,
     fontWeight: '600',
   },
   overlayImageCard: {
     flex: 1,
     minHeight: 320,
     backgroundColor: '#000',
-    borderRadius: 10,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#334155',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: Colors.border,
   },
   annotatedFullImage: {
     width: '100%',
     height: '100%',
   },
-  noOverlayBox: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  noOverlayText: {
-    color: '#64748b',
-    fontSize: 12,
-  },
   overlayHint: {
-    fontSize: 10,
-    color: '#64748b',
+    fontSize: 11,
+    color: Colors.textDim,
     textAlign: 'center',
     marginTop: 6,
+    fontFamily: 'monospace',
+  },
+  actionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(7, 13, 24, 0.94)',
+    padding: Spacing.md,
+    flexDirection: 'row',
+    gap: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  addSampleBtn: {
+    flex: 1,
+    backgroundColor: Colors.cardBgElevated,
+    paddingVertical: 13,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  addSampleText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  finalizeBtn: {
+    flex: 2.4,
+    backgroundColor: Colors.accentDark,
+    paddingVertical: 13,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  finalizeBtnText: {
+    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });

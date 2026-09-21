@@ -5,6 +5,7 @@
   "dependencies": {
     "expo": "~57.0.24",
     "expo-camera": "~57.0.5",
+    "expo-haptics": "~57.0.3",
     "expo-image-picker": "~57.0.19",
     "expo-location": "~57.0.19",
     "expo-status-bar": "~57.0.1",

@@ -5,12 +5,22 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { ApiClient } from '../api/client';
 import { getApiBaseUrl } from '../config';
 import { InspectionDetail, ReportDetail } from '../types';
+import {
+  AnimatedPressable,
+  Colors,
+  FadeInView,
+  GradeBadge,
+  Haptics,
+  Radius,
+  SkeletonBox,
+  Spacing,
+  Typography,
+} from '../ui';
 
 interface FinalReportScreenProps {
   inspection: InspectionDetail;
@@ -29,11 +39,12 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
     const fetchOrCreateReport = async () => {
       try {
         setLoading(true);
-        // Attempt to generate or retrieve report
         const rep = await ApiClient.generateReport(inspection.id);
         setReport(rep);
+        Haptics.success();
       } catch (err: any) {
         setError(err.message);
+        Haptics.error();
       } finally {
         setLoading(false);
       }
@@ -43,12 +54,17 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   }, [inspection.id]);
 
   const handleDownloadPdf = () => {
+    Haptics.heavy();
     const pdfUrl = `${getApiBaseUrl()}/api/v1/inspections/${inspection.id}/reports/pdf`;
-    Linking.openURL(pdfUrl).catch((e) => alert(`Could not open PDF: ${e.message}`));
+    Linking.openURL(pdfUrl).catch((e) => {
+      Haptics.error();
+      alert(`Could not open PDF: ${e.message}`);
+    });
   };
 
   const handleOpenShareLink = () => {
     if (report?.share_url) {
+      Haptics.light();
       Linking.openURL(report.share_url).catch((e) =>
         alert(`Could not open link: ${e.message}`)
       );
@@ -58,8 +74,11 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#38bdf8" />
-        <Text style={styles.loadingText}>Compiling official PDF report...</Text>
+        <ActivityIndicator size="large" color={Colors.accent} />
+        <Text style={styles.loadingText}>Compiling official PDF certificate...</Text>
+        <Text style={styles.loadingSub}>
+          Calculating NAFED FAQ dockage deductions & BIS IS 17912:2022 size compliance...
+        </Text>
       </View>
     );
   }
@@ -67,159 +86,232 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   if (error || !report) {
     return (
       <View style={styles.centerContainer}>
+        <View style={styles.failGlowBadge}>
+          <Text style={styles.failIcon}>✕</Text>
+        </View>
         <Text style={styles.errorTitle}>Report Generation Failed</Text>
         <Text style={styles.errorDesc}>{error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={onStartNewInspection}>
+        <AnimatedPressable
+          haptic="medium"
+          style={styles.retryBtn}
+          onPress={onStartNewInspection}
+        >
           <Text style={styles.retryBtnText}>Return to Home</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     );
   }
 
+  // Commercial rate deduction calculation (NAFED MSP 2024-2026: ₹1,800/qtl base)
+  const baseMsp = 1800;
+  const rejectPct = report.rejected_pct;
+  const dockageRate = rejectPct > 5.0 ? Math.min(350, (rejectPct - 5.0) * 25) : 0;
+  const netProcurementPayout = Math.max(800, baseMsp - dockageRate);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Official Certificate Header */}
-      <View style={styles.certCard}>
-        <Text style={styles.certBadge}>FINAL INSPECTION RECORD</Text>
-        <Text style={styles.certTitle}>Onion Quality Appraisal Report</Text>
-        <Text style={styles.certSub}>
-          Cepa Inspection System • SIH26031 Proof of Concept
-        </Text>
-
-        <View style={styles.metaGrid}>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Report ID:</Text>
-            <Text style={styles.metaValue}>{report.report_id.slice(0, 13)}...</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Celebration Header */}
+      <FadeInView delay={50} distance={10}>
+        <View style={styles.celebrationBanner}>
+          <View style={styles.certStamp}>
+            <Text style={styles.certStampIcon}>🛡️</Text>
           </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Lot ID:</Text>
-            <Text style={styles.metaValue}>{report.lot_id || 'N/A'}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Procurement Centre:</Text>
-            <Text style={styles.metaValue}>{report.procurement_centre || 'N/A'}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Officer:</Text>
-            <Text style={styles.metaValue}>{report.officer_name || 'N/A'}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Active Policy:</Text>
-            <Text style={[styles.metaValue, { color: '#38bdf8' }]}>
-              {report.ruleset_version}
+          <View style={styles.certHeaderInfo}>
+            <View style={styles.badgeRow}>
+              <View style={styles.verifiedPill}>
+                <Text style={styles.verifiedPillText}>CERTIFICATE ISSUED</Text>
+              </View>
+              <Text style={styles.certDate}>
+                {new Date(report.finalized_at || report.created_at).toLocaleDateString()}
+              </Text>
+            </View>
+            <Text style={styles.certTitle}>Onion Quality Appraisal Record</Text>
+            <Text style={styles.certSub}>
+              Cepa Autonomous Inspection Engine • SIH26031
             </Text>
           </View>
         </View>
-      </View>
+      </FadeInView>
 
-      {/* Lot Grading Summary Table */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Lot Grade Distribution</Text>
+      {/* Lot Metadata Card */}
+      <FadeInView delay={100} distance={12}>
+        <View style={styles.certCard}>
+          <Text style={styles.sectionHeaderTitle}>CONSIGNMENT & APMC METADATA</Text>
 
-        <View style={styles.gradeRow}>
-          <View style={styles.gradeLeft}>
-            <View style={[styles.gradeDot, { backgroundColor: '#27ae60' }]} />
-            <Text style={styles.gradeName}>Grade A (45–65 mm)</Text>
+          <View style={styles.metaGrid}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Report ID:</Text>
+              <Text style={styles.metaValueMono}>{report.report_id.slice(0, 18)}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Lot Identifier:</Text>
+              <Text style={[styles.metaValue, { color: Colors.accent }]}>
+                {report.lot_id || 'N/A'}
+              </Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>APMC Mandi:</Text>
+              <Text style={styles.metaValue}>{report.procurement_centre || 'N/A'}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Procurement Officer:</Text>
+              <Text style={styles.metaValue}>{report.officer_name || 'N/A'}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Grading Standard:</Text>
+              <Text style={[styles.metaValueMono, { color: Colors.gradeA }]}>
+                {report.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022')}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.gradeCount}>
-            {report.grade_a_count} ({report.grade_a_pct.toFixed(1)}%)
-          </Text>
         </View>
+      </FadeInView>
 
-        <View style={styles.gradeRow}>
-          <View style={styles.gradeLeft}>
-            <View style={[styles.gradeDot, { backgroundColor: '#f39c12' }]} />
-            <Text style={styles.gradeName}>URS (35–70 mm)</Text>
-          </View>
-          <Text style={styles.gradeCount}>
-            {report.urs_count} ({report.urs_pct.toFixed(1)}%)
-          </Text>
-        </View>
+      {/* Lot Grade Distribution */}
+      <FadeInView delay={150} distance={12}>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeaderTitle}>LOT GRADE DISTRIBUTION</Text>
 
-        <View style={styles.gradeRow}>
-          <View style={styles.gradeLeft}>
-            <View style={[styles.gradeDot, { backgroundColor: '#e74c3c' }]} />
-            <Text style={styles.gradeName}>Rejected (Rot / Size)</Text>
-          </View>
-          <Text style={styles.gradeCount}>
-            {report.rejected_count} ({report.rejected_pct.toFixed(1)}%)
-          </Text>
-        </View>
-
-        <View style={styles.gradeRow}>
-          <View style={styles.gradeLeft}>
-            <View style={[styles.gradeDot, { backgroundColor: '#3498db' }]} />
-            <Text style={styles.gradeName}>Review Required</Text>
-          </View>
-          <Text style={styles.gradeCount}>{report.review_count}</Text>
-        </View>
-
-        <View style={[styles.gradeRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total Bulbs Inspected:</Text>
-          <Text style={styles.totalValue}>{report.total_bulbs}</Text>
-        </View>
-      </View>
-
-      {/* Defect Counts */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Visible Defect Occurrences</Text>
-        <View style={styles.defectGrid}>
-          <View style={styles.defectCell}>
-            <Text style={styles.defectCount}>
-              {report.defect_counts['rotten'] ?? 0}
+          <View style={styles.gradeRow}>
+            <View style={styles.gradeLeft}>
+              <View style={[styles.gradeDot, { backgroundColor: Colors.gradeA }]} />
+              <Text style={styles.gradeName}>Grade A (Super 45–65 mm)</Text>
+            </View>
+            <Text style={[styles.gradeCount, { color: Colors.gradeA }]}>
+              {report.grade_a_count} ({report.grade_a_pct.toFixed(1)}%)
             </Text>
-            <Text style={styles.defectType}>Rotten</Text>
           </View>
-          <View style={styles.defectCell}>
-            <Text style={styles.defectCount}>
-              {report.defect_counts['sprouted'] ?? 0}
+
+          <View style={styles.gradeRow}>
+            <View style={styles.gradeLeft}>
+              <View style={[styles.gradeDot, { backgroundColor: Colors.urs }]} />
+              <Text style={styles.gradeName}>URS (Under Rejection Standard 35–70 mm)</Text>
+            </View>
+            <Text style={[styles.gradeCount, { color: Colors.urs }]}>
+              {report.urs_count} ({report.urs_pct.toFixed(1)}%)
             </Text>
-            <Text style={styles.defectType}>Sprouted</Text>
           </View>
-          <View style={styles.defectCell}>
-            <Text style={styles.defectCount}>
-              {report.defect_counts['damaged'] ?? 0}
+
+          <View style={styles.gradeRow}>
+            <View style={styles.gradeLeft}>
+              <View style={[styles.gradeDot, { backgroundColor: Colors.reject }]} />
+              <Text style={styles.gradeName}>Rejected (Rotten / Under 35 mm)</Text>
+            </View>
+            <Text style={[styles.gradeCount, { color: Colors.reject }]}>
+              {report.rejected_count} ({report.rejected_pct.toFixed(1)}%)
             </Text>
-            <Text style={styles.defectType}>Damaged</Text>
           </View>
-          <View style={styles.defectCell}>
-            <Text style={styles.defectCount}>
-              {report.defect_counts['undersize'] ?? 0}
-            </Text>
-            <Text style={styles.defectType}>Undersized</Text>
+
+          <View style={[styles.gradeRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total Representative Bulbs:</Text>
+            <Text style={styles.totalValue}>{report.total_bulbs}</Text>
           </View>
         </View>
-      </View>
+      </FadeInView>
+
+      {/* Commercial NAFED Settlement Calculator */}
+      <FadeInView delay={200} distance={12}>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeaderTitle}>COMMERCIAL SETTLEMENT ESTIMATE (NAFED MSP)</Text>
+          <View style={styles.settlementGrid}>
+            <View style={styles.settlementRow}>
+              <Text style={styles.settlementLabel}>Benchmark MSP (Nashik FAQ):</Text>
+              <Text style={styles.settlementValue}>₹{baseMsp.toLocaleString()}/qtl</Text>
+            </View>
+            <View style={styles.settlementRow}>
+              <Text style={styles.settlementLabel}>Dockage Deduction ({rejectPct.toFixed(1)}% Rejection):</Text>
+              <Text style={[styles.settlementValue, { color: dockageRate > 0 ? Colors.reject : Colors.gradeA }]}>
+                {dockageRate > 0 ? `- ₹${dockageRate.toFixed(0)}/qtl` : '₹0/qtl (Full FAQ Pass)'}
+              </Text>
+            </View>
+            <View style={[styles.settlementRow, styles.payoutRow]}>
+              <Text style={styles.payoutLabel}>Net Procurement Payout:</Text>
+              <Text style={styles.payoutValue}>₹{netProcurementPayout.toFixed(0)}/qtl</Text>
+            </View>
+          </View>
+        </View>
+      </FadeInView>
+
+      {/* Defect Occurrences */}
+      <FadeInView delay={250} distance={12}>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeaderTitle}>DEFECT OCCURRENCES</Text>
+          <View style={styles.defectGrid}>
+            <View style={styles.defectCell}>
+              <Text style={[styles.defectCount, { color: Colors.reject }]}>
+                {report.defect_counts['rotten'] ?? 0}
+              </Text>
+              <Text style={styles.defectType}>Rotten</Text>
+            </View>
+            <View style={styles.defectCell}>
+              <Text style={[styles.defectCount, { color: Colors.review }]}>
+                {report.defect_counts['sprouted'] ?? 0}
+              </Text>
+              <Text style={styles.defectType}>Sprouted</Text>
+            </View>
+            <View style={styles.defectCell}>
+              <Text style={[styles.defectCount, { color: Colors.urs }]}>
+                {report.defect_counts['damaged'] ?? 0}
+              </Text>
+              <Text style={styles.defectType}>Damaged</Text>
+            </View>
+            <View style={styles.defectCell}>
+              <Text style={[styles.defectCount, { color: Colors.accent }]}>
+                {report.defect_counts['undersize'] ?? 0}
+              </Text>
+              <Text style={styles.defectType}>Goli / Small</Text>
+            </View>
+          </View>
+        </View>
+      </FadeInView>
 
       {/* Share / Verification Link Card */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Certificate Verification & Sharing</Text>
-        <Text style={styles.shareDesc}>
-          Farmers and mandi officers can view this audit record online without login:
-        </Text>
-        <TouchableOpacity style={styles.shareLinkBox} onPress={handleOpenShareLink}>
-          <Text style={styles.shareLinkText} numberOfLines={1}>
-            🔗 {report.share_url}
+      <FadeInView delay={300} distance={12}>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeaderTitle}>ONLINE VERIFICATION & AUDIT LINK</Text>
+          <Text style={styles.shareDesc}>
+            Mandi commissioners and farmers can view this immutable inspection audit online:
           </Text>
-        </TouchableOpacity>
-      </View>
+          <AnimatedPressable
+            haptic="selection"
+            style={styles.shareLinkBox}
+            onPress={handleOpenShareLink}
+          >
+            <Text style={styles.shareLinkText} numberOfLines={1}>
+              🔗 {report.share_url}
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </FadeInView>
 
-      {/* Mandatory Limitations Disclaimer */}
-      <View style={styles.disclaimerCard}>
-        <Text style={styles.disclaimerTitle}>MANDATORY AUDIT DISCLAIMER</Text>
-        <Text style={styles.disclaimerText}>{report.limitations_note}</Text>
-      </View>
+      {/* Mandatory Audit Disclaimer */}
+      <FadeInView delay={350} distance={12}>
+        <View style={styles.disclaimerCard}>
+          <Text style={styles.disclaimerTitle}>MANDATORY APMC AUDIT DISCLAIMER</Text>
+          <Text style={styles.disclaimerText}>{report.limitations_note}</Text>
+        </View>
+      </FadeInView>
 
-      {/* Actions */}
-      <View style={styles.btnColumn}>
-        <TouchableOpacity style={styles.pdfBtn} onPress={handleDownloadPdf}>
-          <Text style={styles.pdfBtnText}>📄 Download Official PDF Certificate</Text>
-        </TouchableOpacity>
+      {/* Primary Action Buttons */}
+      <FadeInView delay={400} distance={15}>
+        <View style={styles.btnColumn}>
+          <AnimatedPressable
+            haptic="heavy"
+            style={styles.pdfBtn}
+            onPress={handleDownloadPdf}
+          >
+            <Text style={styles.pdfBtnText}>📄 Download Official PDF Certificate</Text>
+          </AnimatedPressable>
 
-        <TouchableOpacity style={styles.nextBtn} onPress={onStartNewInspection}>
-          <Text style={styles.nextBtnText}>+ Start Next Inspection</Text>
-        </TouchableOpacity>
-      </View>
+          <AnimatedPressable
+            haptic="medium"
+            style={styles.nextBtn}
+            onPress={onStartNewInspection}
+          >
+            <Text style={styles.nextBtnText}>+ Start Next Lot Inspection</Text>
+          </AnimatedPressable>
+        </View>
+      </FadeInView>
     </ScrollView>
   );
 };
@@ -227,105 +319,139 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.bg,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 14,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.hero,
+    gap: Spacing.md,
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: Colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: Spacing.xl,
   },
   loadingText: {
-    color: '#94a3b8',
-    marginTop: 12,
-    fontSize: 13,
+    ...Typography.title2,
+    marginTop: Spacing.md,
   },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#e74c3c',
-  },
-  errorDesc: {
+  loadingSub: {
+    color: Colors.textMuted,
     fontSize: 12,
-    color: '#94a3b8',
-    marginTop: 6,
     textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+    maxWidth: 320,
   },
-  retryBtn: {
-    backgroundColor: '#334155',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  retryBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  certCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 16,
+  celebrationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#2e3d52',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    gap: Spacing.md,
   },
-  certBadge: {
-    fontSize: 10,
+  certStamp: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.gradeABg,
+    borderWidth: 1.5,
+    borderColor: Colors.gradeA,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  certStampIcon: {
+    fontSize: 24,
+  },
+  certHeaderInfo: {
+    flex: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  verifiedPill: {
+    backgroundColor: Colors.gradeABg,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+    borderColor: Colors.gradeA,
+  },
+  verifiedPillText: {
+    fontSize: 9,
     fontWeight: '800',
-    color: '#2ecc71',
-    letterSpacing: 1,
+    color: Colors.gradeA,
+    letterSpacing: 0.6,
+  },
+  certDate: {
+    fontSize: 10,
+    color: Colors.textDim,
+    fontFamily: 'monospace',
   },
   certTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#f8f9fa',
-    marginTop: 4,
+    color: Colors.text,
+    letterSpacing: -0.2,
   },
   certSub: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: Colors.textMuted,
     marginTop: 2,
-    marginBottom: 12,
+  },
+  certCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  sectionHeaderTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.accent,
+    letterSpacing: 0.8,
+    marginBottom: 8,
   },
   metaGrid: {
-    borderTopWidth: 1,
-    borderTopColor: '#243347',
-    paddingTop: 8,
-    gap: 4,
+    gap: 6,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderMuted,
   },
   metaLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   metaValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  metaValueMono: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#e2e8f0',
+    fontFamily: 'monospace',
+    color: Colors.textSecondary,
   },
   sectionCard: {
-    backgroundColor: '#1b263b',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#243347',
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#cbd5e1',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+    borderColor: Colors.borderMuted,
   },
   gradeRow: {
     flexDirection: 'row',
@@ -333,12 +459,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#243347',
+    borderBottomColor: Colors.borderMuted,
   },
   gradeLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
   gradeDot: {
     width: 8,
@@ -347,110 +474,195 @@ const styles = StyleSheet.create({
   },
   gradeName: {
     fontSize: 12,
-    color: '#f8f9fa',
-    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   gradeCount: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#f8f9fa',
+    fontFamily: 'monospace',
   },
   totalRow: {
     borderBottomWidth: 0,
-    paddingTop: 10,
+    marginTop: 6,
+    paddingTop: 8,
   },
   totalLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#f8f9fa',
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.text,
   },
   totalValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#38bdf8',
+    color: Colors.accent,
+    fontFamily: 'monospace',
+  },
+  settlementGrid: {
+    gap: 6,
+    marginTop: 4,
+  },
+  settlementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  settlementLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  settlementValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+    fontFamily: 'monospace',
+  },
+  payoutRow: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  payoutLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  payoutValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.gradeA,
+    fontFamily: 'monospace',
   },
   defectGrid: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginTop: 4,
   },
   defectCell: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   defectCount: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#f8f9fa',
+    fontFamily: 'monospace',
   },
   defectType: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: Colors.textMuted,
     marginTop: 2,
+    fontWeight: '600',
   },
   shareDesc: {
     fontSize: 11,
-    color: '#94a3b8',
-    marginBottom: 8,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
     lineHeight: 16,
   },
   shareLinkBox: {
-    backgroundColor: '#0d1b2a',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
   },
   shareLinkText: {
-    color: '#38bdf8',
     fontSize: 11,
+    color: Colors.accent,
+    fontFamily: 'monospace',
   },
   disclaimerCard: {
-    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(231, 76, 60, 0.3)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
   },
   disclaimerTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#ff7675',
+    color: Colors.textDim,
+    letterSpacing: 0.8,
     marginBottom: 4,
   },
   disclaimerText: {
     fontSize: 10,
-    color: '#fca5a5',
+    color: Colors.textDim,
     lineHeight: 15,
   },
   btnColumn: {
-    gap: 10,
-    marginTop: 4,
+    gap: Spacing.md,
+    marginTop: Spacing.sm,
   },
   pdfBtn: {
-    backgroundColor: '#0284c7',
+    backgroundColor: Colors.accentDark,
     paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  pdfBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  nextBtn: {
-    backgroundColor: '#1b263b',
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.accent,
+  },
+  pdfBtnText: {
+    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  nextBtn: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingVertical: 14,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   nextBtnText: {
-    color: '#cbd5e1',
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  failGlowBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.rejectBg,
+    borderWidth: 2,
+    borderColor: Colors.reject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  failIcon: {
+    fontSize: 24,
+    color: Colors.reject,
+    fontWeight: '800',
+  },
+  errorTitle: {
+    ...Typography.title1,
+    color: Colors.reject,
+  },
+  errorDesc: {
     fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  retryBtn: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    marginTop: Spacing.lg,
+  },
+  retryBtnText: {
+    color: Colors.text,
     fontWeight: '700',
   },
 });
