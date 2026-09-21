@@ -31,6 +31,8 @@ backend/weights/*.pt
 backend/weights/*.onnx
 backend/weights/*.tflite
 cv_tools/weights/
+runs/
+backend/runs/
 
 # Alembic
 backend/alembic/versions/*.pyc
