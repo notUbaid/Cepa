@@ -108,8 +108,8 @@ export const SkeletonOnionCard: React.FC = () => {
       <SkeletonBox width="70%" height={14} style={{ marginBottom: 6 }} />
       <SkeletonBox width="50%" height={12} style={{ marginBottom: 8 }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <SkeletonBox width={45} height={16} borderRadius={Radius.pill} />
-        <SkeletonBox width={45} height={16} borderRadius={Radius.pill} />
+        <SkeletonBox width={45} height={16} borderRadius={Radius.xs} />
+        <SkeletonBox width={45} height={16} borderRadius={Radius.xs} />
       </View>
     </View>
   );
@@ -123,7 +123,7 @@ export const SkeletonInspectionRow: React.FC = () => {
         <SkeletonBox width="85%" height={12} style={{ marginBottom: 6 }} />
         <SkeletonBox width="40%" height={10} />
       </View>
-      <SkeletonBox width={70} height={24} borderRadius={Radius.pill} />
+      <SkeletonBox width={70} height={24} borderRadius={Radius.xs} />
     </View>
   );
 };

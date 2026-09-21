@@ -287,7 +287,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                       borderRadius={Radius.md}
                       resizeMode="contain"
                     />
-                    <View style={styles.badgePillContainer}>
+                    <View style={styles.badgeTagContainer}>
                       <GradeBadge grade={item.grade} size="sm" />
                     </View>
                   </View>
@@ -317,7 +317,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     {(item.sprouted_prob ?? 0) > 0.3 ||
                     (item.rotten_prob ?? 0) > 0.3 ||
                     (item.damaged_prob ?? 0) > 0.3 ? (
-                      <View style={styles.defectAlertPill}>
+                      <View style={styles.defectAlertTag}>
                         <Text style={styles.defectAlertText}>
                           {(item.rotten_prob ?? 0) > 0.3
                             ? 'Rotten'
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  badgePillContainer: {
+  badgeTagContainer: {
     position: 'absolute',
     top: 6,
     right: 6,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontFamily: 'monospace',
   },
-  defectAlertPill: {
+  defectAlertTag: {
     backgroundColor: Colors.rejectBg,
     paddingHorizontal: 6,
     paddingVertical: 2,

@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   filterGroup: {
     flexDirection: 'row',
     backgroundColor: Colors.cardBgElevated,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.sm,
     padding: 2,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.sm,
   },
   filterChipActive: {
     backgroundColor: Colors.accent,

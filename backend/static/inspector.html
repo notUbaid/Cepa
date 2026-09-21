@@ -15,8 +15,8 @@
       --card-border: #e7e5e4;
       --accent: #18181b;
       --accent-glow: rgba(24, 24, 27, 0.08);
-      --grade-a: #166534;
-      --grade-a-bg: #f0fdf4;
+      --grade-a: #18181b;
+      --grade-a-bg: #f4f3ef;
       --urs: #9a3412;
       --urs-bg: #fff7ed;
       --rejected: #991b1b;
@@ -106,20 +106,20 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--grade-a-bg);
-      border: 1px solid rgba(22, 101, 52, 0.2);
-      color: var(--grade-a);
+      background: var(--card-bg-elevated);
+      border: 1px solid var(--card-border);
+      color: var(--text);
       font-family: var(--font-mono);
       font-size: 0.75rem;
       font-weight: 600;
-      padding: 5px 12px;
-      border-radius: 9999px;
+      padding: 4px 10px;
+      border-radius: 4px;
     }
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: var(--grade-a);
+      background: var(--accent);
     }
     .model-badge {
       font-family: var(--font-mono);
@@ -564,20 +564,20 @@
           <span class="card-title-tag" id="lot-id-tag">LOT: NAFED-MH-2026-081</span>
         </div>
         <div class="kpi-grid">
-          <div class="kpi-box" style="border-color: rgba(16, 185, 129, 0.4);">
-            <div class="kpi-num shimmer-target" style="color: var(--grade-a);" id="kpi-grade-a">75%</div>
+          <div class="kpi-box">
+            <div class="kpi-num shimmer-target" style="color: var(--text);" id="kpi-grade-a">75%</div>
             <div class="kpi-label">Grade A</div>
           </div>
-          <div class="kpi-box" style="border-color: rgba(245, 158, 11, 0.4);">
+          <div class="kpi-box">
             <div class="kpi-num shimmer-target" style="color: var(--urs);" id="kpi-urs">15%</div>
             <div class="kpi-label">URS</div>
           </div>
-          <div class="kpi-box" style="border-color: rgba(239, 68, 68, 0.4);">
+          <div class="kpi-box">
             <div class="kpi-num shimmer-target" style="color: var(--rejected);" id="kpi-rejected">10%</div>
             <div class="kpi-label">Rejected</div>
           </div>
-          <div class="kpi-box" style="border-color: rgba(56, 189, 248, 0.4);">
-            <div class="kpi-num shimmer-target" style="color: var(--accent);" id="kpi-weight">1.82 kg</div>
+          <div class="kpi-box">
+            <div class="kpi-num shimmer-target" style="color: var(--text);" id="kpi-weight">1.82 kg</div>
             <div class="kpi-label">Sample Mass</div>
           </div>
         </div>
@@ -656,7 +656,7 @@
                 Polar: 52.1 mm | Shape: GLOBULAR | Mass: 88g
               </div>
             </div>
-            <span style="background: rgba(16, 185, 129, 0.2); color: var(--grade-a); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
+            <span style="background: var(--card-bg-elevated); color: var(--text); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
               GRADE A
             </span>
           </div>
@@ -804,12 +804,12 @@
 
         // Alpha mask overlay
         if (currentMode === 'composite') {
-          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(22, 101, 52, 0.35)' : (b.grade === 'URS' ? 'rgba(154, 52, 18, 0.35)' : 'rgba(153, 27, 27, 0.35)');
+          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(24, 24, 27, 0.12)' : (b.grade === 'URS' ? 'rgba(154, 52, 18, 0.35)' : 'rgba(153, 27, 27, 0.35)');
           ctx.fill();
         }
 
         // Contour
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#166534' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#18181b' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -834,13 +834,14 @@
 
         ctx.restore();
 
-        // Pill Badge
+        // Micro-Tag Label
         ctx.fillStyle = '#ffffff';
         const label = `#${idx + 1}: ${b.g} ${b.eq.toFixed(0)}mm ${b.wt}g`;
         ctx.font = '500 11px Space Grotesk';
         const tw = ctx.measureText(label).width;
         ctx.fillRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#166534' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
+        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#18181b' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
+        ctx.lineWidth = 1;
         ctx.strokeRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
         ctx.fillStyle = '#18181b';
         ctx.fillText(label, b.x - tw / 2, b.y - b.ry - 5);
@@ -884,8 +885,8 @@
 
       const gradeTag = document.getElementById('bulb-grade-tag');
       gradeTag.innerText = b.grade.replace('_', ' ');
-      gradeTag.style.color = b.grade === 'GRADE_A' ? 'var(--grade-a)' : (b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
-      gradeTag.style.background = b.grade === 'GRADE_A' ? 'rgba(16, 185, 129, 0.2)' : (b.grade === 'URS' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+      gradeTag.style.color = b.grade === 'GRADE_A' ? 'var(--text)' : (b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
+      gradeTag.style.background = b.grade === 'GRADE_A' ? 'var(--card-bg-elevated)' : (b.grade === 'URS' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)');
 
       document.getElementById('val-damaged').innerText = `${b.dam}%`;
       document.getElementById('fill-damaged').style.width = `${b.dam}%`;

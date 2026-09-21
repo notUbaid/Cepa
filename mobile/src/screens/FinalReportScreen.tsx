@@ -111,26 +111,19 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      {/* Celebration Header */}
+      {/* Certificate Document Header */}
       <FadeInView delay={50} distance={10}>
-        <View style={styles.celebrationBanner}>
-          <View style={styles.certStamp}>
-            <Text style={styles.certStampIcon}>✓</Text>
-          </View>
-          <View style={styles.certHeaderInfo}>
-            <View style={styles.badgeRow}>
-              <View style={styles.verifiedPill}>
-                <Text style={styles.verifiedPillText}>CERTIFICATE ISSUED</Text>
-              </View>
-              <Text style={styles.certDate}>
-                {new Date(report.finalized_at || report.created_at).toLocaleDateString()}
-              </Text>
-            </View>
-            <Text style={styles.certTitle}>Onion Quality Appraisal Record</Text>
-            <Text style={styles.certSub}>
-              Cepa Quality Record • Mandi Procurement Protocol
+        <View style={styles.reportHeaderCard}>
+          <View style={styles.badgeRow}>
+            <Text style={styles.docTypeLabel}>CERTIFICATE OF INSPECTION</Text>
+            <Text style={styles.certDate}>
+              {new Date(report.finalized_at || report.created_at).toLocaleDateString()}
             </Text>
           </View>
+          <Text style={styles.certTitle}>Onion Quality Appraisal Record</Text>
+          <Text style={styles.certSub}>
+            Lot Assessment Complete • NAFED Procurement Protocol
+          </Text>
         </View>
       </FadeInView>
 
@@ -160,7 +153,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Grading Standard:</Text>
-              <Text style={[styles.metaValueMono, { color: Colors.gradeA }]}>
+              <Text style={styles.metaValueMono}>
                 {report.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022')}
               </Text>
             </View>
@@ -175,10 +168,10 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
 
           <View style={styles.gradeRow}>
             <View style={styles.gradeLeft}>
-              <View style={[styles.gradeDot, { backgroundColor: Colors.gradeA }]} />
+              <View style={[styles.gradeDot, { backgroundColor: Colors.accent }]} />
               <Text style={styles.gradeName}>Grade A (Super 45–65 mm)</Text>
             </View>
-            <Text style={[styles.gradeCount, { color: Colors.gradeA }]}>
+            <Text style={styles.gradeCount}>
               {report.grade_a_count} ({report.grade_a_pct.toFixed(1)}%)
             </Text>
           </View>
@@ -221,7 +214,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             </View>
             <View style={styles.settlementRow}>
               <Text style={styles.settlementLabel}>Dockage Deduction ({rejectPct.toFixed(1)}% Rejection):</Text>
-              <Text style={[styles.settlementValue, { color: dockageRate > 0 ? Colors.reject : Colors.gradeA }]}>
+              <Text style={[styles.settlementValue, { color: dockageRate > 0 ? Colors.reject : Colors.text }]}>
                 {dockageRate > 0 ? `- ₹${dockageRate.toFixed(0)}/qtl` : '₹0/qtl (Full FAQ Pass)'}
               </Text>
             </View>
@@ -347,54 +340,25 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     maxWidth: 320,
   },
-  celebrationBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  reportHeaderCard: {
     backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: Spacing.md,
     ...Shadows.sm,
-  },
-  certStamp: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.gradeABg,
-    borderWidth: 1,
-    borderColor: Colors.gradeA,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  certStampIcon: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.gradeA,
-  },
-  certHeaderInfo: {
-    flex: 1,
   },
   badgeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  verifiedPill: {
-    backgroundColor: Colors.gradeABg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
-    borderWidth: 1,
-    borderColor: Colors.gradeA,
-  },
-  verifiedPillText: {
+  docTypeLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.gradeA,
-    letterSpacing: 0.5,
+    color: Colors.textSecondary,
+    letterSpacing: 0.8,
   },
   certDate: {
     fontSize: 11,
@@ -537,7 +501,7 @@ const styles = StyleSheet.create({
   payoutValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.gradeA,
+    color: Colors.text,
     fontFamily: 'monospace',
   },
   defectGrid: {
