@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Linking,
   Modal,
   Platform,
   StyleSheet,
@@ -121,6 +122,13 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     Haptics.medium();
     const demoUrl = ApiClient.getDemoSampleUrl();
     onPhotoCaptured(demoUrl);
+  };
+
+  const handleDownloadBoard = () => {
+    Haptics.light();
+    Linking.openURL(ApiClient.getPrintableBoardUrl()).catch((e) =>
+      alert(`Could not open calibration board PDF: ${e.message}`)
+    );
   };
 
   if (!permission) {
@@ -451,6 +459,14 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 </View>
               </View>
             </View>
+
+            <AnimatedPressable
+              haptic="selection"
+              onPress={handleDownloadBoard}
+              style={styles.guideDownloadBtn}
+            >
+              <Text style={styles.guideDownloadBtnText}>Print True-Scale ChArUco 7×5 Board (PDF)</Text>
+            </AnimatedPressable>
 
             <AnimatedPressable
               haptic="medium"
@@ -1087,6 +1103,20 @@ const styles = StyleSheet.create({
     color: '#a1a1aa',
     marginTop: 2,
     lineHeight: 16,
+  },
+  guideDownloadBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 12,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  guideDownloadBtnText: {
+    color: '#34d399',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   guideActionBtn: {
     backgroundColor: '#ffffff',

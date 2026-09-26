@@ -50,6 +50,23 @@ class TestHealthEndpoints:
         assert "image/jpeg" in response.headers["content-type"]
         assert len(response.content) > 10000
 
+    def test_root_redirect(self, client: TestClient):
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code in (302, 307)
+        assert response.headers["location"] == "/inspector"
+
+    def test_calibration_board_endpoint(self, client: TestClient):
+        response = client.get("/calibration-board")
+        assert response.status_code == 200
+        assert "application/pdf" in response.headers["content-type"]
+        assert len(response.content) > 1000
+
+    def test_deck_endpoint(self, client: TestClient):
+        response = client.get("/deck")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "CEPA — Executive Presentation" in response.text
+
 
 class TestFullInspectionWorkflow:
     def test_end_to_end_inspection_flow(self, client: TestClient):
