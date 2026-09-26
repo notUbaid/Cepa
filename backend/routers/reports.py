@@ -7,9 +7,11 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.orm import Session
+
+from services.certificate_view import render_certificate_html
 
 from config import settings
 from database import get_db
@@ -35,6 +37,53 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
         if report.pdf_path else None
     )
     share_url = f"{settings.share_link_base_url}/{report.share_token}"
+
+    from routers.inspections import _get_bulb_storage_profile, _extract_defect_probs
+    from cv.shelf_life import compute_lot_storage_advisory
+    from grading.commercial import calculate_mandi_settlement
+    from grading.statistics import compute_apmc_size_distribution, compute_lot_weight_statistics
+
+    storage_profiles = []
+    sizes_mm: list[float] = []
+    weights_g: list[float] = []
+    rot_cnt = 0
+    sprout_cnt = 0
+    under_cnt = 0
+    over_cnt = 0
+
+    for sample in inspection.samples:
+        for inst in sample.onion_instances:
+            storage_profiles.append(_get_bulb_storage_profile(inst))
+            d, r, s = _extract_defect_probs(inst.defect_observation)
+            if (r or 0) >= 0.50:
+                rot_cnt += 1
+            if (s or 0) >= 0.50:
+                sprout_cnt += 1
+            if inst.measurement:
+                sz = inst.measurement.equatorial_diameter_mm or inst.measurement.equivalent_diameter_mm
+                if sz:
+                    sizes_mm.append(sz)
+                    if sz < 45.0:
+                        under_cnt += 1
+                    elif sz > 65.0:
+                        over_cnt += 1
+                if inst.measurement.estimated_weight_grams:
+                    weights_g.append(inst.measurement.estimated_weight_grams)
+
+    storage_adv = compute_lot_storage_advisory(storage_profiles)
+    settlement = calculate_mandi_settlement(
+        total_bulbs=report.total_bulbs,
+        grade_a_count=report.grade_a_count,
+        urs_count=report.urs_count,
+        rejected_count=report.rejected_count,
+        rotten_count=rot_cnt,
+        sprouted_count=sprout_cnt,
+        undersized_count=under_cnt,
+        oversized_count=over_cnt,
+        storageability_score=storage_adv.mean_storageability_score,
+    )
+    apmc = compute_apmc_size_distribution(sizes_mm)
+    weights = compute_lot_weight_statistics(weights_g)
 
     return ReportDetail(
         id=report.id,
@@ -67,6 +116,20 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
         finalized_at=report.finalized_at,
         pdf_url=pdf_url,
         share_url=share_url,
+        storage_advisory=storage_adv.as_dict(),
+        commercial_settlement=settlement.as_dict(),
+        apmc_size_distribution={
+            "goli_count": apmc.goli_count, "goli_pct": apmc.goli_pct,
+            "madhyam_count": apmc.madhyam_count, "madhyam_pct": apmc.madhyam_pct,
+            "super_count": apmc.super_count, "super_pct": apmc.super_pct,
+            "jumbo_count": apmc.jumbo_count, "jumbo_pct": apmc.jumbo_pct,
+        },
+        lot_weight_statistics={
+            "total_sample_weight_kg": weights.total_sample_weight_kg,
+            "mean_bulb_weight_g": weights.mean_bulb_weight_g,
+            "min_bulb_weight_g": weights.min_bulb_weight_g,
+            "max_bulb_weight_g": weights.max_bulb_weight_g,
+        },
     )
 
 
@@ -161,14 +224,29 @@ async def get_report(
 @router.get("/reports/share/{share_token}")
 async def get_shared_report(
     share_token: str,
+    request: Request,
+    format: str | None = None,
     db: Session = Depends(get_db),
-) -> ReportDetail:
-    """Public share endpoint — readable without authentication."""
+):
+    """
+    Public share endpoint — readable without authentication.
+    Returns responsive HTML certificate for mobile browser QR scans,
+    or JSON data for API requests.
+    """
     report = db.query(Report).filter(Report.share_token == share_token).first()
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     inspection = report.inspection
-    return _report_to_detail(report, inspection)
+    detail = _report_to_detail(report, inspection)
+
+    accept = request.headers.get("accept", "")
+    wants_html = format == "html" or ("text/html" in accept and "application/json" not in accept)
+
+    if wants_html:
+        html_content = render_certificate_html(detail, inspection)
+        return HTMLResponse(content=html_content)
+
+    return detail
 
 
 @router.get("/inspections/{inspection_id}/reports/pdf")

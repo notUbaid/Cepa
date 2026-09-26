@@ -61,6 +61,12 @@ class ReportDetail(BaseModel):
     # Defect breakdown
     defect_counts: dict = Field(default_factory=dict)
 
+    # Post-harvest storage advisory & Mandi settlement
+    storage_advisory: dict | None = None
+    commercial_settlement: dict | None = None
+    apmc_size_distribution: dict | None = None
+    lot_weight_statistics: dict | None = None
+
     # Provenance (for transparency)
     ruleset_version: str
     model_version: str

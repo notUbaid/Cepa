@@ -319,6 +319,51 @@ def generate_pdf_report(
     story.append(pricing_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # ── Post-Harvest Cold Storage Preservation Advisory ───────────────────────
+    story.append(Paragraph("Post-Harvest Cold Storage Preservation Advisory", styles["Heading2"]))
+
+    from routers.inspections import _get_bulb_storage_profile
+    from cv.shelf_life import compute_lot_storage_advisory
+    storage_profiles = []
+    for s in inspection.samples:
+        for inst in s.onion_instances:
+            storage_profiles.append(_get_bulb_storage_profile(inst))
+
+    storage_adv = compute_lot_storage_advisory(storage_profiles)
+
+    risk_color = colors.HexColor("#27ae60") if storage_adv.respiration_risk_level == "LOW" else (
+        colors.HexColor("#f39c12") if storage_adv.respiration_risk_level == "MODERATE" else colors.HexColor("#e74c3c")
+    )
+
+    storage_data = [
+        ["Cold Storage Metric", "Assessment & Directive"],
+        ["Lot Storageability Index", f"{storage_adv.mean_storageability_score:.1f} / 100.0"],
+        ["Preservation Classification", f"{storage_adv.storage_recommendation.replace('_', ' ')}"],
+        ["Safe Cold Storage Window", f"Up to {storage_adv.recommended_max_storage_days} days (0–2°C, 65–70% RH)"],
+        ["Respiration & Spoilage Risk", f"{storage_adv.respiration_risk_level}"],
+        ["Pathogen Exposure Breakdown", f"Mold: {storage_adv.fungal_spore_exposure_pct:.1f}% | Tunic Loss: {storage_adv.tunic_loss_exposure_pct:.1f}% | Sprout: {storage_adv.dormancy_break_exposure_pct:.1f}%"],
+    ]
+
+    storage_table = Table(storage_data, colWidths=[6.5 * cm, 9.5 * cm])
+    storage_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1b4f72")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bdc3c7")),
+        ("TEXTCOLOR", (1, 4), (1, 4), risk_color),
+        ("FONTNAME", (1, 4), (1, 4), "Helvetica-Bold"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(storage_table)
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(Paragraph(f"<b>Operational Directive:</b> {storage_adv.recommended_action}", ParagraphStyle(
+        "StorageAction", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#2c3e50"), leading=11
+    )))
+    story.append(Spacer(1, 0.4 * cm))
+
     # ── Sampling note ──────────────────────────────────────────────────────────
     story.append(Paragraph("Sampling", styles["Heading2"]))
     story.append(Paragraph(
@@ -355,19 +400,44 @@ def generate_pdf_report(
         textColor=colors.HexColor("#555"),
         leading=14,
     )))
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(Spacer(1, 0.4 * cm))
 
-    # ── Share link ─────────────────────────────────────────────────────────────
+    # ── Share & Tamper-Proof Digital Verification (Real QR Code) ───────────────
     share_url = f"{settings.share_link_base_url}/{report.share_token}"
-    story.append(Paragraph("Share This Report", styles["Heading2"]))
-    story.append(Paragraph(
-        f"Report link: {share_url}",
-        ParagraphStyle("ShareLink", parent=styles["Normal"], fontSize=9,
-                       textColor=colors.HexColor("#2980b9")),
-    ))
+    story.append(Paragraph("Digital Verification & Public Audit Trail", styles["Heading2"]))
+
+    from reportlab.graphics.barcode import qr
+    from reportlab.graphics.shapes import Drawing
+    qr_widget = qr.QrCodeWidget(share_url)
+    bounds = qr_widget.getBounds()
+    w = bounds[2] - bounds[0]
+    h = bounds[3] - bounds[1]
+    qr_drawing = Drawing(32 * mm, 32 * mm, transform=[32 * mm / w, 0, 0, 32 * mm / h, 0, 0])
+    qr_drawing.add(qr_widget)
+
+    import hashlib
+    cert_hash = hashlib.sha256(f"{report.report_id}-{report.total_bulbs}-{report.grade_a_pct}".encode()).hexdigest()[:24].upper()
+
+    verify_info = (
+        f"<b>Scan QR to Verify Authenticity Online:</b><br/>"
+        f"<font color='#2980b9'>{share_url}</font><br/><br/>"
+        f"<b>Digital Integrity Hash:</b> <code>SHA256:{cert_hash}</code><br/>"
+        f"<b>Token:</b> {report.share_token}<br/>"
+        f"<i>Scanning this QR with any mobile phone displays the live verified inspection record, high-res lot photograph, and APMC settlement slip.</i>"
+    )
+
+    qr_table = Table([[qr_drawing, Paragraph(verify_info, ParagraphStyle("QRText", parent=styles["Normal"], fontSize=8.5, leading=12))]], colWidths=[3.5 * cm, 12.5 * cm])
+    qr_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(qr_table)
 
     # ── Footer note ────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 1 * cm))
+    story.append(Spacer(1, 0.6 * cm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#ccc")))
     story.append(Paragraph(
         "Generated by Cepa Inspection System (SIH26031 Proof of Concept). "

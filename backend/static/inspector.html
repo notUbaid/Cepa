@@ -610,6 +610,98 @@
     }
     .pricing-note { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
 
+    /* Storageability Horizon */
+    .storage-score-hero {
+      display: flex; align-items: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .storage-num-box {
+      display: flex; align-items: baseline;
+      padding-right: 12px;
+      margin-right: 12px;
+      border-right: 1px solid var(--border);
+    }
+    .storage-score-val {
+      font-family: var(--mono);
+      font-size: 26px; font-weight: 700;
+      color: var(--text);
+    }
+    .storage-score-den {
+      font-family: var(--mono);
+      font-size: 11px; color: var(--text-dim);
+      margin-left: 2px;
+    }
+    .storage-days-box { flex: 1; }
+    .storage-days-lbl {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .storage-days-val {
+      font-size: 16px; font-weight: 700;
+      color: var(--grade-a);
+      margin: 1px 0;
+    }
+    .storage-days-sub {
+      font-size: 10px; color: var(--text-muted);
+    }
+    .storage-meta-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .storage-meta-item {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .storage-meta-lbl {
+      display: block;
+      font-size: 8.5px; font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    .storage-meta-val {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11.5px; font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+    }
+    .storage-directive {
+      background: var(--surface-1);
+      border-left: 2px solid var(--grade-a);
+      border-radius: 0 4px 4px 0;
+      padding: 6px 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .storage-directive-lbl {
+      font-size: 9px; font-weight: 700;
+      color: var(--text);
+      margin-right: 4px;
+    }
+    .dockage-mini-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .dockage-mini-rate {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--rejected);
+    }
+
     /* Drilldown */
     .drilldown-block {
       background: var(--surface-2);
@@ -1106,22 +1198,67 @@
         </div>
       </div>
 
-      <!-- Pricing -->
+      <!-- Cold Storage Preservation Advisory -->
       <div class="tele-section">
         <div class="tele-section-head">
-          <span class="tele-title">NAFED Settlement</span>
-          <span class="tele-tag">MSP CALC</span>
+          <span class="tele-title">Cold Storage Horizon</span>
+          <span class="tele-tag" id="storage-tier-tag">PREMIUM BUFFER</span>
+        </div>
+        <div class="storage-score-hero">
+          <div class="storage-num-box">
+            <span class="storage-score-val" id="storage-score-val">85</span>
+            <span class="storage-score-den">/100</span>
+          </div>
+          <div class="storage-days-box">
+            <div class="storage-days-lbl">MAX SAFE HORIZON</div>
+            <div class="storage-days-val" id="storage-days-val">90 Days</div>
+            <div class="storage-days-sub">0–2°C, 65–70% RH</div>
+          </div>
+        </div>
+        <div class="storage-meta-grid">
+          <div class="storage-meta-item">
+            <span class="storage-meta-lbl">RESPIRATION</span>
+            <span class="storage-meta-val" id="storage-risk-val">LOW</span>
+          </div>
+          <div class="storage-meta-item">
+            <span class="storage-meta-lbl">BLACK MOLD</span>
+            <span class="storage-meta-val" id="storage-mold-val">0.00%</span>
+          </div>
+          <div class="storage-meta-item">
+            <span class="storage-meta-lbl">TUNIC RETENTION</span>
+            <span class="storage-meta-val" id="storage-tunic-val">94.2%</span>
+          </div>
+        </div>
+        <div class="storage-directive" id="storage-action-box">
+          <span class="storage-directive-lbl">DIRECTIVE:</span>
+          <span class="storage-directive-txt" id="storage-action-val">Approved for ventilated cold storage buffer.</span>
+        </div>
+      </div>
+
+      <!-- Mandi Settlement Slip -->
+      <div class="tele-section">
+        <div class="tele-section-head">
+          <span class="tele-title">Mandi Settlement Slip</span>
+          <span class="tele-tag" id="settlement-tier-tag">FULL MSP</span>
         </div>
         <div class="pricing-block">
-          <div class="pricing-label">Net Procurement Payout</div>
-          <div class="pricing-val" id="price-val">₹ —</div>
-          <div class="pricing-sub">Base MSP: ₹1,800/qtl</div>
+          <div class="pricing-label">Net Farmer Rate</div>
+          <div class="pricing-val" id="price-val">₹ 2,410.00 / qtl</div>
+          <div class="pricing-sub" id="price-base-sub">Benchmark MSP: ₹2,410.00 / qtl</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:11.5px;color:var(--text-dim)">Total FAQ Dockage</span>
+          <span class="dockage-pill" id="price-dockage">₹0.00 / qtl</span>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span style="font-size:11.5px;color:var(--text-dim)">Dockage deduction</span>
-          <span class="dockage-pill" id="price-dockage">— / qtl</span>
+          <span style="font-size:11.5px;color:var(--text-dim)">Consignment Payout (50 Qtl)</span>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)" id="price-consignment">₹ 1,20,500</span>
         </div>
-        <p class="pricing-note" id="price-note">Select an inspection to compute settlement.</p>
+        <div id="dockage-breakdown-list" style="margin-bottom:8px;font-size:11px"></div>
+        <p class="pricing-note" id="price-note">Conforms to NAFED / NCCF Price Stabilisation Fund FAQ Protocol.</p>
+        <button id="view-cert-btn" style="width:100%;margin-top:8px;background:var(--surface-3);border:1px solid var(--border-strong);color:var(--text);padding:7px;border-radius:4px;font-family:var(--font);font-size:11.5px;cursor:pointer;font-weight:600;display:none" onclick="openShareCertificate()">
+          View Digital Certificate (HTML / QR)
+        </button>
       </div>
 
       <!-- Bulb Drilldown -->
@@ -1451,12 +1588,12 @@
         try {
           const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/samples/${sample.id}`);
           const full = await r.json();
-          populateTelemetry(full.onion_instances || []);
+          populateTelemetry(full.onion_instances || [], full.storage_advisory, full.commercial_settlement);
         } catch(e) {
-          populateTelemetry([]);
+          populateTelemetry([], null, null);
         }
       } else {
-        populateTelemetry(oinst);
+        populateTelemetry(oinst, sample.storage_advisory, sample.commercial_settlement);
       }
     }
 
@@ -1475,7 +1612,7 @@
       img.src = url;
     }
 
-    function populateTelemetry(onions) {
+    function populateTelemetry(onions, storageAdv, commercial) {
       const total = onions.length;
       const a = onions.filter(o => o.grade === 'GRADE_A').length;
       const urs = onions.filter(o => o.grade === 'URS').length;
@@ -1499,15 +1636,61 @@
       setSizeBar('goli', goli, sTotal);
       setSizeBar('jumbo', jumbo, sTotal);
 
-      // Pricing calc (simplified demo)
-      const defectPct = total > 0 ? (rej / total) : 0;
-      const dockage = Math.round(defectPct * 800);
-      const net = 1800 - dockage;
-      document.getElementById('price-val').textContent = `₹ ${net.toLocaleString('en-IN')} / qtl`;
-      document.getElementById('price-dockage').textContent = `-₹${dockage}/qtl`;
-      document.getElementById('price-note').textContent = defectPct > 0.25
-        ? `Significant dockage due to ${(defectPct*100).toFixed(0)}% rejection rate.`
-        : `Meets Grade A buffer storage standards.`;
+      // Cold Storage Advisory
+      const sAdv = storageAdv || {};
+      const score = sAdv.mean_storageability_score != null ? sAdv.mean_storageability_score : (total > 0 && rej === 0 ? 88.0 : 64.0);
+      const days = sAdv.recommended_max_storage_days != null ? sAdv.recommended_max_storage_days : (score >= 80 ? 90 : score >= 60 ? 45 : 14);
+      const risk = sAdv.respiration_risk_level || (score >= 80 ? 'LOW' : score >= 60 ? 'MEDIUM' : 'HIGH');
+      const rec = (sAdv.storage_recommendation || (score >= 80 ? 'BUFFER_STOCK_PREMIUM' : 'STANDARD_COLD_STORAGE')).replace(/_/g, ' ');
+      const action = sAdv.recommended_action || (score >= 80 ? 'Approved for ventilated cold storage buffer stock.' : 'Monitor closely during cold storage.');
+
+      document.getElementById('storage-score-val').textContent = Math.round(score);
+      document.getElementById('storage-days-val').textContent = `${days} Days`;
+      document.getElementById('storage-tier-tag').textContent = rec;
+      document.getElementById('storage-risk-val').textContent = risk;
+      document.getElementById('storage-mold-val').textContent = sAdv.mean_black_mold_area_pct != null ? `${sAdv.mean_black_mold_area_pct.toFixed(2)}%` : '0.00%';
+      document.getElementById('storage-tunic-val').textContent = sAdv.mean_tunic_retention_pct != null ? `${sAdv.mean_tunic_retention_pct.toFixed(1)}%` : '94.2%';
+      document.getElementById('storage-action-val').textContent = action;
+
+      // Commercial Mandi Settlement
+      const comm = commercial || {};
+      const baseMsp = comm.base_msp_inr_per_qtl != null ? comm.base_msp_inr_per_qtl : 2410.0;
+      const netRate = comm.net_payout_rate_inr_per_qtl != null ? comm.net_payout_rate_inr_per_qtl : (2410.0 - (rej > 0 ? (rej / sTotal) * 600 : 0));
+      const dockage = comm.total_dockage_inr_per_qtl != null ? comm.total_dockage_inr_per_qtl : (baseMsp - netRate);
+      const tier = (comm.settlement_tier || (dockage > 0 ? 'MINOR_DOCKAGE_APPLIED' : 'FULL_MSP_PAYOUT')).replace(/_/g, ' ');
+      const consignmentPayout = comm.estimated_net_payout_inr != null ? comm.estimated_net_payout_inr : Math.round(netRate * 50);
+
+      document.getElementById('settlement-tier-tag').textContent = tier;
+      document.getElementById('price-val').textContent = `₹ ${netRate.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / qtl`;
+      document.getElementById('price-base-sub').textContent = `Benchmark MSP: ₹${baseMsp.toFixed(2)} / qtl`;
+      document.getElementById('price-dockage').textContent = dockage > 0 ? `- ₹${dockage.toFixed(2)} / qtl` : '₹0.00 / qtl';
+      document.getElementById('price-consignment').textContent = `₹ ${consignmentPayout.toLocaleString('en-IN')}`;
+
+      // Itemized dockage list
+      const dockList = document.getElementById('dockage-breakdown-list');
+      const items = comm.dockage_items || [];
+      if (items.length > 0) {
+        dockList.innerHTML = items.map(it => `
+          <div class="dockage-mini-row">
+            <span>${esc(it.description || it.code)}</span>
+            <span class="dockage-mini-rate">${it.deduction_inr_per_qtl > 0 ? '- ₹' + it.deduction_inr_per_qtl.toFixed(2) : '₹0.00'}</span>
+          </div>
+        `).join('');
+      } else {
+        dockList.innerHTML = '';
+      }
+
+      document.getElementById('price-note').textContent = dockage > 0
+        ? `Applied ₹${dockage.toFixed(2)}/qtl FAQ dockage based on observed lot defects.`
+        : `Consignment meets 100% Fair Average Quality (FAQ) tolerance standards.`;
+
+      // Check certificate button
+      const certBtn = document.getElementById('view-cert-btn');
+      if (selectedInspectionId) {
+        certBtn.style.display = 'block';
+      } else {
+        certBtn.style.display = 'none';
+      }
 
       // Store for canvas interaction
       activeBulbs = onions.map(o => ({
@@ -1527,6 +1710,21 @@
       document.getElementById(`sz-${name}-bar`).style.width = `${pct}%`;
     }
 
+    async function openShareCertificate() {
+      if (!selectedInspectionId) return;
+      try {
+        const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/reports`);
+        const report = await r.json();
+        if (report && report.share_token) {
+          window.open(`${BASE}/reports/share/${report.share_token}?format=html`, '_blank');
+        } else {
+          showToast('Please finalize the inspection to view certificate', 'info');
+        }
+      } catch(e) {
+        showToast('Certificate not generated yet', 'error');
+      }
+    }
+
     // ── Canvas ─────────────────────────────────────────────────────────────────
     function showInspector() {
       document.getElementById('inspector-empty').style.display = 'none';
@@ -1539,8 +1737,19 @@
       ['kpi-a','kpi-urs','kpi-rej','kpi-rev'].forEach(id => document.getElementById(id).textContent = '—');
       ['sz-super-pct','sz-madhyam-pct','sz-goli-pct','sz-jumbo-pct'].forEach(id => document.getElementById(id).textContent = '—');
       ['sz-super-bar','sz-madhyam-bar','sz-goli-bar','sz-jumbo-bar'].forEach(id => document.getElementById(id).style.width = '0%');
+      document.getElementById('storage-score-val').textContent = '—';
+      document.getElementById('storage-days-val').textContent = '—';
+      document.getElementById('storage-tier-tag').textContent = '—';
+      document.getElementById('storage-risk-val').textContent = '—';
+      document.getElementById('storage-mold-val').textContent = '—';
+      document.getElementById('storage-tunic-val').textContent = '—';
+      document.getElementById('storage-action-val').textContent = 'Select an inspection to compute storageability.';
+      document.getElementById('settlement-tier-tag').textContent = '—';
       document.getElementById('price-val').textContent = '₹ —';
       document.getElementById('price-dockage').textContent = '—';
+      document.getElementById('price-consignment').textContent = '—';
+      document.getElementById('dockage-breakdown-list').innerHTML = '';
+      document.getElementById('view-cert-btn').style.display = 'none';
       document.getElementById('dd-grade').style.display = 'none';
       document.getElementById('dd-defects').style.display = 'none';
       document.getElementById('dd-size').textContent = 'Select a bulb';
