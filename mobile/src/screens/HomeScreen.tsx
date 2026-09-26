@@ -37,6 +37,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'FINALIZED' | 'REVIEW'>('ALL');
+  const [loadingDemoLot, setLoadingDemoLot] = useState(false);
+
+  const handleLoadDemoLot = async () => {
+    Haptics.heavy();
+    setLoadingDemoLot(true);
+    try {
+      const list = await ApiClient.listInspections();
+      const existing = list.find((i) => (i.lot_id || '').includes('DEMO') && i.sample_count > 0);
+      if (existing) {
+        onSelectInspection(existing.id);
+        return;
+      }
+
+      const insp = await ApiClient.createInspection({
+        lot_id: 'MANDI-DEMO-VERIFIED-01',
+        procurement_centre: 'Lasalgaon APMC Yard, Nashik',
+        officer_name: 'Senior Grader S. Patil',
+        officer_id: 'NAFED-MH-084',
+        notes: 'Verified real mandi onion sample with 24 bulbs & ChArUco 7x5 card',
+      });
+      const demoUrl = ApiClient.getDemoSampleUrl();
+      await ApiClient.uploadSample(insp.id, demoUrl);
+      onSelectInspection(insp.id);
+    } catch (e: any) {
+      alert(`Could not load demo lot: ${e.message}`);
+    } finally {
+      setLoadingDemoLot(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -143,6 +172,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={styles.heroChevronBadge}>
               <Text style={styles.heroChevron}>→</Text>
             </View>
+          </View>
+        </AnimatedPressable>
+
+        {/* 1-Tap Real Mandi Demo Lot Button */}
+        <AnimatedPressable
+          haptic="heavy"
+          onPress={handleLoadDemoLot}
+          style={styles.demoLotBannerBtn}
+          disabled={loadingDemoLot}
+        >
+          <View style={styles.demoLotBannerContent}>
+            <View style={styles.demoLotIconBox}>
+              <Text style={styles.demoLotIcon}>📦</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.demoLotTitle}>Inspect Verified Mandi Demo Lot</Text>
+              <Text style={styles.demoLotSubtitle}>
+                Real photographic spread · 24 bulbs · ChArUco 7×5 calibration · NAFED MSP grading
+              </Text>
+            </View>
+            <Text style={styles.demoLotBadge}>24 BULBS</Text>
           </View>
         </AnimatedPressable>
       </FadeInView>
@@ -399,6 +449,54 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  demoLotBannerBtn: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.md,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    ...Shadows.card,
+  },
+  demoLotBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  demoLotIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#f4f3ef',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  demoLotIcon: {
+    fontSize: 18,
+  },
+  demoLotTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0c0c0e',
+  },
+  demoLotSubtitle: {
+    fontSize: 10.5,
+    color: '#71717a',
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  demoLotBadge: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#047857',
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    letterSpacing: 0.4,
   },
 
   /* List Section */
