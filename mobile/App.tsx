@@ -94,13 +94,18 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
-      <Header
-        serverConnected={serverOnline}
-        policyVersion={policyVersion}
-        isMockActive={isMockActive}
+    <SafeAreaView style={[styles.safeArea, currentScreen === 'CAPTURE' && styles.safeAreaCapture]}>
+      <StatusBar
+        barStyle={currentScreen === 'CAPTURE' ? 'light-content' : 'dark-content'}
+        backgroundColor={currentScreen === 'CAPTURE' ? '#000000' : Colors.bg}
       />
+      {currentScreen !== 'CAPTURE' && (
+        <Header
+          serverConnected={serverOnline}
+          policyVersion={policyVersion}
+          isMockActive={isMockActive}
+        />
+      )}
 
       <Animated.View style={[styles.content, { opacity: screenFade }]}>
         {currentScreen === 'HOME' && (
@@ -176,7 +181,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg,
   },
+  safeAreaCapture: {
+    backgroundColor: '#000000',
+  },
   content: {
     flex: 1,
   },
 });
+

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   FlatList,
+  Image,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -34,17 +36,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cvInfo, setCvInfo] = useState<any>(null);
   const [filter, setFilter] = useState<'ALL' | 'FINALIZED' | 'REVIEW'>('ALL');
 
   const loadData = async () => {
     try {
-      const [list, cv] = await Promise.all([
-        ApiClient.listInspections().catch(() => []),
-        ApiClient.checkCvHealth().catch(() => null),
-      ]);
+      const list = await ApiClient.listInspections().catch(() => []);
       setInspections(list);
-      setCvInfo(cv);
     } catch (e) {
       console.warn('Failed to load home data', e);
     } finally {
@@ -92,14 +89,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </View>
               <View style={styles.kpiCard}>
                 <View style={styles.kpiDotRow}>
-                  <View style={[styles.kpiDot, { backgroundColor: Colors.gradeA }]} />
+                  <View style={[styles.kpiDot, { backgroundColor: '#10b981' }]} />
                   <Text style={styles.kpiValue}>{finalizedLots}</Text>
                 </View>
                 <Text style={styles.kpiLabel}>Certified</Text>
               </View>
               <View style={styles.kpiCard}>
                 <View style={styles.kpiDotRow}>
-                  <View style={[styles.kpiDot, { backgroundColor: Colors.urs }]} />
+                  <View style={[styles.kpiDot, { backgroundColor: '#f59e0b' }]} />
                   <Text style={styles.kpiValue}>{inReviewLots}</Text>
                 </View>
                 <Text style={styles.kpiLabel}>In Review</Text>
@@ -109,8 +106,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </View>
       </FadeInView>
 
-      {/* Hero Action: Start Inspection */}
-      <FadeInView delay={100} distance={12}>
+      {/* Optical Station Setup Visual Banner */}
+      <FadeInView delay={80} distance={10}>
+        <View style={styles.stationBanner}>
+          <Image
+            source={require('../../assets/calibration_guide.png')}
+            style={styles.stationImage}
+            resizeMode="cover"
+          />
+          <View style={styles.stationOverlay}>
+            <View style={styles.stationBadge}>
+              <Text style={styles.stationBadgeText}>APMC OPTICAL GRADING BENCH</Text>
+            </View>
+            <Text style={styles.stationTitle}>70cm Overhead Scanner Protocol</Text>
+            <Text style={styles.stationDesc}>
+              Single-layer spread with ChArUco 7×5 calibration board for sub-millimeter caliper accuracy.
+            </Text>
+          </View>
+        </View>
+      </FadeInView>
+
+      {/* Primary Action Button */}
+      <FadeInView delay={110} distance={12}>
         <AnimatedPressable
           haptic="medium"
           onPress={onStartNewInspection}
@@ -118,9 +135,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         >
           <View style={styles.heroContent}>
             <View style={styles.heroTextContainer}>
-              <Text style={styles.heroTitle}>New Inspection</Text>
+              <Text style={styles.heroTitle}>New Lot Inspection</Text>
               <Text style={styles.heroSubtitle}>
-                Calibrate reference marker, capture representative spread, and compute net mandi valuation
+                Calibrate optical marker, scan bulb spread, and compute commercial MSP dockage
               </Text>
             </View>
             <View style={styles.heroChevronBadge}>
@@ -134,7 +151,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <View style={styles.listSection}>
         <View style={styles.listHeaderRow}>
           <View>
-            <Text style={styles.listTitle}>Inspection Records</Text>
+            <Text style={styles.listTitle}>Mandi Inspection Records</Text>
             <Text style={styles.listSubtitle}>
               {filteredInspections.length} recorded appraisals
             </Text>
@@ -191,12 +208,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.accent}
-                colors={[Colors.accent]}
+                tintColor="#0c0c0e"
+                colors={['#0c0c0e']}
               />
             }
             renderItem={({ item, index }) => (
-              <FadeInView delay={Math.min(index * 60, 300)} distance={10}>
+              <FadeInView delay={Math.min(index * 50, 250)} distance={8}>
                 <AnimatedPressable
                   haptic="medium"
                   onPress={() => onSelectInspection(item.id)}
@@ -219,12 +236,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </View>
 
                   <Text style={styles.procurementCentreText} numberOfLines={1}>
-                    {item.procurement_centre || 'APMC Mandi Yard'}
+                    📍 {item.procurement_centre || 'APMC Mandi Yard'}
                   </Text>
 
                   <View style={styles.cardFooter}>
                     <Text style={styles.officerText}>
-                      Officer: {item.officer_name || 'Assessor'}
+                      Assessor: {item.officer_name || 'Officer'}
                     </Text>
                     <Text style={styles.dateText}>
                       {new Date(item.created_at).toLocaleDateString(undefined, {
@@ -248,24 +265,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: '#f9f8f6',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
   },
   kpiRow: {
     flexDirection: 'row',
-    marginBottom: Spacing.md,
+    marginBottom: 12,
     gap: Spacing.sm,
   },
   kpiCard: {
     flex: 1,
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.md,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
     ...Shadows.card,
   },
   kpiDotRow: {
@@ -280,21 +297,73 @@ const styles = StyleSheet.create({
   },
   kpiValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
+    fontWeight: '800',
+    color: '#0c0c0e',
     letterSpacing: -0.3,
   },
   kpiLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10.5,
+    color: '#71717a',
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  heroActionCard: {
-    backgroundColor: Colors.accent,
+
+  /* Station Setup Banner */
+  stationBanner: {
+    width: '100%',
+    height: 125,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    position: 'relative',
+    ...Shadows.card,
+  },
+  stationImage: {
+    width: '100%',
+    height: '100%',
+  },
+  stationOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'rgba(12, 12, 14, 0.72)',
+    padding: 12,
+    justifyContent: 'center',
+  },
+  stationBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 3,
+    marginBottom: 4,
+  },
+  stationBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#38bdf8',
+    letterSpacing: 0.5,
+  },
+  stationTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.2,
+  },
+  stationDesc: {
+    fontSize: 11,
+    color: '#d4d4d8',
+    marginTop: 3,
+    lineHeight: 15,
+  },
+
+  /* Hero Action Button */
+  heroActionCard: {
+    backgroundColor: '#0c0c0e',
+    borderRadius: Radius.lg,
+    padding: 14,
+    marginBottom: 14,
     ...Shadows.card,
   },
   heroContent: {
@@ -307,16 +376,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#ffffff',
     letterSpacing: -0.2,
   },
   heroSubtitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#a1a1aa',
-    marginTop: 3,
-    lineHeight: 17,
+    marginTop: 2,
+    lineHeight: 16,
   },
   heroChevronBadge: {
     width: 32,
@@ -331,6 +400,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+
+  /* List Section */
   listSection: {
     flex: 1,
   },
@@ -338,53 +409,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 10,
   },
   listTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#0c0c0e',
   },
   listSubtitle: {
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10.5,
+    color: '#71717a',
     marginTop: 1,
   },
   filterGroup: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBgElevated,
-    borderRadius: Radius.sm,
+    backgroundColor: '#f4f3ef',
+    borderRadius: 6,
     padding: 2,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
   },
   filterChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.sm,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 4,
   },
   filterChipActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: '#0c0c0e',
   },
   filterChipText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
+    fontSize: 10.5,
+    color: '#52525b',
     fontWeight: '600',
   },
   filterChipTextActive: {
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   listContent: {
     paddingBottom: Spacing.xxl,
   },
   inspectionCard: {
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.md,
+    padding: 13,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.sm,
+    borderColor: '#e7e5e4',
+    marginBottom: 8,
     ...Shadows.card,
   },
   cardTopRow: {
@@ -398,63 +469,65 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lotIdText: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#0c0c0e',
     letterSpacing: -0.2,
   },
   sampleCountTag: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: '#f4f3ef',
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: Radius.xs,
+    borderRadius: 3,
     borderWidth: 1,
-    borderColor: Colors.borderMuted,
+    borderColor: '#e7e5e4',
   },
   sampleCountText: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    fontWeight: '500',
+    fontSize: 9.5,
+    color: '#52525b',
+    fontWeight: '600',
   },
   procurementCentreText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 6,
+    fontSize: 11.5,
+    color: '#52525b',
+    marginTop: 5,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 8,
+    paddingTop: 7,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderMuted,
+    borderTopColor: '#f5f5f4',
   },
   officerText: {
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10.5,
+    color: '#71717a',
+    fontWeight: '500',
   },
   dateText: {
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10.5,
+    color: '#71717a',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   emptyContainer: {
     padding: Spacing.hero,
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.md,
     alignItems: 'center',
     marginTop: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
   },
   emptyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.text,
+    color: '#0c0c0e',
   },
   emptySubtitle: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: '#71717a',
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 16,
