@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -40,6 +42,9 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
   const [failureCodes, setFailureCodes] = useState<string[]>([]);
   const [sampleResult, setSampleResult] = useState<SampleDetail | null>(null);
 
+  // Laser beam scanning animation
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+
   // Staggered checklist items for visual feedback
   const [checkProgress, setCheckProgress] = useState({
     blur: false,
@@ -47,6 +52,25 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
     scale: false,
     segmentation: false,
   });
+
+  useEffect(() => {
+    const scanLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, {
+          toValue: 200,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLineAnim, {
+          toValue: 0,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    scanLoop.start();
+    return () => scanLoop.stop();
+  }, [scanLineAnim]);
 
   const processPhoto = async (targetUri: string) => {
     let isMounted = true;
@@ -90,7 +114,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
 
         setTimeout(() => {
           if (isMounted) onCheckPassed(sample);
-        }, 1400);
+        }, 1200);
       } else {
         setStage('failed');
         setFailureCodes(sample.quality_flags || []);
@@ -132,7 +156,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Captured Image Preview */}
+      {/* Captured Image Preview with Laser Scanning Overlay */}
       <FadeInView delay={50} distance={10}>
         <View style={styles.thumbnailContainer}>
           <LazyImage
@@ -141,8 +165,29 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
             borderRadius={Radius.lg}
             resizeMode="cover"
           />
+
+          {/* Laser Scanning Line */}
+          {(stage === 'uploading' || stage === 'analyzing') && (
+            <Animated.View
+              style={[
+                styles.scanLine,
+                { transform: [{ translateY: scanLineAnim }] },
+              ]}
+            >
+              <View style={styles.scanLineBeam} />
+            </Animated.View>
+          )}
+
+          {/* Scanning Telemetry HUD Overlay */}
           <View style={styles.thumbnailBadge}>
-            <Text style={styles.thumbnailBadgeText}>Captured Spread</Text>
+            <View style={styles.liveScanDot} />
+            <Text style={styles.thumbnailBadgeText}>
+              {stage === 'done' ? 'SCAN COMPLETE' : 'CV PIPELINE ACTIVE'}
+            </Text>
+          </View>
+
+          <View style={styles.thumbnailBottomHud}>
+            <Text style={styles.hudMetricText}>4K SENSOR · BIS IS 17912:2022</Text>
           </View>
         </View>
       </FadeInView>
@@ -152,28 +197,32 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
         <View style={styles.card}>
           {stage === 'uploading' || stage === 'analyzing' ? (
             <View style={styles.stateCenter}>
-              <ActivityIndicator size="large" color={Colors.accent} />
-              <Text style={styles.stateTitle}>Quality Verification</Text>
+              <ActivityIndicator size="large" color="#0c0c0e" />
+              <Text style={styles.stateTitle}>Optical Quality Gate</Text>
               <Text style={styles.stateSubtitle}>
-                Checking image clarity, lighting uniformity, reference marker, and onion bulb separation...
+                Running multi-stage image verification: Laplacian blur variance, lux lighting check, ChArUco lock, and watershed segmentation...
               </Text>
 
               {/* Animated Checklist */}
               <View style={styles.checklist}>
                 <CheckItem
-                  label="1. Sharpness & Clarity"
+                  label="1. Sharpness &amp; Blur Variance Check"
+                  sub="Laplacian σ² > 100"
                   passed={checkProgress.blur}
                 />
                 <CheckItem
-                  label="2. Lighting & Glare Check"
+                  label="2. Lighting &amp; Glare Uniformity"
+                  sub="Exposure 15–85% RGB dynamic range"
                   passed={checkProgress.exposure}
                 />
                 <CheckItem
-                  label="3. Reference Scale Marker"
+                  label="3. Reference Scale Calibration"
+                  sub="ChArUco 7×5 corner lock"
                   passed={checkProgress.scale}
                 />
                 <CheckItem
-                  label="4. Onion Separation & Defect Scan"
+                  label="4. Separation &amp; AI Defect Analysis"
+                  sub="MobileNetV3 + CIELAB mold detector"
                   passed={checkProgress.segmentation}
                 />
               </View>
@@ -183,23 +232,23 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
               <View style={styles.successBadge}>
                 <Text style={styles.successIcon}>✓</Text>
               </View>
-              <Text style={styles.successTitle}>Quality Verification Passed</Text>
+              <Text style={styles.successTitle}>Verification Certified</Text>
               <Text style={styles.successSubtitle}>
-                Identified {sampleResult?.onion_count ?? 0} onion bulbs.{' '}
+                Segmented <Text style={{ fontWeight: '800', color: '#0c0c0e' }}>{sampleResult?.onion_count ?? 0} onion bulbs</Text>.{' '}
                 {sampleResult?.scale_mm_per_px && (
                   <Text style={styles.scaleLockText}>
-                    Scale calibrated at {sampleResult.scale_mm_per_px.toFixed(3)} mm/px.
+                    Scale locked at {sampleResult.scale_mm_per_px.toFixed(4)} mm/px.
                   </Text>
                 )}
               </Text>
-              <Text style={styles.redirectText}>Opening assessment results...</Text>
+              <Text style={styles.redirectText}>Opening commercial appraisal dossier...</Text>
             </View>
           ) : (
             <View style={styles.failureContainer}>
               <View style={styles.failBadge}>
                 <Text style={styles.failIcon}>✕</Text>
               </View>
-              <Text style={styles.failureTitle}>Verification Incomplete</Text>
+              <Text style={styles.failureTitle}>Quality Gate Verification Failed</Text>
               <Text style={styles.failureDesc}>{errorMessage}</Text>
 
               {failureCodes.length > 0 && (
@@ -237,46 +286,53 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
   );
 };
 
-const CheckItem: React.FC<{ label: string; passed: boolean }> = ({ label, passed }) => (
+const CheckItem: React.FC<{ label: string; sub?: string; passed: boolean }> = ({
+  label,
+  sub,
+  passed,
+}) => (
   <View style={styles.checkItemRow}>
     <View
       style={[
         styles.checkDot,
         {
-          backgroundColor: passed ? Colors.accent : Colors.cardBgElevated,
-          borderColor: passed ? Colors.accent : Colors.borderMuted,
+          backgroundColor: passed ? '#10b981' : '#f4f3ef',
+          borderColor: passed ? '#10b981' : '#e7e5e4',
         },
       ]}
     >
       {passed && <Text style={styles.checkTick}>✓</Text>}
     </View>
-    <Text
-      style={[
-        styles.checkItemLabel,
-        { color: passed ? Colors.text : Colors.textMuted },
-      ]}
-    >
-      {label}
-    </Text>
+    <View style={{ flex: 1 }}>
+      <Text
+        style={[
+          styles.checkItemLabel,
+          { color: passed ? '#0c0c0e' : '#71717a', fontWeight: passed ? '700' : '500' },
+        ]}
+      >
+        {label}
+      </Text>
+      {sub && <Text style={styles.checkItemSub}>{sub}</Text>}
+    </View>
   </View>
 );
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: '#f9f8f6',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     justifyContent: 'center',
   },
   thumbnailContainer: {
     width: '100%',
-    height: 200,
+    height: 210,
     borderRadius: Radius.lg,
     overflow: 'hidden',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
     position: 'relative',
     ...Shadows.card,
   },
@@ -284,28 +340,68 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  scanLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    zIndex: 10,
+  },
+  scanLineBeam: {
+    height: 2,
+    backgroundColor: '#38bdf8',
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+  },
   thumbnailBadge: {
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: Colors.cardBg,
+    backgroundColor: 'rgba(12, 12, 14, 0.85)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
+    paddingVertical: 3.5,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  liveScanDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#38bdf8',
   },
   thumbnailBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  thumbnailBottomHud: {
+    position: 'absolute',
+    bottom: 8,
+    left: 10,
+    backgroundColor: 'rgba(12, 12, 14, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 3,
+  },
+  hudMetricText: {
+    fontSize: 9,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: '#a1a1aa',
+    letterSpacing: 0.4,
   },
   card: {
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.xl,
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.lg,
     padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
     ...Shadows.card,
   },
   stateCenter: {
@@ -313,80 +409,89 @@ const styles = StyleSheet.create({
   },
   stateTitle: {
     ...Typography.title2,
-    color: Colors.text,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0c0c0e',
     marginTop: Spacing.md,
   },
   stateSubtitle: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    fontSize: 11.5,
+    color: '#71717a',
     textAlign: 'center',
     marginTop: Spacing.xs,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   checklist: {
     width: '100%',
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderMuted,
-    gap: 10,
+    borderTopColor: '#f5f5f4',
+    gap: 12,
   },
   checkItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   checkDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkTick: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     color: '#ffffff',
   },
   checkItemLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 12.5,
+  },
+  checkItemSub: {
+    fontSize: 10.5,
+    color: '#a1a1aa',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginTop: 1,
   },
   successBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#10b981',
     justifyContent: 'center',
     alignItems: 'center',
   },
   successIcon: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#ffffff',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   successTitle: {
     ...Typography.title1,
-    color: Colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0c0c0e',
     marginTop: Spacing.md,
   },
   successSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: '#52525b',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
   },
   scaleLockText: {
-    color: Colors.text,
-    fontWeight: '600',
+    color: '#047857',
+    fontWeight: '700',
   },
   redirectText: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    fontSize: 11.5,
+    color: '#71717a',
     marginTop: Spacing.lg,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   failureContainer: {
     alignItems: 'center',
@@ -394,44 +499,46 @@ const styles = StyleSheet.create({
   failBadge: {
     width: 44,
     height: 44,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.cardBgElevated,
+    borderRadius: 22,
+    backgroundColor: '#fef2f2',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#fecaca',
     justifyContent: 'center',
     alignItems: 'center',
   },
   failIcon: {
     fontSize: 16,
-    color: Colors.textSecondary,
-    fontWeight: '700',
+    color: '#ef4444',
+    fontWeight: '800',
   },
   failureTitle: {
     ...Typography.title2,
-    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#991b1b',
     marginTop: Spacing.md,
   },
   failureDesc: {
-    fontSize: 13,
-    color: Colors.textSecondary,
+    fontSize: 12.5,
+    color: '#52525b',
     textAlign: 'center',
     marginTop: Spacing.xs,
-    lineHeight: 19,
+    lineHeight: 18,
     paddingHorizontal: Spacing.sm,
   },
   flagsList: {
     marginVertical: Spacing.md,
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: '#fef2f2',
     padding: Spacing.md,
     borderRadius: Radius.sm,
     width: '100%',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#fecaca',
   },
   flagItem: {
     fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+    fontWeight: '600',
+    color: '#991b1b',
     marginVertical: 2,
   },
   actionBtnGroup: {
@@ -440,7 +547,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   retakeBtn: {
-    backgroundColor: Colors.accent,
+    backgroundColor: '#0c0c0e',
     paddingVertical: 12,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.sm,
@@ -451,12 +558,12 @@ const styles = StyleSheet.create({
   retakeBtnText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   demoRetryBtn: {
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: '#f4f3ef',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#e7e5e4',
     paddingVertical: 11,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.sm,
@@ -464,8 +571,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   demoRetryBtnText: {
-    color: Colors.text,
+    color: '#0c0c0e',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

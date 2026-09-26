@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
-import { AnimatedPressable, Colors, Haptics, Radius, Spacing, Typography } from '../ui';
+import {
+  Animated,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Colors, Radius, Spacing, Typography } from '../ui';
 
 interface HeaderProps {
   serverConnected?: boolean;
@@ -21,13 +28,13 @@ export const Header: React.FC<HeaderProps> = ({
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 1200,
+          toValue: 0.35,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -42,15 +49,22 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Brand & Connection Row */}
       <View style={styles.topRow}>
         <View style={styles.brandRow}>
-          <View style={styles.logoMark}>
-            <Text style={styles.logoLetter}>C</Text>
+          {/* Bespoke Cepa Logo Emblem */}
+          <View style={styles.logoWrapper}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <View>
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>CEPA</Text>
-              <Text style={styles.brandSubtitleInline}>• Mandi Protocol</Text>
+              <View style={styles.protocolBadge}>
+                <Text style={styles.protocolBadgeText}>MANDI PROTOCOL</Text>
+              </View>
             </View>
-            <Text style={styles.subtitle}>Onion Quality & Procurement</Text>
+            <Text style={styles.subtitle}>Onion Quality & Optical Caliper Appraisal</Text>
           </View>
         </View>
 
@@ -59,24 +73,29 @@ export const Header: React.FC<HeaderProps> = ({
             style={[
               styles.dot,
               {
-                backgroundColor: serverConnected ? Colors.textSecondary : Colors.reject,
+                backgroundColor: serverConnected ? '#10b981' : Colors.reject,
                 opacity: serverConnected ? pulseAnim : 1,
               },
             ]}
           />
-          <Text style={styles.statusText}>
-            {serverConnected ? 'Online' : 'Offline'}
+          <Text style={[styles.statusText, serverConnected && { color: '#047857' }]}>
+            {serverConnected ? 'System Online' : 'Offline'}
           </Text>
         </View>
       </View>
 
       {/* Sub-header strip: Standard & Center info */}
       <View style={styles.subStrip}>
-        <Text style={styles.subStripText}>
-          Grading Standard: {policyVersion.includes('BIS') ? 'BIS IS 17912:2022' : 'NAFED FAQ Standard'}
-        </Text>
-        <Text style={styles.subStripDivider}>•</Text>
-        <Text style={styles.subStripText}>Optical Caliper</Text>
+        <View style={styles.stripLeft}>
+          <Text style={styles.subStripTag}>STANDARD</Text>
+          <Text style={styles.subStripText}>
+            {policyVersion.includes('BIS') ? 'BIS IS 17912:2022' : 'NAFED FAQ Standard'}
+          </Text>
+        </View>
+        <View style={styles.stripRight}>
+          <Text style={styles.subStripTag}>ENGINE</Text>
+          <Text style={styles.subStripText}>Sub-mm Optical Caliper</Text>
+        </View>
       </View>
     </View>
   );
@@ -84,12 +103,17 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.cardBg,
-    paddingTop: Platform.OS === 'android' ? 40 : 16,
+    backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? 40 : 14,
     paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#e7e5e4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   topRow: {
     flexDirection: 'row',
@@ -99,21 +123,22 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: 12,
   },
-  logoMark: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.accent,
+  logoWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#0c0c0e',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoLetter: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: -0.5,
+  logoImage: {
+    width: 36,
+    height: 36,
   },
   titleRow: {
     flexDirection: 'row',
@@ -122,52 +147,79 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     ...Typography.title2,
-    fontSize: 17,
-    color: Colors.text,
+    fontSize: 18,
+    color: '#0c0c0e',
     letterSpacing: 0.5,
     fontWeight: '800',
   },
-  brandSubtitleInline: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontWeight: '500',
+  protocolBadge: {
+    backgroundColor: '#f4f3ef',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+  },
+  protocolBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#52525b',
+    letterSpacing: 0.4,
   },
   subtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 1,
+    color: '#71717a',
+    marginTop: 2,
   },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#f4f3ef',
+    paddingHorizontal: 9,
     paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
+    fontWeight: '600',
+    color: '#52525b',
   },
   subStrip: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderMuted,
+    borderTopColor: '#f5f5f4',
+  },
+  stripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+  },
+  stripRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  subStripTag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#a1a1aa',
+    letterSpacing: 0.5,
   },
   subStripText: {
     fontSize: 11,
-    color: Colors.textMuted,
-  },
-  subStripDivider: {
-    fontSize: 10,
-    color: Colors.borderHighlight,
+    fontWeight: '500',
+    color: '#44403c',
   },
 });
