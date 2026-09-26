@@ -83,6 +83,10 @@ export class ApiClient {
     return `${getApiBaseUrl()}/api/v1/demo/sample-image`;
   }
 
+  static getPrintableBoardUrl(): string {
+    return `${getApiBaseUrl()}/ui/charuco_board_7x5_40mm_A4_printable.pdf`;
+  }
+
   static async uploadSample(
     inspectionId: string,
     fileUri: string,

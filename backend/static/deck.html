@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEPA — Executive Presentation · SIH26031 Grand Finale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface-1: #121215;
+      --surface-2: #18181b;
+      --surface-3: #27272a;
+      --border: #27272a;
+      --border-strong: #3f3f46;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #10b981;
+      --accent-dim: rgba(16, 185, 129, 0.15);
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --urs: #f59e0b;
+      --reject: #ef4444;
+      --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Presentation Bar */
+    header {
+      height: 54px;
+      background: var(--surface-1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      height: 26px;
+      width: 26px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #000;
+      font-size: 14px;
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+    .brand-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slide-counter {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .slide-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+    .slide-btn:hover { background: var(--surface-3); }
+    .live-app-btn {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .live-app-btn:hover { opacity: 0.9; }
+
+    /* Slide Deck Viewport */
+    .deck-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 40px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(30px);
+      transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1), transform 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .slide-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .slide-title {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      max-width: 900px;
+    }
+    .slide-desc {
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin-bottom: 28px;
+    }
+
+    /* Cards Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1040px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 1080px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      max-width: 1100px;
+    }
+
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-highlight {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .card-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .card-val {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: var(--mono);
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Comparison Table */
+    .comp-table {
+      width: 100%;
+      max-width: 980px;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13.5px;
+    }
+    .comp-table th {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border-strong);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .comp-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .comp-table tr.highlight-row {
+      background: rgba(16, 185, 129, 0.06);
+    }
+    .comp-table tr.highlight-row td {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Progress Indicators */
+    .key-points {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 860px;
+    }
+    .key-points li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .key-points li strong {
+      color: var(--text);
+    }
+    .dot-check {
+      height: 18px;
+      width: 18px;
+      border-radius: 9px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-weight: 800;
+    }
+
+    /* Bottom Timeline Indicator */
+    .timeline {
+      height: 4px;
+      background: var(--surface-2);
+      position: relative;
+    }
+    .timeline-bar {
+      height: 100%;
+      background: var(--accent);
+      width: 12.5%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">C</div>
+      <div>
+        <span class="brand-title">Cepa</span>
+        <span class="brand-tag">SIH26031 GRAND FINALE</span>
+      </div>
+    </div>
+    <div class="nav-controls">
+      <span class="slide-counter" id="slide-num">01 / 08</span>
+      <button class="slide-btn" onclick="prevSlide()">◀ Prev</button>
+      <button class="slide-btn" onclick="nextSlide()">Next ▶</button>
+      <a href="/inspector" class="live-app-btn" target="_blank">
+        Launch Mandi Studio ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Deck Viewport -->
+  <main class="deck-viewport">
+
+    <!-- SLIDE 1: The Crisis -->
+    <div class="slide active" data-slide="1">
+      <div class="slide-eyebrow">THE NATIONAL PROBLEM STATEMENT</div>
+      <h1 class="slide-title">India's ₹1,000 Crore Onion Buffer Stock Rot Crisis</h1>
+      <p class="slide-desc">
+        India produces 31 million tonnes of onions annually. Under the Price Stabilisation Fund (PSF), NAFED and NCCF procure 500,000 tonnes of buffer stock. Yet, over 30% of procured onions decay inside cold storage before market release.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-label">ANNUAL POST-HARVEST LOSS</div>
+          <div class="card-val" style="color:var(--reject)">₹1,000+ Cr</div>
+          <div class="card-sub">Public exchequer loss due to storage rot, desiccation, and fungal degradation.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">BUFFER STOCK ROT RATE</div>
+          <div class="card-val" style="color:var(--urs)">30–40%</div>
+          <div class="card-sub">Onions rot in ventilated & cold chambers because inward quality cannot predict longevity.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">CURRENT MANDI EVALUATION</div>
+          <div class="card-val" style="color:#a1a1aa">0% Digital</div>
+          <div class="card-sub">Subjective hand inspection by commission agents (Arthiyas) causing arbitrary cuts.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Why Commodity AI Fails -->
+    <div class="slide" data-slide="2">
+      <div class="slide-eyebrow">TECHNOLOGY GAP ANALYSIS</div>
+      <h1 class="slide-title">Why Simple Bounding-Box Classifiers Fail</h1>
+      <p class="slide-desc">
+        99% of hackathon teams train a toy YOLO model that counts bulbs and assigns a static "Grade A" label. Sizing alone does not prevent storage rot. Latent fungal spores and peeled skins rot 30 days later.
+      </p>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>CAPABILITY</th>
+            <th>TOY CV DEMOS (OTHERS)</th>
+            <th style="color:var(--accent)">CEPA PLATFORM (OURS)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Size Measurement</td>
+            <td>Pixel bounding box (arbitrary / no scale)</td>
+            <td style="color:var(--accent)">Physical ChArUco 7×5 caliper (sub-mm accuracy under BIS IS 17912:2022)</td>
+          </tr>
+          <tr>
+            <td>Rot & Defect Sizing</td>
+            <td>Binary classification (Rot vs Clean)</td>
+            <td style="color:var(--accent)">Multi-spectral NGRDI sunburn + Aspergillus niger surface area load %</td>
+          </tr>
+          <tr>
+            <td>Storage Longevity</td>
+            <td>None (assumes static grade)</td>
+            <td style="color:var(--accent)">ICAR-DOGR Post-Harvest Shelf-Life & Safe Horizon (1–120 Days)</td>
+          </tr>
+          <tr>
+            <td>Procurement Settlement</td>
+            <td>None</td>
+            <td style="color:var(--accent)">Automated APMC Mandi FAQ Dockage against ₹2,410/qtl MSP</td>
+          </tr>
+          <tr>
+            <td>Verification Audit</td>
+            <td>Plain text / mock screen</td>
+            <td style="color:var(--accent)">Cryptographic SHA-256 integrity stamp + Scannable QR web certificate</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SLIDE 3: System Architecture -->
+    <div class="slide" data-slide="3">
+      <div class="slide-eyebrow">SYSTEM ARCHITECTURE & STANDARDS</div>
+      <h1 class="slide-title">End-to-End Edge-to-Cloud Architecture</h1>
+      <p class="slide-desc">
+        Designed for harsh Mandi environments with low connectivity, variable lighting, and high-throughput consignment queues.
+      </p>
+      <div class="grid-4">
+        <div class="card">
+          <div class="card-label">1. CAPTURE LAYER</div>
+          <div class="card-val" style="font-size:20px;color:var(--text)">Expo Camera + Gyro</div>
+          <div class="card-sub" style="margin-top:6px">Simulated artificial horizon ensures normal orthogonal top-down alignment (≤1.5° tilt).</div>
+        </div>
+        <div class="card">
+          <div class="card-label">2. CALIBRATION HUD</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">ChArUco 7×5</div>
+          <div class="card-sub" style="margin-top:6px">Sub-pixel corner detection locks millimetre-to-pixel ratio (0.2458 mm/px) across optical frames.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">3. INFERENCE CORE</div>
+          <div class="card-val" style="font-size:20px;color:var(--text)">YOLO11-seg + OpenCV</div>
+          <div class="card-sub" style="margin-top:6px">Instance polygon masks extract Deq, Polar Axis, Shape Factor, Tunic Area, and Mold Area.</div>
+        </div>
+        <div class="card card-highlight">
+          <div class="card-label">4. AGRONOMIC ENGINE</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">ICAR-DOGR Model</div>
+          <div class="card-sub" style="margin-top:6px">Predicts microbial respiration risk, tunic retention %, and projects cold storage survival horizon.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Sizing & Morphometry -->
+    <div class="slide" data-slide="4">
+      <div class="slide-eyebrow">PHYSICAL ACCURACY</div>
+      <h1 class="slide-title">BIS IS 17912:2022 Optical Sizing Calibration</h1>
+      <p class="slide-desc">
+        NAFED procurement specifies exact millimeter size brackets. Cepa fits an oriented bounding ellipse to compute both Equatorial Diameter (Deq) and Polar Length.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-label">GRADE A SUPER BRACKET</div>
+          <div class="card-val" style="color:var(--accent)">45 – 65 mm</div>
+          <div class="card-sub">Optimal size for Price Stabilisation Fund buffer storage. Full MSP benchmark rate applied.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">MADHYAM / MEDIUM</div>
+          <div class="card-val" style="color:var(--urs)">35 – 45 mm</div>
+          <div class="card-sub">Acceptable under Fair Average Quality (FAQ) tolerance with minor dockage deduction.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">GOLI / UNDERSIZED</div>
+          <div class="card-val" style="color:var(--reject)">&lt; 35 mm</div>
+          <div class="card-sub">Under Rejection Standard (URS). Replaced or docked at ₹15.00/qtl per 1% excess.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Cold Storage Shelf Life Breakthrough -->
+    <div class="slide" data-slide="5">
+      <div class="slide-eyebrow">THE CORE INNOVATION</div>
+      <h1 class="slide-title">ICAR-DOGR Cold Storage Survival Horizon Engine</h1>
+      <p class="slide-desc">
+        Instead of treating onions as inert plastic objects, Cepa models post-harvest biology. It predicts which lots can withstand 120-day buffer storage vs which will rot within 14 days.
+      </p>
+      <div class="grid-2">
+        <div class="card card-highlight">
+          <div class="card-label">STORAGEABILITY INDEX (0–100)</div>
+          <div class="card-val" style="color:var(--accent)">88 / 100 · 90 Days</div>
+          <div class="card-sub">
+            Multivariate score factoring in <strong>mean black mold load (Aspergillus niger)</strong>, <strong>papery tunic retention %</strong>, and <strong>internal sprout dormancy break</strong>.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-label">NAFED ALLOCATION DIRECTIVE</div>
+          <div class="card-val" style="font-size:22px;color:var(--text)">Buffer Stock vs Fast Auction</div>
+          <div class="card-sub">
+            • <strong>Score ≥ 80:</strong> Approved for ventilated 120-day cold chambers.<br>
+            • <strong>Score 60–79:</strong> Standard 45–60 day holding.<br>
+            • <strong>Score &lt; 60:</strong> Routed to 7-day rapid open-market dispatch before decay.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Mandi Settlement -->
+    <div class="slide" data-slide="6">
+      <div class="slide-eyebrow">COMMERCIAL FAIRNESS & TRANSPARENCY</div>
+      <h1 class="slide-title">Deterministic APMC Mandi FAQ Dockage</h1>
+      <p class="slide-desc">
+        In traditional mandis, commission agents deduct ₹100–₹300/qtl arbitrarily from farmers based on glance inspection. Cepa automates Fair Average Quality (FAQ) settlement under NAFED rules.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-label">BENCHMARK MSP</div>
+          <div class="card-val" style="color:var(--accent)">₹2,410.00</div>
+          <div class="card-sub">Per quintal (100 kg) base procurement rate under Price Stabilisation Fund.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">FAQ TOLERANCE RULESET</div>
+          <div class="card-val" style="font-size:20px;color:var(--text)">Max 2% Rot · 2% Sprout</div>
+          <div class="card-sub">Itemized dockage applied mathematically only when lot observations exceed official FAQ limits.</div>
+        </div>
+        <div class="card card-highlight">
+          <div class="card-label">FARMER SETTLEMENT SLIP</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">Instant ₹ Payout</div>
+          <div class="card-sub">Net payout calculated immediately on the weighing scale, eliminating bribery and disputes.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Digital Audit & Verification -->
+    <div class="slide" data-slide="7">
+      <div class="slide-eyebrow">TAMPER-PROOF INTEGRITY</div>
+      <h1 class="slide-title">Cryptographic Verification & Mobile QR Certificate</h1>
+      <p class="slide-desc">
+        Paper certificates can be forged or swapped during interstate transit. Cepa seals every consignment with a SHA-256 digital hash and a live scannable verification certificate.
+      </p>
+      <ul class="key-points">
+        <li>
+          <div class="dot-check">✓</div>
+          <div><strong>Live QR Web Certificate:</strong> Scanning the QR code on any smartphone opens the official Government of India / NAFED mobile audit page at <code>/reports/share/{token}</code> without installing any app.</div>
+        </li>
+        <li>
+          <div class="dot-check">✓</div>
+          <div><strong>SHA-256 Consignment Stamp:</strong> Hashes the sample photo, lot ID, officer identity, and defect metrics into an immutable digital seal.</div>
+        </li>
+        <li>
+          <div class="dot-check">✓</div>
+          <div><strong>Vector PDF Generation:</strong> Automated ReportLab engine embeds high-resolution QR codes, cold storage shelf-life advisories, and APMC settlement slips.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- SLIDE 8: Live Demonstration & ROI -->
+    <div class="slide" data-slide="8">
+      <div class="slide-eyebrow">SUMMARY & ECONOMIC ROI</div>
+      <h1 class="slide-title">Saving ₹350+ Crore Annually for India</h1>
+      <p class="slide-desc">
+        By routing perishable vulnerable lots for rapid consumption and storing only high-storageability bulbs, Cepa cuts national buffer stock rot by over 35%.
+      </p>
+      <div class="grid-3" style="margin-bottom:24px">
+        <div class="card card-highlight">
+          <div class="card-label">PROJECTED ANNUAL SAVINGS</div>
+          <div class="card-val" style="color:var(--accent)">₹350+ Cr</div>
+          <div class="card-sub">Direct reduction in spoiled buffer onions across NAFED cold storage facilities.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">SPEED PER LOT</div>
+          <div class="card-val" style="color:var(--text)">&lt; 3 Sec</div>
+          <div class="card-sub">Fast automated appraisal vs 15 minutes of manual sorting.</div>
+        </div>
+        <div class="card">
+          <div class="card-label">FARMER BENEFIT</div>
+          <div class="card-val" style="color:var(--accent)">+15% Payout</div>
+          <div class="card-sub">Protection against unfair middleman commission dockage cuts.</div>
+        </div>
+      </div>
+      <div>
+        <a href="/inspector" class="live-app-btn" target="_blank" style="padding:10px 22px;font-size:14px">
+          Launch Live Mandi Inspection Studio ↗
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Timeline -->
+  <div class="timeline">
+    <div class="timeline-bar" id="timeline-bar"></div>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 8;
+
+    function updateSlide() {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      const active = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+      if (active) active.classList.add('active');
+
+      document.getElementById('slide-num').textContent = 
+        String(currentSlide).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+
+      document.getElementById('timeline-bar').style.width = `${(currentSlide / totalSlides) * 100}%`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    // Keyboard navigation (Arrow keys, Space)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>

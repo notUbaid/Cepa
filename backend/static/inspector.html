@@ -131,6 +131,25 @@
       padding: 3px 8px;
       border-radius: 4px;
     }
+    .download-calib-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .download-calib-btn:hover {
+      background: var(--surface-3);
+      border-color: var(--text);
+    }
 
     /* ── LAYOUT ── */
     .workspace {
@@ -1000,6 +1019,10 @@
       </div>
     </div>
     <div class="topbar-right">
+      <a href="/ui/charuco_board_7x5_40mm_A4_printable.pdf" target="_blank" class="download-calib-btn" title="Download 1:1 True Scale Printable ChArUco 7x5 Board (A4)">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Print ChArUco Card
+      </a>
       <span class="model-tag" id="model-tag">MobileNetV3 · Watershed</span>
       <div class="status-pill" id="status-pill">
         <span class="status-dot"></span>
