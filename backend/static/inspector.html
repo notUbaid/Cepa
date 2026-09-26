@@ -3,875 +3,1718 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CEPA — SIH26031 AI Onion Mandi Inspection & Grading Studio</title>
+  <title>Cepa — Mandi Inspection Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f9f8f6;
-      --card-bg: #ffffff;
-      --card-bg-elevated: #f4f3ef;
-      --card-border: #e7e5e4;
-      --accent: #18181b;
-      --accent-glow: rgba(24, 24, 27, 0.08);
-      --grade-a: #18181b;
-      --grade-a-bg: #f4f3ef;
-      --urs: #9a3412;
-      --urs-bg: #fff7ed;
-      --rejected: #991b1b;
-      --rejected-bg: #fef2f2;
-      --review: #3f3f46;
-      --text: #18181b;
-      --text-muted: #52525b;
-      --text-dim: #71717a;
-      --font-ui: 'Space Grotesk', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --bg: #0c0c0e;
+      --surface-0: #111113;
+      --surface-1: #16161a;
+      --surface-2: #1c1c21;
+      --surface-3: #222228;
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.13);
+      --text: #e8e8f0;
+      --text-muted: #8b8b9e;
+      --text-dim: #5a5a6e;
+      --accent: #e8e8f0;
+      --grade-a: #e8e8f0;
+      --grade-a-bg: rgba(232,232,240,0.08);
+      --urs: #f59e0b;
+      --urs-bg: rgba(245,158,11,0.1);
+      --rejected: #ef4444;
+      --rejected-bg: rgba(239,68,68,0.1);
+      --review: #6366f1;
+      --review-bg: rgba(99,102,241,0.1);
+      --online: #22c55e;
+      --font: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font-ui);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
+      font-family: var(--font);
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 48px 1fr;
+      overflow: hidden;
     }
 
-    /* Top Nav */
-    header {
-      background: rgba(249, 248, 246, 0.94);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      padding: 12px 24px;
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--surface-0);
+      border-bottom: 1px solid var(--border);
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      padding: 0 20px;
+      gap: 16px;
+      z-index: 200;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: var(--text);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #0c0c0e;
+      flex-shrink: 0;
+      letter-spacing: -0.03em;
     }
-    .brand-logo {
-      width: 38px;
-      height: 38px;
-      background: #18181b;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: #ffffff;
-      border: 1px solid #18181b;
-    }
-    .brand-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .brand-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+    .logo-name {
+      font-size: 14px; font-weight: 600; letter-spacing: -0.02em;
       color: var(--text);
     }
-    .sih-badge {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 600;
-      background: var(--card-bg-elevated);
+    .logo-sep {
+      width: 1px; height: 18px;
+      background: var(--border-strong);
+    }
+    .logo-sub {
+      font-size: 12px; color: var(--text-muted);
+      font-weight: 400;
+    }
+    .topbar-center {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .grading-pills {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: var(--mono);
+    }
+    .grading-pills span { color: var(--text-muted); margin-right: 4px; }
+    .grading-pills a {
       color: var(--text-muted);
-      padding: 2px 7px;
-      border-radius: 4px;
-      border: 1px solid var(--card-border);
+      text-decoration: none;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transition: all 0.15s;
     }
-    .brand-subtitle {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin-top: 1px;
-    }
-    .header-badges {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--card-bg-elevated);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      font-weight: 600;
+    .grading-pills a:hover { background: var(--surface-3); color: var(--text); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
       padding: 4px 10px;
-      border-radius: 4px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      color: var(--text-muted);
     }
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--accent);
+      background: var(--online);
+      box-shadow: 0 0 6px var(--online);
+      animation: pulse-dot 2s ease-in-out infinite;
     }
-    .model-badge {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      padding: 5px 10px;
-      border-radius: 6px;
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .model-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
     }
 
-    /* Main Grid */
-    main {
-      flex: 1;
+    /* ── LAYOUT ── */
+    .workspace {
       display: grid;
-      grid-template-columns: 1.25fr 0.75fr;
-      gap: 20px;
-      padding: 20px;
-      max-width: 1750px;
-      margin: 0 auto;
-      width: 100%;
+      grid-template-columns: 320px 1fr 280px;
+      overflow: hidden;
     }
 
-    @media (max-width: 1180px) {
-      main { grid-template-columns: 1fr; }
-    }
-
-    /* Left: Viewport Panel */
-    .viewport-panel {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+    /* ── LEFT: INSPECTION LIST ── */
+    .sidebar {
+      background: var(--surface-0);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
-    .viewport-controls {
-      padding: 10px 16px;
-      background: #fdfdfc;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
+    .sidebar-head {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
-    .toggle-group {
-      display: flex;
-      background: var(--card-bg-elevated);
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid var(--card-border);
+    .sidebar-head-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
     }
-    .toggle-btn {
+    .sidebar-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .new-inspection-btn {
+      background: var(--text);
+      color: #0c0c0e;
+      border: none;
+      border-radius: 5px;
+      font-family: var(--font);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: opacity 0.15s;
+    }
+    .new-inspection-btn:hover { opacity: 0.85; }
+    .sidebar-search {
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px 7px 32px;
+      font-family: var(--font);
+      font-size: 12.5px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .sidebar-search input::placeholder { color: var(--text-dim); }
+    .sidebar-search input:focus { border-color: var(--border-strong); }
+    .sidebar-search-icon {
+      position: absolute;
+      left: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+    .filter-tabs {
+      display: flex; gap: 2px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .filter-tab {
+      flex: 1;
       background: transparent;
       border: none;
       color: var(--text-muted);
-      font-family: var(--font-ui);
-      font-size: 0.8rem;
+      font-family: var(--font);
+      font-size: 11.5px;
       font-weight: 500;
-      padding: 5px 12px;
-      border-radius: 6px;
+      padding: 5px 6px;
+      border-radius: 4px;
       cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .toggle-btn.active {
-      background: var(--accent);
-      color: #ffffff;
-      font-weight: 600;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    }
-
-    .canvas-container {
-      flex: 1;
-      min-height: 540px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #18181b;
-      position: relative;
-      overflow: hidden;
-      cursor: grab;
-    }
-    .canvas-container:active {
-      cursor: grabbing;
-    }
-    #inspection-canvas {
-      max-width: 100%;
-      max-height: 600px;
-      object-fit: contain;
-      transition: transform 0.1s ease-out;
-      transform-origin: center center;
-    }
-    .telemetry-overlay {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: var(--text);
-      pointer-events: none;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    }
-
-    /* Zoom / Pan Controls Overlay */
-    .canvas-hud-controls {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      z-index: 10;
-    }
-    .hud-btn {
-      width: 32px;
-      height: 32px;
-      background: #ffffff;
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      border-radius: 6px;
-      font-family: var(--font-mono);
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
       transition: all 0.15s;
+      text-align: center;
     }
-    .hud-btn:hover {
-      background: var(--card-bg-elevated);
+    .filter-tab:hover { background: var(--surface-2); color: var(--text); }
+    .filter-tab.active {
+      background: var(--surface-3);
       color: var(--text);
+      font-weight: 600;
     }
-
-    /* Floating Hover Tooltip */
-    #bulb-tooltip {
-      position: absolute;
-      display: none;
-      background: #ffffff;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 0.75rem;
+    .sidebar-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .stat-cell {
+      background: var(--surface-0);
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
       color: var(--text);
-      pointer-events: none;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-      z-index: 50;
-      min-width: 170px;
+      line-height: 1;
     }
-
-    /* Right: Telemetry & Inspector */
-    .telemetry-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .stat-label {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      margin-top: 3px;
     }
+    .inspection-list {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-3) transparent;
+    }
+    .inspection-list::-webkit-scrollbar { width: 4px; }
+    .inspection-list::-webkit-scrollbar-track { background: transparent; }
+    .inspection-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    .insp-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
       position: relative;
-      overflow: hidden;
     }
-    .card-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .insp-item:hover { background: var(--surface-1); }
+    .insp-item.active {
+      background: var(--surface-2);
+    }
+    .insp-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--text);
+    }
+    .insp-item-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .insp-lot-id {
+      font-size: 13px; font-weight: 600;
       color: var(--text);
       letter-spacing: -0.01em;
     }
-    .card-title-tag {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      background: var(--card-bg-elevated);
-      padding: 2px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--card-border);
+    .insp-status-chip {
+      font-family: var(--mono);
+      font-size: 9.5px; font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
+    .chip-draft { background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border-strong); }
+    .chip-review { background: var(--review-bg); color: var(--review); border: 1px solid rgba(99,102,241,0.2); }
+    .chip-finalized { background: var(--grade-a-bg); color: var(--grade-a); border: 1px solid rgba(232,232,240,0.2); }
+    .insp-item-meta {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .insp-item-footer {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .insp-grade-row {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .grade-pip {
+      font-size: 10px; font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .pip-a { background: var(--grade-a-bg); color: var(--grade-a); }
+    .pip-urs { background: var(--urs-bg); color: var(--urs); }
+    .pip-rej { background: var(--rejected-bg); color: var(--rejected); }
+    .pip-rev { background: var(--review-bg); color: var(--review); }
+    .insp-date {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+    .empty-list {
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .empty-icon {
+      width: 48px; height: 48px;
+      margin: 0 auto 14px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .empty-icon svg { opacity: 0.4; }
+    .empty-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); }
+    .empty-sub { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
 
-    /* Shimmer Skeleton for Web Cards */
-    .shimmer-active .shimmer-target {
+    /* ── CENTER: INSPECTOR ── */
+    .inspector {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .inspector-toolbar {
+      background: var(--surface-0);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .layer-toggle {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .layer-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 12px; font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .layer-btn.active {
+      background: var(--surface-3);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .tool-sep {
+      width: 1px; height: 22px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .sample-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .sample-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+    .upload-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11.5px; font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.12s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .upload-btn:hover { background: var(--surface-3); border-color: rgba(255,255,255,0.2); }
+    .toolbar-spacer { flex: 1; }
+    .zoom-pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .hud-btn {
+      width: 28px; height: 28px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.12s;
+    }
+    .hud-btn:hover { background: var(--surface-3); color: var(--text); }
+
+    .canvas-area {
+      flex: 1;
       position: relative;
       overflow: hidden;
-      color: transparent !important;
-      background: #e7e5e4 !important;
-      border-radius: 4px;
+      background: #090909;
+      display: flex; align-items: center; justify-content: center;
     }
-    .shimmer-active .shimmer-target::after {
-      content: '';
+    #inspection-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      cursor: crosshair;
+    }
+    .canvas-overlay-hud {
       position: absolute;
-      top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-      animation: shimmer 1s infinite;
+      top: 12px; right: 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      z-index: 10;
     }
+    .scale-bar {
+      position: absolute;
+      bottom: 14px; left: 14px;
+      background: rgba(12,12,14,0.82);
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    #bulb-tooltip {
+      position: absolute;
+      display: none;
+      background: var(--surface-1);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      z-index: 100;
+      min-width: 160px;
+      backdrop-filter: blur(8px);
+    }
+    .tt-bulb-id { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 12.5px; }
+    .tt-row { display: flex; justify-content: space-between; gap: 16px; font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+    .tt-grade { font-family: var(--mono); font-weight: 600; font-size: 12px; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border); }
 
-    @keyframes shimmer {
-      100% { left: 100%; }
+    .inspector-status-bar {
+      padding: 6px 16px;
+      background: var(--surface-0);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 16px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text-dim);
+    }
+    .status-segment { display: flex; align-items: center; gap: 5px; }
+    .status-sep { opacity: 0.3; }
+    .status-val { color: var(--text-muted); }
+
+    /* ── RIGHT: TELEMETRY ── */
+    .telemetry {
+      background: var(--surface-0);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-3) transparent;
+    }
+    .telemetry::-webkit-scrollbar { width: 3px; }
+    .telemetry::-webkit-scrollbar-thumb { background: var(--surface-3); }
+
+    .tele-section {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+    .tele-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .tele-title {
+      font-size: 10.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--text-dim);
+    }
+    .tele-tag {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 3px;
     }
 
     /* KPI Grid */
     .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px;
     }
-    .kpi-box {
-      background: var(--card-bg-elevated);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+    .kpi-cell {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
       padding: 10px;
-      text-align: center;
-      transition: transform 0.15s;
-    }
-    .kpi-box:hover {
-      transform: translateY(-1px);
     }
     .kpi-num {
-      font-size: 1.3rem;
-      font-weight: 700;
-      font-family: var(--font-mono);
+      font-family: var(--mono);
+      font-size: 20px; font-weight: 600;
+      line-height: 1;
+      color: var(--text);
     }
-    .kpi-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 2px;
+    .kpi-lbl {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      margin-top: 4px;
     }
+    .kpi-cell.kpi-urs .kpi-num { color: var(--urs); }
+    .kpi-cell.kpi-rej .kpi-num { color: var(--rejected); }
+    .kpi-cell.kpi-rev .kpi-num { color: var(--review); }
 
-    /* Mandi Size Breakdown */
-    .mandi-size-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
+    /* Size bars */
+    .size-row {
+      margin-bottom: 9px;
     }
-    .mandi-bar-wrap {
-      flex: 1;
-      height: 8px;
-      background: var(--card-bg-elevated);
-      border-radius: 4px;
-      margin: 0 12px;
+    .size-row-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .size-row-label {
+      font-size: 11.5px; color: var(--text-muted);
+    }
+    .size-row-val {
+      font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    }
+    .bar-track {
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: 2px;
       overflow: hidden;
     }
-    .mandi-bar-fill {
+    .bar-fill {
       height: 100%;
-      border-radius: 4px;
-      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 2px;
+      transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
     }
 
-    /* Commercial Pricing Card */
-    .pricing-hero {
-      background: var(--card-bg-elevated);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    /* Pricing */
+    .pricing-block {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
       margin-bottom: 10px;
     }
+    .pricing-label { font-size: 10.5px; color: var(--text-dim); margin-bottom: 5px; }
     .pricing-val {
-      font-size: 1.5rem;
-      font-weight: 700;
-      font-family: var(--font-mono);
+      font-family: var(--mono);
+      font-size: 24px; font-weight: 600;
       color: var(--text);
+      letter-spacing: -0.02em;
     }
-    .pricing-sub {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-    .dockage-tag {
+    .pricing-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .dockage-pill {
+      display: inline-flex;
+      align-items: center;
       background: var(--rejected-bg);
-      border: 1px solid rgba(153, 27, 27, 0.2);
+      border: 1px solid rgba(239,68,68,0.2);
       color: var(--rejected);
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 11px; font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
     }
+    .pricing-note { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
 
-    /* Selected Bulb Drilldown */
-    .drilldown-box {
-      background: var(--card-bg-elevated);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+    /* Drilldown */
+    .drilldown-block {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
       padding: 12px;
     }
-    .drilldown-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+    .drilldown-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 10px;
     }
-    .defect-metric-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.78rem;
-      margin-bottom: 6px;
+    .drilldown-size {
+      font-size: 15px; font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
     }
-    .defect-bar {
-      width: 100px;
-      height: 6px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 3px;
+    .drilldown-sub {
+      font-size: 11px; color: var(--text-dim); margin-top: 3px;
+      font-family: var(--mono);
+    }
+    .grade-badge {
+      font-family: var(--mono);
+      font-size: 11px; font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+    }
+    .badge-a { background: var(--grade-a-bg); color: var(--grade-a); border: 1px solid rgba(232,232,240,0.15); }
+    .badge-urs { background: var(--urs-bg); color: var(--urs); border: 1px solid rgba(245,158,11,0.2); }
+    .badge-rej { background: var(--rejected-bg); color: var(--rejected); border: 1px solid rgba(239,68,68,0.2); }
+    .badge-rev { background: var(--review-bg); color: var(--review); border: 1px solid rgba(99,102,241,0.2); }
+
+    .defect-row {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 8px;
+    }
+    .defect-label { font-size: 11.5px; color: var(--text-muted); width: 110px; flex-shrink: 0; }
+    .defect-track {
+      flex: 1; height: 3px;
+      background: var(--surface-3);
+      border-radius: 2px;
       overflow: hidden;
     }
-    .defect-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-
-    /* Action Buttons */
-    .btn-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .defect-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease;
     }
-    .btn {
-      flex: 1;
-      min-width: 130px;
-      padding: 10px 14px;
-      border-radius: 8px;
+    .defect-pct {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text-dim);
+      width: 32px; text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* Action footer */
+    .tele-footer {
+      padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .action-btn {
+      width: 100%;
+      background: var(--text);
+      color: #0c0c0e;
       border: none;
-      font-family: var(--font-ui);
-      font-size: 0.85rem;
-      font-weight: 600;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 13px; font-weight: 600;
+      padding: 10px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .action-btn:hover { opacity: 0.88; }
+    .action-btn-sec {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 12.5px; font-weight: 500;
+      padding: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       transition: all 0.15s;
     }
-    .btn-primary {
-      background: #18181b;
-      color: #ffffff;
-      border: 1px solid #18181b;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    .action-btn-sec:hover { background: var(--surface-2); color: var(--text); }
+
+    /* Modal: New Inspection */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center; justify-content: center;
     }
-    .btn-primary:hover {
-      background: #27272a;
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface-1);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      animation: modal-in 0.18s cubic-bezier(0.16,1,0.3,1);
     }
-    .btn-secondary {
-      background: #ffffff;
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-head {
+      padding: 18px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+    .modal-close {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 26px; height: 26px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: all 0.12s;
+    }
+    .modal-close:hover { background: var(--surface-3); color: var(--text); }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .field-label {
+      font-size: 11.5px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .field-input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-family: var(--font);
+      font-size: 13px;
       color: var(--text);
-      border: 1px solid var(--card-border);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      outline: none;
+      transition: border-color 0.15s;
     }
-    .btn-secondary:hover {
-      background: var(--card-bg-elevated);
+    .field-input::placeholder { color: var(--text-dim); }
+    .field-input:focus { border-color: rgba(255,255,255,0.25); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-foot {
+      padding: 14px 20px 18px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 8px;
+    }
+    .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 13px; font-weight: 500;
+      padding: 9px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .btn-cancel:hover { background: var(--surface-2); color: var(--text); }
+    .btn-create {
+      flex: 2;
+      background: var(--text);
+      color: #0c0c0e;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 13px; font-weight: 700;
+      padding: 9px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-create:hover { opacity: 0.88; }
+
+    /* Loading shimmer */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer {
+      background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 4px;
+    }
+    .loading-row {
+      height: 72px;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .loading-line { border-radius: 4px; }
+
+    /* Toasts */
+    #toast-container {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--surface-1);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: toast-in 0.2s cubic-bezier(0.16,1,0.3,1);
+      display: flex; align-items: center; gap: 10px;
+      min-width: 280px;
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-icon { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .toast-success .toast-icon { background: var(--online); }
+    .toast-error .toast-icon { background: var(--rejected); }
+    .toast-info .toast-icon { background: var(--review); }
+
+    /* Welcome state */
+    .inspector-empty {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px;
+      padding: 40px;
+    }
+    .inspector-empty-icon {
+      width: 64px; height: 64px;
+      border-radius: 14px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-strong);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .inspector-empty-title {
+      font-size: 18px; font-weight: 600; letter-spacing: -0.02em;
+      color: var(--text-muted);
+    }
+    .inspector-empty-sub {
+      font-size: 13px; color: var(--text-dim);
+      text-align: center; line-height: 1.6;
+      max-width: 320px;
+    }
+    .inspector-empty-cta {
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 13px; font-weight: 500;
+      padding: 9px 18px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .inspector-empty-cta:hover { background: var(--surface-3); color: var(--text); }
+
+    /* Illustrations */
+    .onion-illustration {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.04;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">
-      <div class="brand-logo">C</div>
-      <div>
-        <div class="brand-title-wrap">
-          <span class="brand-title">CEPA — SIH26031 Mandi Inspection Studio</span>
-          <span class="sih-badge">BIS IS 17912:2022</span>
-        </div>
-        <div class="brand-subtitle">Onion Quality Appraisal & Morphometry Studio</div>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">C</div>
+      <span class="logo-name">Cepa</span>
+      <div class="logo-sep"></div>
+      <span class="logo-sub">Mandi Inspection Studio</span>
+    </div>
+    <div class="topbar-center">
+      <div class="grading-pills">
+        <span>Protocol:</span>
+        <a href="#">NAFED PSF</a>
+        <a href="#">BIS IS 17912</a>
+        <a href="#">APMC Grade</a>
       </div>
     </div>
-    <div class="header-badges">
-      <div class="model-badge">NAFED Protocol</div>
-      <div class="status-badge">
+    <div class="topbar-right">
+      <span class="model-tag" id="model-tag">MobileNetV3 · Watershed</span>
+      <div class="status-pill" id="status-pill">
         <span class="status-dot"></span>
-        <span>Online</span>
+        <span id="status-text">Connecting</span>
       </div>
     </div>
   </header>
 
-  <main>
-    <!-- Viewport Panel -->
-    <div class="viewport-panel">
-      <div class="viewport-controls">
-        <div class="toggle-group">
-          <button class="toggle-btn active" onclick="switchLayer('composite')">AI Overlay</button>
-          <button class="toggle-btn" onclick="switchLayer('caliper')">Caliper & Axes</button>
-          <button class="toggle-btn" onclick="switchLayer('raw')">Raw Capture</button>
-        </div>
+  <!-- Workspace -->
+  <div class="workspace">
 
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="loadSample('healthy')">
-            Sample: Nashik Red
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-head-row">
+          <span class="sidebar-title">Inspection Records</span>
+          <button class="new-inspection-btn" onclick="openModal()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            New
           </button>
-          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.78rem;" onclick="loadSample('sprouted')">
-            Sample: Sprouted Off-grade
-          </button>
-          <label class="btn btn-primary" style="padding: 6px 12px; font-size: 0.78rem; cursor: pointer;">
-            Upload Photo
-            <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleUpload(event)">
+        </div>
+        <div class="sidebar-search">
+          <svg class="sidebar-search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Search lot ID or mandi…" oninput="filterInspections(this.value)">
+        </div>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setFilter('ALL', this)">All</button>
+        <button class="filter-tab" onclick="setFilter('REVIEW', this)">In Review</button>
+        <button class="filter-tab" onclick="setFilter('FINALIZED', this)">Certified</button>
+        <button class="filter-tab" onclick="setFilter('DRAFT', this)">Draft</button>
+      </div>
+
+      <div class="sidebar-stats">
+        <div class="stat-cell">
+          <div class="stat-num" id="stat-total">—</div>
+          <div class="stat-label">Total Lots</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" id="stat-certified" style="color:var(--grade-a)">—</div>
+          <div class="stat-label">Certified</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" id="stat-review" style="color:var(--review)">—</div>
+          <div class="stat-label">In Review</div>
+        </div>
+      </div>
+
+      <div class="inspection-list" id="inspection-list">
+        <!-- loading skeletons -->
+        <div class="loading-row">
+          <div class="loading-line shimmer" style="height:14px;width:60%"></div>
+          <div class="loading-line shimmer" style="height:10px;width:40%"></div>
+        </div>
+        <div class="loading-row">
+          <div class="loading-line shimmer" style="height:14px;width:75%"></div>
+          <div class="loading-line shimmer" style="height:10px;width:50%"></div>
+        </div>
+        <div class="loading-row">
+          <div class="loading-line shimmer" style="height:14px;width:55%"></div>
+          <div class="loading-line shimmer" style="height:10px;width:45%"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER: INSPECTOR -->
+    <section class="inspector" id="inspector-section">
+      <div class="inspector-toolbar" id="inspector-toolbar" style="display:none">
+        <div class="layer-toggle">
+          <button class="layer-btn active" onclick="switchLayer('composite', this)">AI Overlay</button>
+          <button class="layer-btn" onclick="switchLayer('caliper', this)">Caliper</button>
+          <button class="layer-btn" onclick="switchLayer('raw', this)">Raw</button>
+        </div>
+        <div class="tool-sep"></div>
+        <button class="sample-btn" onclick="loadSample('healthy')">Nashik Red</button>
+        <button class="sample-btn" onclick="loadSample('sprouted')">Sprouted Lot</button>
+        <div class="tool-sep"></div>
+        <label class="upload-btn">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload Photo
+          <input type="file" id="image-upload" accept="image/*" style="display:none" onchange="handleUpload(event)">
+        </label>
+        <div class="toolbar-spacer"></div>
+        <div class="zoom-pill" id="zoom-display">100%</div>
+        <button class="hud-btn" onclick="zoomCanvas(0.15)" title="Zoom in">+</button>
+        <button class="hud-btn" onclick="zoomCanvas(-0.15)" title="Zoom out">−</button>
+        <button class="hud-btn" onclick="resetCanvasTransform()" title="Reset view" style="font-size:13px">⟲</button>
+      </div>
+
+      <!-- Empty state -->
+      <div class="inspector-empty" id="inspector-empty">
+        <div class="inspector-empty-icon">
+          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--text-dim)">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M11 8v3l2 2"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <div class="inspector-empty-title">No inspection selected</div>
+        <div class="inspector-empty-sub">Select a lot from the sidebar to inspect its sample images, or create a new inspection session.</div>
+        <button class="inspector-empty-cta" onclick="openModal()">
+          Start New Inspection
+        </button>
+      </div>
+
+      <!-- Canvas (hidden until inspection selected) -->
+      <div class="canvas-area" id="canvas-area" style="display:none">
+        <canvas id="inspection-canvas"></canvas>
+        <div id="bulb-tooltip">
+          <div class="tt-bulb-id" id="tt-bulb-id">Bulb #01</div>
+          <div class="tt-row"><span>Equatorial</span><span id="tt-eq">—</span></div>
+          <div class="tt-row"><span>Mass</span><span id="tt-mass">—</span></div>
+          <div class="tt-row"><span>Size Grade</span><span id="tt-sg">—</span></div>
+          <div class="tt-grade" id="tt-grade">GRADE A</div>
+        </div>
+        <div class="scale-bar" id="scale-bar">No calibration marker detected</div>
+      </div>
+
+      <div class="inspector-status-bar" id="inspector-status-bar" style="display:none">
+        <div class="status-segment">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="sb-time">—</span>
+        </div>
+        <span class="status-sep">·</span>
+        <div class="status-segment"><span class="status-val" id="sb-dims">—</span></div>
+        <span class="status-sep">·</span>
+        <div class="status-segment"><span class="status-val" id="sb-seg">—</span></div>
+        <span class="status-sep">·</span>
+        <div class="status-segment"><span class="status-val" id="sb-model">—</span></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: TELEMETRY -->
+    <aside class="telemetry" id="telemetry">
+
+      <!-- KPI -->
+      <div class="tele-section">
+        <div class="tele-section-head">
+          <span class="tele-title">Grade Distribution</span>
+          <span class="tele-tag" id="tele-lot-tag">—</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-cell">
+            <div class="kpi-num" id="kpi-a">—</div>
+            <div class="kpi-lbl">Grade A</div>
+          </div>
+          <div class="kpi-cell kpi-urs">
+            <div class="kpi-num" id="kpi-urs">—</div>
+            <div class="kpi-lbl">URS</div>
+          </div>
+          <div class="kpi-cell kpi-rej">
+            <div class="kpi-num" id="kpi-rej">—</div>
+            <div class="kpi-lbl">Rejected</div>
+          </div>
+          <div class="kpi-cell kpi-rev">
+            <div class="kpi-num" id="kpi-rev">—</div>
+            <div class="kpi-lbl">Review</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Size Breakdown -->
+      <div class="tele-section">
+        <div class="tele-section-head">
+          <span class="tele-title">APMC Size Breakdown</span>
+          <span class="tele-tag">IS 17912:2022</span>
+        </div>
+        <div class="size-row">
+          <div class="size-row-head">
+            <span class="size-row-label">Super 45–65 mm</span>
+            <span class="size-row-val" id="sz-super-pct">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="sz-super-bar" style="width:0%;background:var(--grade-a)"></div></div>
+        </div>
+        <div class="size-row">
+          <div class="size-row-head">
+            <span class="size-row-label">Madhyam 35–45 mm</span>
+            <span class="size-row-val" id="sz-madhyam-pct">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="sz-madhyam-bar" style="width:0%;background:var(--urs)"></div></div>
+        </div>
+        <div class="size-row">
+          <div class="size-row-head">
+            <span class="size-row-label">Goli &lt;35 mm</span>
+            <span class="size-row-val" id="sz-goli-pct">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="sz-goli-bar" style="width:0%;background:var(--rejected)"></div></div>
+        </div>
+        <div class="size-row" style="margin-bottom:0">
+          <div class="size-row-head">
+            <span class="size-row-label">Jumbo &gt;65 mm</span>
+            <span class="size-row-val" id="sz-jumbo-pct">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="sz-jumbo-bar" style="width:0%;background:var(--text-dim)"></div></div>
+        </div>
+      </div>
+
+      <!-- Pricing -->
+      <div class="tele-section">
+        <div class="tele-section-head">
+          <span class="tele-title">NAFED Settlement</span>
+          <span class="tele-tag">MSP CALC</span>
+        </div>
+        <div class="pricing-block">
+          <div class="pricing-label">Net Procurement Payout</div>
+          <div class="pricing-val" id="price-val">₹ —</div>
+          <div class="pricing-sub">Base MSP: ₹1,800/qtl</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:11.5px;color:var(--text-dim)">Dockage deduction</span>
+          <span class="dockage-pill" id="price-dockage">— / qtl</span>
+        </div>
+        <p class="pricing-note" id="price-note">Select an inspection to compute settlement.</p>
+      </div>
+
+      <!-- Bulb Drilldown -->
+      <div class="tele-section">
+        <div class="tele-section-head">
+          <span class="tele-title">Active Bulb</span>
+          <span class="tele-tag" id="drilldown-tag">—</span>
+        </div>
+        <div class="drilldown-block">
+          <div class="drilldown-top">
+            <div>
+              <div class="drilldown-size" id="dd-size">Select a bulb</div>
+              <div class="drilldown-sub" id="dd-sub">Click any bulb on the canvas</div>
+            </div>
+            <span class="grade-badge badge-a" id="dd-grade" style="display:none"></span>
+          </div>
+          <div id="dd-defects" style="display:none">
+            <div class="defect-row">
+              <span class="defect-label">Mech. Damage</span>
+              <div class="defect-track"><div class="defect-fill" id="df-dmg" style="width:0%;background:var(--urs)"></div></div>
+              <span class="defect-pct" id="dv-dmg">—</span>
+            </div>
+            <div class="defect-row">
+              <span class="defect-label">Rot / Aspergillus</span>
+              <div class="defect-track"><div class="defect-fill" id="df-rot" style="width:0%;background:var(--rejected)"></div></div>
+              <span class="defect-pct" id="dv-rot">—</span>
+            </div>
+            <div class="defect-row">
+              <span class="defect-label">Sprouting</span>
+              <div class="defect-track"><div class="defect-fill" id="df-spr" style="width:0%;background:var(--review)"></div></div>
+              <span class="defect-pct" id="dv-spr">—</span>
+            </div>
+            <div class="defect-row" style="margin-bottom:0">
+              <span class="defect-label">Sunburn NGRDI</span>
+              <div class="defect-track"><div class="defect-fill" id="df-sun" style="width:0%;background:var(--text-dim)"></div></div>
+              <span class="defect-pct" id="dv-sun">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="tele-footer">
+        <button class="action-btn" onclick="downloadReport()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF Certificate
+        </button>
+        <button class="action-btn-sec" onclick="finalizeInspection()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Certify &amp; Finalize
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- New Inspection Modal -->
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <span class="modal-title">New Inspection</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="field-label">Lot ID</div>
+          <input class="field-input" id="f-lot-id" type="text" placeholder="e.g. LOT-2026-NASHIK-001">
+        </div>
+        <div>
+          <div class="field-label">Procurement Centre / Mandi</div>
+          <input class="field-input" id="f-centre" type="text" placeholder="e.g. Lasalgaon Mandi, Nashik">
+        </div>
+        <div class="field-row">
+          <div>
+            <div class="field-label">Officer Name</div>
+            <input class="field-input" id="f-officer" type="text" placeholder="Officer name">
+          </div>
+          <div>
+            <div class="field-label">Officer ID</div>
+            <input class="field-input" id="f-officer-id" type="text" placeholder="NAFED-xxxx">
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Notes (optional)</div>
+          <input class="field-input" id="f-notes" type="text" placeholder="Farmer name, variety, harvest date…">
+        </div>
+        <div id="modal-image-section">
+          <div class="field-label">Sample Image (optional — upload now or later)</div>
+          <label class="upload-btn" style="width:100%;justify-content:center;padding:10px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="upload-label">Attach Sample Photo</span>
+            <input type="file" id="modal-file" accept="image/*" style="display:none" onchange="handleModalFile(this)">
           </label>
         </div>
       </div>
-
-      <div class="canvas-container" id="canvas-wrapper">
-        <canvas id="inspection-canvas"></canvas>
-
-        <!-- Canvas Zoom HUD -->
-        <div class="canvas-hud-controls">
-          <button class="hud-btn" onclick="zoomCanvas(0.15)" title="Zoom In">+</button>
-          <button class="hud-btn" onclick="zoomCanvas(-0.15)" title="Zoom Out">-</button>
-          <button class="hud-btn" onclick="resetCanvasTransform()" title="Reset View">⟲</button>
-        </div>
-
-        <!-- Floating Tooltip -->
-        <div id="bulb-tooltip">
-          <strong id="tt-title">Bulb #01</strong>
-          <div id="tt-size" style="color: var(--accent); margin: 2px 0;">Deq: 54.2mm</div>
-          <div id="tt-grade" style="font-weight: 700;">GRADE A</div>
-        </div>
-
-        <div class="telemetry-overlay" id="telemetry-tag">
-          Scale: 0.3214 mm/px | ChArUco 7x5 Board Locked | BIS IS 17912:2022
-        </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-create" id="btn-create" onclick="createInspection()">Create Inspection</button>
       </div>
     </div>
+  </div>
 
-    <!-- Telemetry & Insights Panel -->
-    <div class="telemetry-panel" id="telemetry-panel">
-      <!-- KPI Card -->
-      <div class="card" id="card-kpi">
-        <div class="card-title">
-          <span>Lot Grade Distribution</span>
-          <span class="card-title-tag" id="lot-id-tag">LOT: NAFED-MH-2026-081</span>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi-box">
-            <div class="kpi-num shimmer-target" style="color: var(--text);" id="kpi-grade-a">75%</div>
-            <div class="kpi-label">Grade A</div>
-          </div>
-          <div class="kpi-box">
-            <div class="kpi-num shimmer-target" style="color: var(--urs);" id="kpi-urs">15%</div>
-            <div class="kpi-label">URS</div>
-          </div>
-          <div class="kpi-box">
-            <div class="kpi-num shimmer-target" style="color: var(--rejected);" id="kpi-rejected">10%</div>
-            <div class="kpi-label">Rejected</div>
-          </div>
-          <div class="kpi-box">
-            <div class="kpi-num shimmer-target" style="color: var(--text);" id="kpi-weight">1.82 kg</div>
-            <div class="kpi-label">Sample Mass</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- APMC Size Breakdown -->
-      <div class="card" id="card-sizing">
-        <div class="card-title">
-          <span>APMC Indian Mandi Sizing</span>
-          <span class="card-title-tag">BIS IS 17912:2022</span>
-        </div>
-
-        <div class="mandi-size-row">
-          <span style="width: 85px;">Super (45-65mm)</span>
-          <div class="mandi-bar-wrap">
-            <div class="mandi-bar-fill" id="bar-super" style="width: 68%; background: var(--grade-a);"></div>
-          </div>
-          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-super">68%</span>
-        </div>
-
-        <div class="mandi-size-row">
-          <span style="width: 85px;">Madhyam (35-45mm)</span>
-          <div class="mandi-bar-wrap">
-            <div class="mandi-bar-fill" id="bar-madhyam" style="width: 20%; background: var(--urs);"></div>
-          </div>
-          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-madhyam">20%</span>
-        </div>
-
-        <div class="mandi-size-row">
-          <span style="width: 85px;">Goli (&lt;35mm)</span>
-          <div class="mandi-bar-wrap">
-            <div class="mandi-bar-fill" id="bar-goli" style="width: 8%; background: var(--rejected);"></div>
-          </div>
-          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-goli">8%</span>
-        </div>
-
-        <div class="mandi-size-row">
-          <span style="width: 85px;">Jumbo (&gt;65mm)</span>
-          <div class="mandi-bar-wrap">
-            <div class="mandi-bar-fill" id="bar-jumbo" style="width: 4%; background: var(--review);"></div>
-          </div>
-          <span class="kpi-num shimmer-target" style="font-size: 0.85rem;" id="pct-jumbo">4%</span>
-        </div>
-      </div>
-
-      <!-- Commercial NAFED Pricing -->
-      <div class="card" id="card-pricing">
-        <div class="card-title">
-          <span>NAFED FAQ Commercial Settlement</span>
-          <span class="card-title-tag">MSP DOCKAGE CALCULATOR</span>
-        </div>
-
-        <div class="pricing-hero">
-          <div>
-            <div class="pricing-val shimmer-target" id="net-payout-val">₹ 1,732 / qtl</div>
-            <div class="pricing-sub">Net Procurement Payout (Base MSP: ₹1,800/qtl)</div>
-          </div>
-          <div class="dockage-tag shimmer-target" id="dockage-tag">Dockage: -₹68/qtl</div>
-        </div>
-        <p style="font-size: 0.75rem; color: var(--text-muted);" id="pricing-rationale">
-          Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.
-        </p>
-      </div>
-
-      <!-- Interactive Bulb Inspector -->
-      <div class="card" id="card-drilldown">
-        <div class="card-title">
-          <span>Active Bulb Evidence Drilldown</span>
-          <span class="card-title-tag" id="drilldown-badge">BULB #01</span>
-        </div>
-        <div class="drilldown-box">
-          <div class="drilldown-header">
-            <div>
-              <strong style="font-size: 1.05rem;" id="bulb-caliper-size">Equatorial: 56.4 mm</strong>
-              <div style="font-size: 0.75rem; color: var(--text-muted);" id="bulb-subtext">
-                Polar: 52.1 mm | Shape: GLOBULAR | Mass: 88g
-              </div>
-            </div>
-            <span style="background: var(--card-bg-elevated); color: var(--text); border: 1px solid var(--card-border); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.78rem;" id="bulb-grade-tag">
-              GRADE A
-            </span>
-          </div>
-
-          <div style="margin-top: 10px;">
-            <div class="defect-metric-row">
-              <span>Mechanical Damage</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-damaged" style="width: 10%; background: var(--urs);"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-damaged">10%</span>
-              </div>
-            </div>
-
-            <div class="defect-metric-row">
-              <span>Biological Rot (Aspergillus)</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-rotten" style="width: 2%; background: var(--rejected);"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-rotten">2%</span>
-              </div>
-            </div>
-
-            <div class="defect-metric-row">
-              <span>Vegetative Sprouting</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-sprouted" style="width: 1%; background: var(--review);"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sprouted">1%</span>
-              </div>
-            </div>
-
-            <div class="defect-metric-row">
-              <span>Sunburn (Chlorophyll NGRDI)</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="defect-bar"><div class="defect-fill" id="fill-sunburn" style="width: 4%; background: var(--accent);"></div></div>
-                <span style="font-family: var(--font-mono); font-size: 0.72rem;" id="val-sunburn">4%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Footer -->
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="downloadOfficialReport()">
-          <span>Download Official PDF Certificate</span>
-        </button>
-      </div>
-    </div>
-  </main>
+  <div id="toast-container"></div>
 
   <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    const BASE = '';  // Same-origin — backend serves this HTML
+    let inspections = [];
+    let activeFilter = 'ALL';
+    let searchQuery = '';
+    let selectedInspectionId = null;
+    let modalFile = null;
+
+    // Canvas state
     const canvas = document.getElementById('inspection-canvas');
     const ctx = canvas.getContext('2d');
-    const tooltip = document.getElementById('bulb-tooltip');
-    const canvasWrapper = document.getElementById('canvas-wrapper');
-
     let currentMode = 'composite';
     let activeBulbs = [];
     let selectedBulbIndex = 0;
-    let currentImg = new Image();
-
-    // Canvas Pan/Zoom State
     let zoomLevel = 1.0;
-    let panX = 0;
-    let panY = 0;
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
+    let panX = 0, panY = 0;
+    let isDragging = false, dragStartX = 0, dragStartY = 0;
 
-    // Web Audio Micro-Haptic Click
-    function playAudioClick(freq = 800, duration = 0.015) {
+    // ── Init ───────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      await checkHealth();
+      await loadInspections();
+      setupCanvasInteractions();
+      // Auto-select first inspection if any
+      if (inspections.length > 0) {
+        selectInspection(inspections[0].id);
+      }
+    });
+
+    // ── Health ────────────────────────────────────────────────────────────────
+    async function checkHealth() {
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
+        const r = await fetch(`${BASE}/api/v1/health/cv`);
+        const d = await r.json();
+        const pill = document.getElementById('status-pill');
+        const st = document.getElementById('status-text');
+        if (d.status === 'ok') {
+          st.textContent = 'Online';
+          const dot = pill.querySelector('.status-dot');
+          dot.style.background = 'var(--online)';
+          dot.style.boxShadow = '0 0 6px var(--online)';
+        }
+        // Update model tag
+        const mt = document.getElementById('model-tag');
+        const seg = d.seg_provider ? d.seg_provider.split(':')[0] : 'Watershed';
+        mt.textContent = `${seg} · MobileNetV3 · ${d.active_policy}`;
+      } catch(e) {
+        const st = document.getElementById('status-text');
+        st.textContent = 'Offline';
+        const dot = document.querySelector('.status-dot');
+        dot.style.background = 'var(--rejected)';
+        dot.style.boxShadow = '0 0 6px var(--rejected)';
+        dot.style.animation = 'none';
+      }
     }
 
-    function initSample() {
+    // ── Load inspections ───────────────────────────────────────────────────────
+    async function loadInspections() {
+      try {
+        const r = await fetch(`${BASE}/api/v1/inspections?limit=100`);
+        const d = await r.json();
+        inspections = Array.isArray(d) ? d : (d.items || []);
+        // Sort newest first
+        inspections.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        updateStats();
+        renderList();
+      } catch(e) {
+        showToast('Failed to load inspections', 'error');
+        renderList();
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = inspections.length;
+      document.getElementById('stat-certified').textContent = inspections.filter(i => i.status === 'FINALIZED').length;
+      document.getElementById('stat-review').textContent = inspections.filter(i => i.status === 'REVIEW').length;
+    }
+
+    function renderList() {
+      const list = document.getElementById('inspection-list');
+      let items = inspections;
+
+      if (activeFilter !== 'ALL') {
+        if (activeFilter === 'FINALIZED') items = items.filter(i => i.status === 'FINALIZED');
+        else if (activeFilter === 'REVIEW') items = items.filter(i => i.status === 'REVIEW');
+        else if (activeFilter === 'DRAFT') items = items.filter(i => i.status === 'DRAFT');
+      }
+
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        items = items.filter(i =>
+          (i.lot_id || '').toLowerCase().includes(q) ||
+          (i.procurement_centre || '').toLowerCase().includes(q) ||
+          (i.officer_name || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (items.length === 0) {
+        list.innerHTML = `
+          <div class="empty-list">
+            <div class="empty-icon">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--text-dim)">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <div class="empty-title">${searchQuery ? 'No results' : 'No inspections yet'}</div>
+            <div class="empty-sub">${searchQuery ? `Nothing matching "${searchQuery}"` : 'Create your first inspection to get started.'}</div>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(insp => {
+        const statusMap = {
+          DRAFT: 'chip-draft',
+          REVIEW: 'chip-review',
+          FINALIZED: 'chip-finalized',
+        };
+        const statusLabel = {
+          DRAFT: 'Draft',
+          REVIEW: 'In Review',
+          FINALIZED: 'Certified',
+        };
+        const chip = statusMap[insp.status] || 'chip-draft';
+        const label = statusLabel[insp.status] || insp.status;
+        const date = formatDate(insp.created_at);
+        const isActive = insp.id === selectedInspectionId;
+        const sampleCount = insp.sample_count || 0;
+
+        return `
+          <div class="insp-item${isActive ? ' active' : ''}" onclick="selectInspection('${insp.id}')">
+            <div class="insp-item-top">
+              <span class="insp-lot-id">${esc(insp.lot_id || 'Untitled')}</span>
+              <span class="insp-status-chip ${chip}">${label}</span>
+            </div>
+            <div class="insp-item-meta">
+              ${esc(insp.procurement_centre || '—')}
+              ${insp.officer_name ? ' · ' + esc(insp.officer_name) : ''}
+            </div>
+            <div class="insp-item-footer">
+              <div class="insp-grade-row">
+                ${sampleCount > 0 ? `<span class="grade-pip pip-a">${sampleCount} sample${sampleCount > 1 ? 's' : ''}</span>` : ''}
+                ${insp.status === 'FINALIZED' ? '<span class="grade-pip pip-a">✓ Cert</span>' : ''}
+                ${insp.status === 'REVIEW' ? '<span class="grade-pip pip-rev">Pending review</span>' : ''}
+              </div>
+              <span class="insp-date">${date}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function setFilter(f, btn) {
+      activeFilter = f;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    }
+
+    function filterInspections(q) {
+      searchQuery = q.trim();
+      renderList();
+    }
+
+    // ── Select Inspection ──────────────────────────────────────────────────────
+    async function selectInspection(id) {
+      if (selectedInspectionId === id) return;
+      selectedInspectionId = id;
+      renderList();
+      showInspector();
+      resetTelemetry();
+
+      try {
+        // Get inspection details
+        const r = await fetch(`${BASE}/api/v1/inspections/${id}`);
+        const insp = await r.json();
+
+        // Update lot tag
+        document.getElementById('tele-lot-tag').textContent = insp.lot_id || id.slice(0,8);
+        document.getElementById('sb-model').textContent = 'DEMO_ASSUMPTION_v1';
+
+        // Get samples
+        const sr = await fetch(`${BASE}/api/v1/inspections/${id}/samples`);
+        const samples = await sr.json();
+        const sampleList = Array.isArray(samples) ? samples : (samples.items || []);
+
+        if (sampleList.length > 0) {
+          const latest = sampleList[sampleList.length - 1];
+          loadSampleResults(latest);
+        } else {
+          // Show demo canvas with empty state
+          loadSample('healthy');
+          showToast('No sample images yet — upload a photo or use a demo sample', 'info');
+        }
+      } catch(e) {
+        showToast('Could not load inspection data', 'error');
+        loadSample('healthy');
+      }
+    }
+
+    async function loadSampleResults(sample) {
+      // Update status bar
+      document.getElementById('sb-dims').textContent = `${sample.image_width_px || 0}×${sample.image_height_px || 0}`;
+      document.getElementById('sb-seg').textContent = sample.marker_detected ? 'Calibrated' : 'Uncalibrated';
+      document.getElementById('sb-time').textContent = formatDate(sample.processing_finished_at || sample.created_at);
+
+      // Scale bar
+      const scaleBar = document.getElementById('scale-bar');
+      if (sample.marker_detected && sample.scale_mm_per_px) {
+        scaleBar.textContent = `${sample.scale_mm_per_px.toFixed(4)} mm/px · ChArUco locked · BIS IS 17912:2022`;
+      } else {
+        scaleBar.textContent = 'Calibration marker not detected — size estimates uncalibrated';
+      }
+
+      // Load annotated image if available
+      if (sample.processed_image_path) {
+        const imgUrl = `${BASE}/static/${sample.processed_image_path}`;
+        loadImageToCanvas(imgUrl);
+      }
+
+      // Load onion instances
+      const oinst = sample.onion_instances || [];
+      if (oinst.length === 0) {
+        // Try fetching full sample details
+        try {
+          const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/samples/${sample.id}`);
+          const full = await r.json();
+          populateTelemetry(full.onion_instances || []);
+        } catch(e) {
+          populateTelemetry([]);
+        }
+      } else {
+        populateTelemetry(oinst);
+      }
+    }
+
+    function loadImageToCanvas(url) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.onerror = () => {
+        // Fall back to demo
+        drawDemoCanvas();
+      };
+      img.src = url;
+    }
+
+    function populateTelemetry(onions) {
+      const total = onions.length;
+      const a = onions.filter(o => o.grade === 'GRADE_A').length;
+      const urs = onions.filter(o => o.grade === 'URS').length;
+      const rej = onions.filter(o => o.grade === 'REJECTED').length;
+      const rev = total - a - urs - rej;
+
+      document.getElementById('kpi-a').textContent = `${a}`;
+      document.getElementById('kpi-urs').textContent = `${urs}`;
+      document.getElementById('kpi-rej').textContent = `${rej}`;
+      document.getElementById('kpi-rev').textContent = `${rev}`;
+
+      // Compute size distribution from mandi_size_grade
+      const super_ = onions.filter(o => o.mandi_size_grade === 'SUPER').length;
+      const madhyam = onions.filter(o => o.mandi_size_grade === 'MADHYAM').length;
+      const goli = onions.filter(o => o.mandi_size_grade === 'GOLI').length;
+      const jumbo = onions.filter(o => o.mandi_size_grade === 'JUMBO').length;
+
+      const sTotal = total || 1;
+      setSizeBar('super', super_, sTotal);
+      setSizeBar('madhyam', madhyam, sTotal);
+      setSizeBar('goli', goli, sTotal);
+      setSizeBar('jumbo', jumbo, sTotal);
+
+      // Pricing calc (simplified demo)
+      const defectPct = total > 0 ? (rej / total) : 0;
+      const dockage = Math.round(defectPct * 800);
+      const net = 1800 - dockage;
+      document.getElementById('price-val').textContent = `₹ ${net.toLocaleString('en-IN')} / qtl`;
+      document.getElementById('price-dockage').textContent = `-₹${dockage}/qtl`;
+      document.getElementById('price-note').textContent = defectPct > 0.25
+        ? `Significant dockage due to ${(defectPct*100).toFixed(0)}% rejection rate.`
+        : `Meets Grade A buffer storage standards.`;
+
+      // Store for canvas interaction
+      activeBulbs = onions.map(o => ({
+        ...o,
+        x: o.bbox_x + o.bbox_w / 2,
+        y: o.bbox_y + o.bbox_h / 2,
+        rx: o.bbox_w / 2,
+        ry: o.bbox_h / 2,
+      }));
+
+      if (total > 0) selectBulb(0);
+    }
+
+    function setSizeBar(name, count, total) {
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      document.getElementById(`sz-${name}-pct`).textContent = `${pct}%`;
+      document.getElementById(`sz-${name}-bar`).style.width = `${pct}%`;
+    }
+
+    // ── Canvas ─────────────────────────────────────────────────────────────────
+    function showInspector() {
+      document.getElementById('inspector-empty').style.display = 'none';
+      document.getElementById('canvas-area').style.display = 'flex';
+      document.getElementById('inspector-toolbar').style.display = 'flex';
+      document.getElementById('inspector-status-bar').style.display = 'flex';
+    }
+
+    function resetTelemetry() {
+      ['kpi-a','kpi-urs','kpi-rej','kpi-rev'].forEach(id => document.getElementById(id).textContent = '—');
+      ['sz-super-pct','sz-madhyam-pct','sz-goli-pct','sz-jumbo-pct'].forEach(id => document.getElementById(id).textContent = '—');
+      ['sz-super-bar','sz-madhyam-bar','sz-goli-bar','sz-jumbo-bar'].forEach(id => document.getElementById(id).style.width = '0%');
+      document.getElementById('price-val').textContent = '₹ —';
+      document.getElementById('price-dockage').textContent = '—';
+      document.getElementById('dd-grade').style.display = 'none';
+      document.getElementById('dd-defects').style.display = 'none';
+      document.getElementById('dd-size').textContent = 'Select a bulb';
+      document.getElementById('dd-sub').textContent = 'Click any bulb on the canvas';
+    }
+
+    function drawDemoCanvas() {
       canvas.width = 1200;
       canvas.height = 800;
-      drawSimulatedInspection();
-      setupCanvasInteractions();
-    }
-
-    function drawSimulatedInspection() {
-      ctx.fillStyle = '#18181b';
+      ctx.fillStyle = '#090909';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // ChArUco board representation
-      ctx.fillStyle = '#27272a';
-      ctx.fillRect(60, 60, 240, 180);
-      ctx.strokeStyle = '#52525b';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(60, 60, 240, 180);
-      ctx.fillStyle = '#a1a1aa';
-      ctx.font = '12px JetBrains Mono';
-      ctx.fillText('Reference Marker (40mm)', 70, 150);
+      // Grid pattern background
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
 
-      // Generate simulated bulbs
-      const bulbs = [
-        { x: 450, y: 220, rx: 65, ry: 60, angle: 25, eq: 56.4, pol: 52.1, wt: 88, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 10, spr: 1, sun: 4 },
-        { x: 620, y: 240, rx: 60, ry: 58, angle: -15, eq: 52.0, pol: 50.4, wt: 76, grade: 'GRADE_A', g: 'SUPER', rot: 3, dam: 8, spr: 0, sun: 2 },
-        { x: 800, y: 230, rx: 72, ry: 66, angle: 40, eq: 62.1, pol: 57.0, wt: 112, grade: 'GRADE_A', g: 'SUPER', rot: 1, dam: 6, spr: 0, sun: 5 },
-        { x: 960, y: 250, rx: 42, ry: 40, angle: 0, eq: 38.2, pol: 36.5, wt: 32, grade: 'URS', g: 'MADHYAM', rot: 5, dam: 15, spr: 4, sun: 3 },
-        { x: 420, y: 420, rx: 68, ry: 62, angle: -30, eq: 58.7, pol: 53.4, wt: 96, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 5, spr: 1, sun: 1 },
-        { x: 590, y: 440, rx: 58, ry: 54, angle: 10, eq: 50.5, pol: 48.0, wt: 69, grade: 'GRADE_A', g: 'SUPER', rot: 4, dam: 12, spr: 2, sun: 6 },
-        { x: 760, y: 430, rx: 64, ry: 60, angle: -5, eq: 54.8, pol: 51.2, wt: 83, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 7, spr: 0, sun: 3 },
-        { x: 930, y: 450, rx: 32, ry: 30, angle: 12, eq: 28.5, pol: 27.0, wt: 16, grade: 'REJECTED', g: 'GOLI', reason: 'UNDERSIZED', rot: 8, dam: 18, spr: 5, sun: 2 },
-        { x: 510, y: 620, rx: 62, ry: 58, angle: 18, eq: 53.6, pol: 50.1, wt: 79, grade: 'GRADE_A', g: 'SUPER', rot: 1, dam: 9, spr: 0, sun: 2 },
-        { x: 680, y: 630, rx: 66, ry: 62, angle: -22, eq: 57.2, pol: 54.0, wt: 91, grade: 'GRADE_A', g: 'SUPER', rot: 3, dam: 11, spr: 1, sun: 4 },
-        { x: 860, y: 620, rx: 61, ry: 59, angle: 35, eq: 53.0, pol: 51.5, wt: 77, grade: 'GRADE_A', g: 'SUPER', rot: 2, dam: 4, spr: 0, sun: 3 },
-      ];
-      activeBulbs = bulbs;
+      // ChArUco reference board
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(50, 50, 200, 150);
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(50, 50, 200, 150);
+      for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 5; j++) {
+          if ((i + j) % 2 === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fillRect(50 + i * 28, 50 + j * 28, 28, 28);
+          }
+        }
+      }
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('ChArUco 7×5 · 40mm', 58, 218);
 
-      bulbs.forEach((b, idx) => {
+      if (activeBulbs.length > 0) {
+        drawBulbs();
+      } else {
+        // No bulbs — placeholder
+        ctx.fillStyle = 'rgba(255,255,255,0.07)';
+        ctx.font = '500 16px Space Grotesk';
+        ctx.textAlign = 'center';
+        ctx.fillText('Upload a sample image to begin inspection', canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    function drawBulbs() {
+      if (!activeBulbs || activeBulbs.length === 0) return;
+      activeBulbs.forEach((b, idx) => {
+        const gradeColor = b.grade === 'GRADE_A' ? '#e8e8f0'
+          : b.grade === 'URS' ? '#f59e0b'
+          : b.grade === 'REJECTED' ? '#ef4444'
+          : '#6366f1';
+
         ctx.save();
         ctx.translate(b.x, b.y);
-        ctx.rotate((b.angle * Math.PI) / 180);
 
         // Selection ring
         if (selectedBulbIndex === idx) {
           ctx.beginPath();
-          ctx.ellipse(0, 0, b.rx + 10, b.ry + 10, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
-          ctx.shadowBlur = 8;
+          ctx.ellipse(0, 0, b.rx + 8, b.ry + 8, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
           ctx.stroke();
-          ctx.shadowBlur = 0;
+          ctx.setLineDash([]);
         }
 
-        // Onion body
+        // Onion fill
         ctx.beginPath();
         ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#b83b5e';
+        const gradColor = {
+          GRADE_A: 'rgba(232,232,240,0.08)',
+          URS: 'rgba(245,158,11,0.15)',
+          REJECTED: 'rgba(239,68,68,0.18)',
+          NEEDS_REVIEW: 'rgba(99,102,241,0.12)',
+        }[b.grade] || 'rgba(255,255,255,0.05)';
+        ctx.fillStyle = gradColor;
         ctx.fill();
 
-        // Alpha mask overlay
-        if (currentMode === 'composite') {
-          ctx.fillStyle = b.grade === 'GRADE_A' ? 'rgba(24, 24, 27, 0.12)' : (b.grade === 'URS' ? 'rgba(154, 52, 18, 0.35)' : 'rgba(153, 27, 27, 0.35)');
-          ctx.fill();
-        }
-
         // Contour
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#18181b' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = gradeColor;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.85;
         ctx.stroke();
+        ctx.globalAlpha = 1;
 
         // Caliper lines
         if (currentMode === 'caliper' || currentMode === 'composite') {
-          // Polar axis
-          ctx.beginPath();
-          ctx.moveTo(0, -b.ry);
-          ctx.lineTo(0, b.ry);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // Equatorial caliper line
+          // Equatorial
           ctx.beginPath();
           ctx.moveTo(-b.rx, 0);
           ctx.lineTo(b.rx, 0);
-          ctx.strokeStyle = '#fbbf24';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = 0.7;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          // Polar
+          ctx.beginPath();
+          ctx.moveTo(0, -b.ry);
+          ctx.lineTo(0, b.ry);
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
 
         ctx.restore();
 
-        // Micro-Tag Label
-        ctx.fillStyle = '#ffffff';
-        const label = `#${idx + 1}: ${b.g} ${b.eq.toFixed(0)}mm ${b.wt}g`;
-        ctx.font = '500 11px Space Grotesk';
-        const tw = ctx.measureText(label).width;
-        ctx.fillRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
-        ctx.strokeStyle = b.grade === 'GRADE_A' ? '#18181b' : (b.grade === 'URS' ? '#9a3412' : '#991b1b');
-        ctx.lineWidth = 1;
-        ctx.strokeRect(b.x - tw / 2 - 6, b.y - b.ry - 18, tw + 12, 18);
-        ctx.fillStyle = '#18181b';
-        ctx.fillText(label, b.x - tw / 2, b.y - b.ry - 5);
+        // Label tag
+        if (currentMode !== 'raw') {
+          const eqmm = b.equivalent_diameter_mm ? b.equivalent_diameter_mm.toFixed(0) : '?';
+          const label = `#${idx+1} · ${eqmm}mm`;
+          ctx.font = '500 10px Space Grotesk';
+          const tw = ctx.measureText(label).width;
+          const lx = b.x - tw / 2 - 6;
+          const ly = b.y - b.ry - 20;
+          // Tag bg
+          ctx.fillStyle = '#0c0c0e';
+          ctx.strokeStyle = gradeColor;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(lx, ly, tw + 12, 17, 3) : ctx.rect(lx, ly, tw + 12, 17);
+          ctx.fill();
+          ctx.globalAlpha = 0.7;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          // Text
+          ctx.fillStyle = gradeColor;
+          ctx.fillText(label, lx + 6, ly + 12);
+        }
       });
 
-      // 50mm Scale Bar
-      const barLen = 50 / 0.3214;
-      ctx.fillStyle = '#27272a';
-      ctx.fillRect(canvas.width - barLen - 40, canvas.height - 45, barLen + 30, 32);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      // Scale bar
+      const scaleLen = 140;
+      ctx.fillStyle = 'rgba(12,12,14,0.8)';
       ctx.beginPath();
-      ctx.moveTo(canvas.width - barLen - 25, canvas.height - 25);
-      ctx.lineTo(canvas.width - 25, canvas.height - 25);
-      ctx.moveTo(canvas.width - barLen - 25, canvas.height - 31);
-      ctx.lineTo(canvas.width - barLen - 25, canvas.height - 19);
-      ctx.moveTo(canvas.width - 25, canvas.height - 31);
-      ctx.lineTo(canvas.width - 25, canvas.height - 19);
+      ctx.roundRect
+        ? ctx.roundRect(canvas.width - scaleLen - 20, canvas.height - 42, scaleLen + 16, 30, 4)
+        : ctx.rect(canvas.width - scaleLen - 20, canvas.height - 42, scaleLen + 16, 30);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width - scaleLen - 12, canvas.height - 22);
+      ctx.lineTo(canvas.width - 12, canvas.height - 22);
+      ctx.moveTo(canvas.width - scaleLen - 12, canvas.height - 29);
+      ctx.lineTo(canvas.width - scaleLen - 12, canvas.height - 15);
+      ctx.moveTo(canvas.width - 12, canvas.height - 29);
+      ctx.lineTo(canvas.width - 12, canvas.height - 15);
       ctx.stroke();
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '11px Space Grotesk';
-      ctx.fillText('50 mm Scale', canvas.width - barLen - 5, canvas.height - 32);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText('50 mm', canvas.width - scaleLen / 2 - 20, canvas.height - 28);
     }
 
-    function switchLayer(mode) {
-      playAudioClick(650);
+    function switchLayer(mode, btn) {
       currentMode = mode;
-      document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
-      drawSimulatedInspection();
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      redraw();
+    }
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#090909';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawBulbs();
     }
 
     function selectBulb(idx) {
@@ -879,133 +1722,110 @@
       selectedBulbIndex = idx;
       const b = activeBulbs[idx];
 
-      document.getElementById('drilldown-badge').innerText = `BULB #${idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}`;
-      document.getElementById('bulb-caliper-size').innerText = `Equatorial: ${b.eq.toFixed(1)} mm`;
-      document.getElementById('bulb-subtext').innerText = `Polar: ${b.pol.toFixed(1)} mm | Shape: GLOBULAR | Mass: ${b.wt}g`;
+      document.getElementById('drilldown-tag').textContent = `BULB #${String(idx + 1).padStart(2, '0')}`;
+      document.getElementById('dd-size').textContent = b.equivalent_diameter_mm
+        ? `Equatorial: ${b.equivalent_diameter_mm.toFixed(1)} mm`
+        : 'Size: uncalibrated';
+      document.getElementById('dd-sub').textContent = [
+        b.polar_length_mm ? `Polar: ${b.polar_length_mm.toFixed(1)}mm` : null,
+        b.shape_class ? b.shape_class : null,
+        b.estimated_weight_grams ? `~${b.estimated_weight_grams.toFixed(0)}g` : null,
+      ].filter(Boolean).join(' · ') || 'No measurements';
 
-      const gradeTag = document.getElementById('bulb-grade-tag');
-      gradeTag.innerText = b.grade.replace('_', ' ');
-      gradeTag.style.color = b.grade === 'GRADE_A' ? 'var(--text)' : (b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
-      gradeTag.style.background = b.grade === 'GRADE_A' ? 'var(--card-bg-elevated)' : (b.grade === 'URS' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)');
+      const badge = document.getElementById('dd-grade');
+      badge.style.display = 'inline-block';
+      badge.className = 'grade-badge';
+      if (b.grade === 'GRADE_A') { badge.classList.add('badge-a'); badge.textContent = 'GRADE A'; }
+      else if (b.grade === 'URS') { badge.classList.add('badge-urs'); badge.textContent = 'URS'; }
+      else if (b.grade === 'REJECTED') { badge.classList.add('badge-rej'); badge.textContent = 'REJECTED'; }
+      else { badge.classList.add('badge-rev'); badge.textContent = 'REVIEW'; }
 
-      document.getElementById('val-damaged').innerText = `${b.dam}%`;
-      document.getElementById('fill-damaged').style.width = `${b.dam}%`;
-      document.getElementById('val-rotten').innerText = `${b.rot}%`;
-      document.getElementById('fill-rotten').style.width = `${b.rot}%`;
-      document.getElementById('val-sprouted').innerText = `${b.spr}%`;
-      document.getElementById('fill-sprouted').style.width = `${b.spr}%`;
-      document.getElementById('val-sunburn').innerText = `${b.sun}%`;
-      document.getElementById('fill-sunburn').style.width = `${b.sun}%`;
+      document.getElementById('dd-defects').style.display = 'block';
+      const dmg = (b.damaged_prob || 0) * 100;
+      const rot = (b.rotten_prob || 0) * 100;
+      const spr = (b.sprouted_prob || 0) * 100;
+      const sun = 0; // morphology data in explanation
 
-      drawSimulatedInspection();
-    }
+      document.getElementById('df-dmg').style.width = `${Math.min(dmg, 100)}%`;
+      document.getElementById('dv-dmg').textContent = `${dmg.toFixed(0)}%`;
+      document.getElementById('df-rot').style.width = `${Math.min(rot, 100)}%`;
+      document.getElementById('dv-rot').textContent = `${rot.toFixed(0)}%`;
+      document.getElementById('df-spr').style.width = `${Math.min(spr, 100)}%`;
+      document.getElementById('dv-spr').textContent = `${spr.toFixed(0)}%`;
+      document.getElementById('df-sun').style.width = `${Math.min(sun, 100)}%`;
+      document.getElementById('dv-sun').textContent = `${sun.toFixed(0)}%`;
 
-    function loadSample(type) {
-      playAudioClick(750);
-      const panel = document.getElementById('telemetry-panel');
-      panel.classList.add('shimmer-active');
-
-      setTimeout(() => {
-        if (type === 'sprouted') {
-          document.getElementById('kpi-grade-a').innerText = '40%';
-          document.getElementById('kpi-urs').innerText = '20%';
-          document.getElementById('kpi-rejected').innerText = '40%';
-          document.getElementById('dockage-tag').innerText = 'Dockage: -₹380/qtl';
-          document.getElementById('net-payout-val').innerText = '₹ 1,420 / qtl';
-          document.getElementById('pricing-rationale').innerText = 'Significant dockage deduction due to 25% sprouted off-grade presence.';
-          document.getElementById('bar-super').style.width = '35%';
-          document.getElementById('pct-super').innerText = '35%';
-          document.getElementById('bar-madhyam').style.width = '25%';
-          document.getElementById('pct-madhyam').innerText = '25%';
-          document.getElementById('bar-goli').style.width = '40%';
-          document.getElementById('pct-goli').innerText = '40%';
-        } else {
-          document.getElementById('kpi-grade-a').innerText = '75%';
-          document.getElementById('kpi-urs').innerText = '15%';
-          document.getElementById('kpi-rejected').innerText = '10%';
-          document.getElementById('dockage-tag').innerText = 'Dockage: -₹68/qtl';
-          document.getElementById('net-payout-val').innerText = '₹ 1,732 / qtl';
-          document.getElementById('pricing-rationale').innerText = 'Meets Grade A buffer storage standards with minor 5% excess off-grade dockage.';
-          document.getElementById('bar-super').style.width = '68%';
-          document.getElementById('pct-super').innerText = '68%';
-          document.getElementById('bar-madhyam').style.width = '20%';
-          document.getElementById('pct-madhyam').innerText = '20%';
-          document.getElementById('bar-goli').style.width = '8%';
-          document.getElementById('pct-goli').innerText = '8%';
-        }
-        drawSimulatedInspection();
-        panel.classList.remove('shimmer-active');
-      }, 400);
+      redraw();
     }
 
     function setupCanvasInteractions() {
-      // Mouse move hover tooltip
+      const canvasArea = document.getElementById('canvas-area');
+
       canvas.addEventListener('mousemove', (e) => {
         if (isDragging) return;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
 
+        const tt = document.getElementById('bulb-tooltip');
         let found = null;
         activeBulbs.forEach((b, idx) => {
-          const dx = mouseX - b.x;
-          const dy = mouseY - b.y;
-          if ((dx * dx) / (b.rx * b.rx) + (dy * dy) / (b.ry * b.ry) <= 1) {
-            found = { b, idx };
-          }
+          const dx = mx - b.x, dy = my - b.y;
+          if ((dx*dx)/(b.rx*b.rx) + (dy*dy)/(b.ry*b.ry) <= 1.2) found = { b, idx };
         });
 
         if (found) {
-          tooltip.style.display = 'block';
-          tooltip.style.left = `${e.clientX - canvasWrapper.getBoundingClientRect().left + 15}px`;
-          tooltip.style.top = `${e.clientY - canvasWrapper.getBoundingClientRect().top + 15}px`;
-          document.getElementById('tt-title').innerText = `Bulb #${found.idx + 1}: ${found.b.g}`;
-          document.getElementById('tt-size').innerText = `Deq: ${found.b.eq.toFixed(1)}mm • Mass: ${found.b.wt}g`;
-          const ttGrade = document.getElementById('tt-grade');
-          ttGrade.innerText = found.b.grade.replace('_', ' ');
-          ttGrade.style.color = found.b.grade === 'GRADE_A' ? 'var(--grade-a)' : (found.b.grade === 'URS' ? 'var(--urs)' : 'var(--rejected)');
+          tt.style.display = 'block';
+          const areaRect = canvasArea.getBoundingClientRect();
+          tt.style.left = `${e.clientX - areaRect.left + 14}px`;
+          tt.style.top = `${e.clientY - areaRect.top + 14}px`;
+          document.getElementById('tt-bulb-id').textContent = `Bulb #${found.idx + 1} · ${found.b.mandi_size_grade || '?'}`;
+          document.getElementById('tt-eq').textContent = found.b.equivalent_diameter_mm ? `${found.b.equivalent_diameter_mm.toFixed(1)} mm` : 'uncal.';
+          document.getElementById('tt-mass').textContent = found.b.estimated_weight_grams ? `${found.b.estimated_weight_grams.toFixed(0)} g` : '—';
+          document.getElementById('tt-sg').textContent = found.b.mandi_size_grade || '—';
+          const ttg = document.getElementById('tt-grade');
+          ttg.textContent = (found.b.grade || '—').replace('_', ' ');
+          ttg.style.color = found.b.grade === 'GRADE_A' ? 'var(--grade-a)' : found.b.grade === 'URS' ? 'var(--urs)' : found.b.grade === 'REJECTED' ? 'var(--rejected)' : 'var(--review)';
+          canvas.style.cursor = 'pointer';
         } else {
-          tooltip.style.display = 'none';
+          tt.style.display = 'none';
+          canvas.style.cursor = 'crosshair';
         }
       });
 
       canvas.addEventListener('mouseleave', () => {
-        tooltip.style.display = 'none';
+        document.getElementById('bulb-tooltip').style.display = 'none';
+        canvas.style.cursor = 'crosshair';
       });
 
-      // Click to select bulb
       canvas.addEventListener('click', (e) => {
         if (isDragging) return;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
-
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
         activeBulbs.forEach((b, idx) => {
-          const dx = mouseX - b.x;
-          const dy = mouseY - b.y;
-          if ((dx * dx) / (b.rx * b.rx) + (dy * dy) / (b.ry * b.ry) <= 1) {
-            playAudioClick(880);
+          const dx = mx - b.x, dy = my - b.y;
+          if ((dx*dx)/(b.rx*b.rx) + (dy*dy)/(b.ry*b.ry) <= 1.2) {
+            playClick(880);
             selectBulb(idx);
           }
         });
       });
 
-      // Pan & Zoom
-      canvasWrapper.addEventListener('wheel', (e) => {
+      canvasArea.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        zoomCanvas(delta);
-      });
+        zoomCanvas(e.deltaY > 0 ? -0.1 : 0.1);
+      }, { passive: false });
 
-      canvasWrapper.addEventListener('mousedown', (e) => {
-        if (e.target !== canvas && e.target !== canvasWrapper) return;
+      canvasArea.addEventListener('mousedown', (e) => {
         isDragging = true;
         dragStartX = e.clientX - panX;
         dragStartY = e.clientY - panY;
+        canvas.style.cursor = 'grabbing';
       });
 
       window.addEventListener('mousemove', (e) => {
@@ -1017,49 +1837,305 @@
 
       window.addEventListener('mouseup', () => {
         isDragging = false;
+        canvas.style.cursor = 'crosshair';
       });
     }
 
     function zoomCanvas(delta) {
-      zoomLevel = Math.min(3.0, Math.max(0.6, zoomLevel + delta));
+      zoomLevel = Math.min(4.0, Math.max(0.5, zoomLevel + delta));
       applyTransform();
+      document.getElementById('zoom-display').textContent = `${Math.round(zoomLevel * 100)}%`;
     }
 
     function resetCanvasTransform() {
-      zoomLevel = 1.0;
-      panX = 0;
-      panY = 0;
+      zoomLevel = 1.0; panX = 0; panY = 0;
       applyTransform();
+      document.getElementById('zoom-display').textContent = '100%';
     }
 
     function applyTransform() {
       canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
     }
 
+    // ── Sample demos ───────────────────────────────────────────────────────────
+    function loadSample(type) {
+      playClick(700);
+      const demoOnions = type === 'sprouted' ? [
+        { bbox_x:200, bbox_y:150, bbox_w:120, bbox_h:110, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:55.2, estimated_weight_grams:87, damaged_prob:0.05, rotten_prob:0.02, sprouted_prob:0.04 },
+        { bbox_x:380, bbox_y:160, bbox_w:100, bbox_h:95, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:50.1, estimated_weight_grams:69, damaged_prob:0.08, rotten_prob:0.03, sprouted_prob:0.06 },
+        { bbox_x:560, bbox_y:155, bbox_w:90,  bbox_h:88, grade:'REJECTED', mandi_size_grade:'SUPER', equivalent_diameter_mm:47.5, estimated_weight_grams:58, damaged_prob:0.12, rotten_prob:0.08, sprouted_prob:0.72 },
+        { bbox_x:740, bbox_y:145, bbox_w:95,  bbox_h:90, grade:'REJECTED', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:41.0, estimated_weight_grams:40, damaged_prob:0.15, rotten_prob:0.05, sprouted_prob:0.85 },
+        { bbox_x:300, bbox_y:340, bbox_w:130, bbox_h:120, grade:'URS', mandi_size_grade:'SUPER', equivalent_diameter_mm:57.8, estimated_weight_grams:92, damaged_prob:0.45, rotten_prob:0.04, sprouted_prob:0.08 },
+        { bbox_x:490, bbox_y:350, bbox_w:110, bbox_h:105, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:53.4, estimated_weight_grams:79, damaged_prob:0.06, rotten_prob:0.01, sprouted_prob:0.02 },
+        { bbox_x:660, bbox_y:345, bbox_w:85,  bbox_h:80, grade:'REJECTED', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:39.2, estimated_weight_grams:31, damaged_prob:0.10, rotten_prob:0.06, sprouted_prob:0.91 },
+      ] : [
+        { bbox_x:250, bbox_y:160, bbox_w:130, bbox_h:120, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:58.4, estimated_weight_grams:96, damaged_prob:0.05, rotten_prob:0.01, sprouted_prob:0.01 },
+        { bbox_x:430, bbox_y:155, bbox_w:120, bbox_h:115, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:54.2, estimated_weight_grams:83, damaged_prob:0.08, rotten_prob:0.02, sprouted_prob:0.01 },
+        { bbox_x:610, bbox_y:160, bbox_w:140, bbox_h:130, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:62.1, estimated_weight_grams:112, damaged_prob:0.04, rotten_prob:0.01, sprouted_prob:0.00 },
+        { bbox_x:800, bbox_y:170, bbox_w:80,  bbox_h:75, grade:'URS', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:38.2, estimated_weight_grams:32, damaged_prob:0.40, rotten_prob:0.05, sprouted_prob:0.04 },
+        { bbox_x:220, bbox_y:370, bbox_w:135, bbox_h:124, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:60.7, estimated_weight_grams:106, damaged_prob:0.05, rotten_prob:0.02, sprouted_prob:0.01 },
+        { bbox_x:410, bbox_y:360, bbox_w:115, bbox_h:108, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:52.8, estimated_weight_grams:78, damaged_prob:0.07, rotten_prob:0.02, sprouted_prob:0.00 },
+        { bbox_x:590, bbox_y:375, bbox_w:128, bbox_h:120, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:56.4, estimated_weight_grams:88, damaged_prob:0.06, rotten_prob:0.01, sprouted_prob:0.01 },
+        { bbox_x:780, bbox_y:365, bbox_w:60,  bbox_h:55, grade:'REJECTED', mandi_size_grade:'GOLI', equivalent_diameter_mm:28.5, estimated_weight_grams:16, damaged_prob:0.18, rotten_prob:0.08, sprouted_prob:0.05 },
+        { bbox_x:320, bbox_y:570, bbox_w:124, bbox_h:116, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:55.6, estimated_weight_grams:85, damaged_prob:0.05, rotten_prob:0.01, sprouted_prob:0.00 },
+        { bbox_x:510, bbox_y:565, bbox_w:132, bbox_h:124, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:59.2, estimated_weight_grams:100, damaged_prob:0.04, rotten_prob:0.01, sprouted_prob:0.01 },
+        { bbox_x:700, bbox_y:572, bbox_w:120, bbox_h:118, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:53.0, estimated_weight_grams:77, damaged_prob:0.07, rotten_prob:0.02, sprouted_prob:0.01 },
+      ];
+
+      // Normalize bbox to center
+      activeBulbs = demoOnions.map(o => ({
+        ...o,
+        x: o.bbox_x + o.bbox_w / 2,
+        y: o.bbox_y + o.bbox_h / 2,
+        rx: o.bbox_w / 2,
+        ry: o.bbox_h / 2,
+      }));
+
+      canvas.width = 1000;
+      canvas.height = 750;
+      ctx.fillStyle = '#090909';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+      for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+      // ChArUco board
+      for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 5; j++) {
+          ctx.fillStyle = (i+j)%2===0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+          ctx.fillRect(50 + i*24, 50 + j*24, 24, 24);
+        }
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(50, 50, 168, 120);
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('ChArUco 7×5 · 40mm', 52, 188);
+
+      drawBulbs();
+      populateTelemetry(activeBulbs.map(o => ({...o, grade: o.grade})));
+
+      document.getElementById('scale-bar').textContent =
+        type === 'healthy'
+          ? '0.3214 mm/px · ChArUco locked · BIS IS 17912:2022'
+          : 'Calibration marker not detected — estimates uncalibrated';
+
+      document.getElementById('sb-seg').textContent = type === 'healthy' ? 'Calibrated' : 'Uncalibrated';
+      document.getElementById('sb-dims').textContent = '1000×750';
+      document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
+
+      showInspector();
+    }
+
     function handleUpload(e) {
-      playAudioClick(600);
       const file = e.target.files[0];
       if (!file) return;
+      playClick(600);
       const reader = new FileReader();
-      reader.onload = function(evt) {
-        currentImg.onload = function() {
-          canvas.width = currentImg.width;
-          canvas.height = currentImg.height;
-          ctx.drawImage(currentImg, 0, 0);
-          document.getElementById('telemetry-tag').innerText = `Uploaded Spread: ${file.name} (${currentImg.width}x${currentImg.height}px)`;
+      reader.onload = evt => {
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          ctx.drawImage(img, 0, 0);
+          activeBulbs = [];
+          document.getElementById('scale-bar').textContent = `Uploaded: ${file.name} (${img.naturalWidth}×${img.naturalHeight})`;
+          document.getElementById('sb-dims').textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+          showInspector();
+          showToast('Image loaded — use the API or upload via Mobile app to run AI inspection', 'info');
         };
-        currentImg.src = evt.target.result;
+        img.src = evt.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    function downloadOfficialReport() {
-      playAudioClick(900, 0.03);
-      window.open('/api/v1/health', '_blank');
-      alert('Official NAFED PDF Inspection Certificate is being generated and downloaded!');
+    // ── Modal ──────────────────────────────────────────────────────────────────
+    function openModal() {
+      document.getElementById('modal-backdrop').classList.add('open');
+      setTimeout(() => document.getElementById('f-lot-id').focus(), 120);
     }
 
-    window.onload = initSample;
+    function closeModal(e) {
+      if (e && e.target !== document.getElementById('modal-backdrop')) return;
+      document.getElementById('modal-backdrop').classList.remove('open');
+    }
+
+    function handleModalFile(input) {
+      modalFile = input.files[0];
+      document.getElementById('upload-label').textContent = modalFile ? modalFile.name : 'Attach Sample Photo';
+    }
+
+    async function createInspection() {
+      const lotId = document.getElementById('f-lot-id').value.trim();
+      const centre = document.getElementById('f-centre').value.trim();
+      const officer = document.getElementById('f-officer').value.trim();
+
+      if (!lotId) {
+        document.getElementById('f-lot-id').focus();
+        showToast('Lot ID is required', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-create');
+      btn.textContent = 'Creating…';
+      btn.disabled = true;
+
+      try {
+        const r = await fetch(`${BASE}/api/v1/inspections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lot_id: lotId,
+            procurement_centre: centre || 'Mandi',
+            officer_name: officer || 'Officer',
+            officer_id: document.getElementById('f-officer-id').value.trim() || 'NAFED-001',
+            notes: document.getElementById('f-notes').value.trim(),
+          }),
+        });
+
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const insp = await r.json();
+
+        // Upload sample if file attached
+        if (modalFile) {
+          const formData = new FormData();
+          formData.append('file', modalFile, modalFile.name);
+          const ur = await fetch(`${BASE}/api/v1/inspections/${insp.id}/samples`, {
+            method: 'POST',
+            body: formData,
+          });
+          if (ur.ok) {
+            showToast('Inspection created and sample uploaded — AI processing complete', 'success');
+          } else {
+            showToast('Inspection created. Sample upload failed.', 'info');
+          }
+        } else {
+          showToast('Inspection created', 'success');
+        }
+
+        document.getElementById('modal-backdrop').classList.remove('open');
+        await loadInspections();
+        selectInspection(insp.id);
+
+        // Reset form
+        ['f-lot-id','f-centre','f-officer','f-officer-id','f-notes'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('upload-label').textContent = 'Attach Sample Photo';
+        modalFile = null;
+
+      } catch(e) {
+        showToast('Failed to create inspection: ' + e.message, 'error');
+      } finally {
+        btn.textContent = 'Create Inspection';
+        btn.disabled = false;
+      }
+    }
+
+    // ── Report / Finalize ──────────────────────────────────────────────────────
+    async function downloadReport() {
+      if (!selectedInspectionId) { showToast('Select an inspection first', 'info'); return; }
+      playClick(900, 0.025);
+      try {
+        const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/reports/pdf`);
+        if (!r.ok) {
+          // Try creating the report first
+          await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/reports`, { method: 'POST' });
+          const r2 = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/reports/pdf`);
+          if (!r2.ok) throw new Error('Report generation failed');
+          const blob = await r2.blob();
+          downloadBlob(blob, `CEPA-Inspection-${selectedInspectionId.slice(0,8)}.pdf`);
+        } else {
+          const blob = await r.blob();
+          downloadBlob(blob, `CEPA-Inspection-${selectedInspectionId.slice(0,8)}.pdf`);
+        }
+        showToast('PDF certificate downloaded', 'success');
+      } catch(e) {
+        showToast('Report unavailable: ' + e.message, 'error');
+      }
+    }
+
+    function downloadBlob(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function finalizeInspection() {
+      if (!selectedInspectionId) { showToast('Select an inspection first', 'info'); return; }
+      playClick(800);
+      try {
+        const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/finalize`, { method: 'POST' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        showToast('Inspection certified and finalized', 'success');
+        await loadInspections();
+        renderList();
+      } catch(e) {
+        showToast('Finalization failed: ' + e.message, 'error');
+      }
+    }
+
+    // ── Utils ──────────────────────────────────────────────────────────────────
+    function esc(str) {
+      return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const colorMap = { success: 'var(--online)', error: 'var(--rejected)', info: 'var(--review)' };
+      toast.innerHTML = `<span class="toast-icon" style="background:${colorMap[type]}"></span><span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function playClick(freq = 800, dur = 0.015) {
+      try {
+        const a = new (window.AudioContext || window.webkitAudioContext)();
+        const o = a.createOscillator();
+        const g = a.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, a.currentTime);
+        g.gain.setValueAtTime(0.03, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+        o.connect(g); g.connect(a.destination);
+        o.start(); o.stop(a.currentTime + dur);
+      } catch(e) {}
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); openModal(); }
+      if (e.key === 'Escape') { document.getElementById('modal-backdrop').classList.remove('open'); }
+      if (e.key === '=' || e.key === '+') zoomCanvas(0.1);
+      if (e.key === '-') zoomCanvas(-0.1);
+      if (e.key === '0') resetCanvasTransform();
+      if (e.key === 'ArrowRight' && activeBulbs.length > 0) { playClick(700); selectBulb((selectedBulbIndex + 1) % activeBulbs.length); }
+      if (e.key === 'ArrowLeft' && activeBulbs.length > 0) { playClick(700); selectBulb((selectedBulbIndex - 1 + activeBulbs.length) % activeBulbs.length); }
+    });
+
+    // Load demo on start
+    setTimeout(() => {
+      if (!selectedInspectionId) {
+        loadSample('healthy');
+        showInspector();
+      }
+    }, 1500);
   </script>
 </body>
 </html>
