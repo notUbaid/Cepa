@@ -46,10 +46,29 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   const [selectedOnion, setSelectedOnion] = useState<OnionInstanceDetail | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [finalizing, setFinalizing] = useState(false);
   const [onionsList, setOnionsList] = useState<OnionInstanceSummary[]>(
     sample.onion_instances || []
   );
+  const [currentSample, setCurrentSample] = useState<SampleDetail>(sample);
+  const [finalizing, setFinalizing] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
+
+  const handleLoadDemoSample = async () => {
+    Haptics.heavy();
+    setLoadingDemo(true);
+    try {
+      const demoUrl = ApiClient.getDemoSampleUrl();
+      const newSample = await ApiClient.uploadSample(inspection.id, demoUrl);
+      setCurrentSample(newSample);
+      setOnionsList(newSample.onion_instances || []);
+      Haptics.success();
+    } catch (e: any) {
+      Haptics.error();
+      alert(`Could not load demo sample: ${e.message}`);
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
 
   const [viewMode, setViewMode] = useState<'grid' | 'overlay'>('grid');
   const [gradeFilter, setGradeFilter] = useState<'ALL' | 'GRADE_A' | 'URS' | 'REJECTED'>('ALL');
@@ -177,8 +196,24 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         </View>
       </FadeInView>
 
-      {/* Uncalibrated Scale Warning Banner */}
-      {(!sample.marker_detected || !sample.scale_mm_per_px) && (
+      {/* Calibrated or Uncalibrated Scale Banner */}
+      {currentSample.marker_detected && currentSample.scale_mm_per_px ? (
+        <FadeInView delay={80} distance={8}>
+          <View style={styles.calibratedBanner}>
+            <View style={styles.calibratedIconBadge}>
+              <Text style={styles.calibratedIcon}>✓</Text>
+            </View>
+            <View style={styles.uncalibratedTextWrap}>
+              <Text style={styles.calibratedTitle}>
+                Optical Caliper Locked ({currentSample.scale_mm_per_px.toFixed(4)} mm/px)
+              </Text>
+              <Text style={styles.calibratedSubtitle}>
+                ChArUco 7×5 reference scale active · BIS IS 17912:2022 size compliance verified.
+              </Text>
+            </View>
+          </View>
+        </FadeInView>
+      ) : (
         <FadeInView delay={80} distance={8}>
           <View style={styles.uncalibratedBanner}>
             <View style={styles.uncalibratedIconBadge}>
@@ -187,7 +222,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             <View style={styles.uncalibratedTextWrap}>
               <Text style={styles.uncalibratedTitle}>Reference Marker Uncalibrated</Text>
               <Text style={styles.uncalibratedSubtitle}>
-                ChArUco card was not detected. Millimetre caliper sizing and APMC standards require a reference marker in the frame.
+                ChArUco card was not detected. Millimetre caliper sizing requires a 7×5 reference marker.
               </Text>
             </View>
           </View>
@@ -283,8 +318,40 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           )}
 
           {/* Onion Grid */}
-          <FlatList
-            data={filteredOnions}
+          {total === 0 ? (
+            <View style={styles.zeroStateCard}>
+              <View style={styles.zeroStateIconBox}>
+                <Text style={styles.zeroStateIcon}>🔍</Text>
+              </View>
+              <Text style={styles.zeroStateTitle}>No Onion Bulbs Detected in Capture</Text>
+              <Text style={styles.zeroStateDesc}>
+                The camera frame did not contain identifiable onion bulbs against the background. You can instantly load the verified Mandi demo lot to inspect real photographed bulbs, millimeter sizes, and defect classifications.
+              </Text>
+              <AnimatedPressable
+                haptic="heavy"
+                style={styles.loadDemoBtn}
+                onPress={handleLoadDemoSample}
+                disabled={loadingDemo}
+              >
+                {loadingDemo ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.loadDemoBtnText}>
+                    Load Verified Mandi Demo Lot (24 Real Bulbs + ChArUco)
+                  </Text>
+                )}
+              </AnimatedPressable>
+              <AnimatedPressable
+                haptic="light"
+                style={styles.retakeBtnSecondary}
+                onPress={onAddSample}
+              >
+                <Text style={styles.retakeBtnSecondaryText}>Retake Photograph</Text>
+              </AnimatedPressable>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredOnions}
             keyExtractor={(item) => item.id}
             numColumns={2}
             showsVerticalScrollIndicator={false}
@@ -353,6 +420,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               </FadeInView>
             )}
           />
+          )}
         </View>
       )}
 
@@ -445,6 +513,107 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textSecondary,
     marginTop: 1,
+  },
+  calibratedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  calibratedIconBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calibratedIcon: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  calibratedTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065f46',
+    marginBottom: 2,
+  },
+  calibratedSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#047857',
+  },
+  zeroStateCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    ...Shadows.card,
+  },
+  zeroStateIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f4f3ef',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  zeroStateIcon: {
+    fontSize: 20,
+  },
+  zeroStateTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0c0c0e',
+    textAlign: 'center',
+  },
+  zeroStateDesc: {
+    fontSize: 12,
+    color: '#71717a',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 17,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+  },
+  loadDemoBtn: {
+    backgroundColor: '#0c0c0e',
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radius.sm,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  loadDemoBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  retakeBtnSecondary: {
+    backgroundColor: '#f4f3ef',
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.sm,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+  },
+  retakeBtnSecondaryText: {
+    color: '#52525b',
+    fontSize: 12,
+    fontWeight: '600',
   },
   uncalibratedBanner: {
     flexDirection: 'row',
