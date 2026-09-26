@@ -44,7 +44,7 @@ size:
 # Defect is considered PRESENT when probability >= threshold.
 # These are sigmoid probabilities from the multi-label classifier.
 defect_thresholds:
-  damaged_threshold: 0.50
+  damaged_threshold: 0.80
   rotten_threshold: 0.50
   sprouted_threshold: 0.50
 

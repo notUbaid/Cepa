@@ -283,6 +283,41 @@ def run_pipeline(
                         grading.explanation["double_bulb"] = (
                             f"Twin/double bulb detected (concavity depth {morph.max_concavity_depth_px:.1f}px). Disqualified from Grade A."
                         )
+
+                # ── Chromatic Black Mold (Aspergillus niger) Override ────────
+                # The neural defect classifier mislabels Aspergillus black soot as
+                # 'damaged' rather than 'rotten'. The CIELAB L* < 42 + HSV V < 45
+                # chromatic threshold in advanced_features is more reliable for
+                # identifying low-luminance soot patches (Aspergillus niger).
+                # When significant black mold is detected (>10% surface area),
+                # we elevate rotten_prob to 0.90, triggering ROTTEN hard rejection.
+                # Agronomically correct: Aspergillus renders onions unmarketable
+                # in all NAFED/NCCF procurement categories.
+                if morph.black_mold_pct >= 10.0 and defect_pred is not None:
+                    boosted_rotten = max(defect_pred.rotten_prob, 0.90)
+                    from cv.defect_classifier import DefectPrediction as _DP
+                    defect_pred = _DP(
+                        damaged_prob=defect_pred.damaged_prob,
+                        rotten_prob=boosted_rotten,
+                        sprouted_prob=defect_pred.sprouted_prob,
+                        model_version=defect_pred.model_version + "+chromatic-mold",
+                        is_mock=defect_pred.is_mock,
+                    )
+                    # Re-evaluate grading with boosted rotten_prob
+                    grading = grading_engine.evaluate_bulb(
+                        size_estimate=size_est,
+                        defect_prediction=defect_pred,
+                        confidence=confidence,
+                    )
+                    grading.explanation["black_mold_override"] = (
+                        f"Aspergillus niger soot: {morph.black_mold_pct:.1f}% surface area "
+                        f"(L*<42 & V<45 CIELAB/HSV). rotten_prob elevated to {boosted_rotten:.2f} → ROTTEN."
+                    )
+                    logger.info(
+                        "Instance %d: black mold chromatic override %.1f%% → rotten_prob=%.2f",
+                        idx, morph.black_mold_pct, boosted_rotten,
+                    )
+
                 # Attach morphology telemetry to explanation
                 grading.explanation["circularity"] = f"{morph.circularity:.3f}"
                 grading.explanation["surface_stain_pct"] = f"{morph.surface_stain_pct:.1f}%"
@@ -304,6 +339,7 @@ def run_pipeline(
                         grading.explanation["mandi_size_grade"] = size_est.mandi_size_grade
             except Exception:
                 logger.debug("Morphology analysis skipped for instance %d", idx)
+
 
         instance_results.append(InstancePipelineResult(
             detection=det,
