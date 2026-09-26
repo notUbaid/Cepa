@@ -94,11 +94,69 @@ def _extract_defect_probs(defect):
     return defect.damaged_prob, defect.rotten_prob, defect.sprouted_prob
 
 
+def _get_bulb_storage_profile(inst):
+    from cv.shelf_life import assess_bulb_storageability
+    meas = inst.measurement
+    defect = inst.defect_observation
+    clf = inst.classification_result
+    damaged_p, rotten_p, sprouted_p = _extract_defect_probs(defect)
+
+    explanation = {}
+    rejection_reasons = []
+    if clf:
+        try:
+            explanation = json.loads(clf.explanation or "{}")
+        except Exception:
+            pass
+        try:
+            rejection_reasons = json.loads(clf.rejection_reasons or "[]")
+        except Exception:
+            pass
+
+    def _parse_pct(val):
+        if not val:
+            return 0.0
+        try:
+            return float(str(val).replace("%", "").strip())
+        except Exception:
+            return 0.0
+
+    def _parse_flt(val, default=1.0):
+        if not val:
+            return default
+        try:
+            return float(val)
+        except Exception:
+            return default
+
+    black_mold_pct = _parse_pct(explanation.get("black_mold_pct"))
+    skin_baldness_pct = _parse_pct(explanation.get("skin_baldness_pct"))
+    circularity = _parse_flt(explanation.get("circularity"), default=0.90)
+    is_double = "DOUBLE_BULB" in rejection_reasons
+
+    diam = None
+    if meas:
+        diam = meas.equatorial_diameter_mm or meas.equivalent_diameter_mm
+
+    return assess_bulb_storageability(
+        bulb_index=inst.instance_index,
+        diameter_mm=diam,
+        black_mold_pct=black_mold_pct,
+        skin_baldness_pct=skin_baldness_pct,
+        circularity=circularity,
+        is_double_bulb=is_double,
+        rotten_prob=rotten_p or 0.0,
+        sprouted_prob=sprouted_p or 0.0,
+        damaged_prob=damaged_p or 0.0,
+    )
+
+
 def _onion_to_summary(inst) -> OnionInstanceSummary:
     meas = inst.measurement
     defect = inst.defect_observation
     clf = inst.classification_result
     damaged_p, rotten_p, sprouted_p = _extract_defect_probs(defect)
+    storage_prof = _get_bulb_storage_profile(inst)
     return OnionInstanceSummary(
         id=inst.id,
         instance_index=inst.instance_index,
@@ -121,6 +179,8 @@ def _onion_to_summary(inst) -> OnionInstanceSummary:
         is_mock_defect=defect.is_mock if defect else True,
         grade=clf.grade if clf else None,
         confidence_tier=clf.confidence_tier if clf else None,
+        storageability_score=storage_prof.storageability_score,
+        storage_tier=storage_prof.storage_tier,
         crop_url=path_to_url(inst.crop_path),
         mask_url=path_to_url(inst.mask_path),
     )
@@ -155,6 +215,8 @@ def _onion_to_detail(inst) -> OnionInstanceDetail:
         "double_bulb": "DOUBLE_BULB" in rejection_reasons,
     }
 
+    storage_prof = _get_bulb_storage_profile(inst)
+
     return OnionInstanceDetail(
         id=inst.id,
         instance_index=inst.instance_index,
@@ -175,6 +237,10 @@ def _onion_to_detail(inst) -> OnionInstanceDetail:
         has_human_correction=defect.human_correction is not None if defect else False,
         corrected_by=defect.corrected_by if defect else None,
         morphology=morph_dict,
+        storageability_score=storage_prof.storageability_score,
+        shelf_life_days_est=storage_prof.shelf_life_days_est,
+        storage_tier=storage_prof.storage_tier,
+        decay_risk_factors=storage_prof.decay_risk_factors,
         equivalent_diameter_mm=meas.equivalent_diameter_mm if meas else None,
         major_axis_mm=meas.major_axis_mm if meas else None,
         minor_axis_mm=meas.minor_axis_mm if meas else None,
@@ -329,6 +395,48 @@ def _sample_to_detail(sample) -> SampleDetail:
             flags = json.loads(sample.quality_flags)
         except Exception:
             pass
+
+    # Post-harvest storage advisory
+    storage_profiles = [_get_bulb_storage_profile(i) for i in sample.onion_instances]
+    from cv.shelf_life import compute_lot_storage_advisory
+    storage_adv = compute_lot_storage_advisory(storage_profiles)
+
+    # Counts for commercial settlement
+    total_b = len(sample.onion_instances)
+    grade_a_cnt = sum(1 for i in sample.onion_instances if i.classification_result and i.classification_result.grade == "GRADE_A")
+    urs_cnt = sum(1 for i in sample.onion_instances if i.classification_result and i.classification_result.grade == "URS")
+    rej_cnt = sum(1 for i in sample.onion_instances if i.classification_result and i.classification_result.grade == "REJECTED")
+
+    rot_cnt = 0
+    sprout_cnt = 0
+    under_cnt = 0
+    over_cnt = 0
+    for i in sample.onion_instances:
+        d, r, s = _extract_defect_probs(i.defect_observation)
+        if (r or 0) >= 0.50:
+            rot_cnt += 1
+        if (s or 0) >= 0.50:
+            sprout_cnt += 1
+        if i.measurement:
+            diam = i.measurement.equatorial_diameter_mm or i.measurement.equivalent_diameter_mm
+            if diam and diam < 45.0:
+                under_cnt += 1
+            elif diam and diam > 65.0:
+                over_cnt += 1
+
+    from grading.commercial import calculate_mandi_settlement
+    settlement = calculate_mandi_settlement(
+        total_bulbs=total_b,
+        grade_a_count=grade_a_cnt,
+        urs_count=urs_cnt,
+        rejected_count=rej_cnt,
+        rotten_count=rot_cnt,
+        sprouted_count=sprout_cnt,
+        undersized_count=under_cnt,
+        oversized_count=over_cnt,
+        storageability_score=storage_adv.mean_storageability_score,
+    )
+
     return SampleDetail(
         id=sample.id,
         inspection_id=sample.inspection_id,
@@ -355,6 +463,8 @@ def _sample_to_detail(sample) -> SampleDetail:
         created_at=sample.created_at,
         onion_count=len(sample.onion_instances),
         onion_instances=[_onion_to_summary(i) for i in sample.onion_instances],
+        storage_advisory=storage_adv.as_dict(),
+        commercial_settlement=settlement.as_dict(),
     )
 
 

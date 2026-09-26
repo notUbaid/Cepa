@@ -103,11 +103,22 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
     );
   }
 
-  // Commercial rate deduction calculation (NAFED MSP 2024-2026: ₹1,800/qtl base)
-  const baseMsp = 1800;
-  const rejectPct = report.rejected_pct;
-  const dockageRate = rejectPct > 5.0 ? Math.min(350, (rejectPct - 5.0) * 25) : 0;
-  const netProcurementPayout = Math.max(800, baseMsp - dockageRate);
+  // Commercial Settlement Data
+  const commercial = report.commercial_settlement || {};
+  const baseMsp = commercial.base_msp_inr_per_qtl ?? 2410.0;
+  const netRate = commercial.net_payout_rate_inr_per_qtl ?? 2410.0;
+  const totalDockage = commercial.total_dockage_inr_per_qtl ?? 0.0;
+  const settlementTier = (commercial.settlement_tier ?? 'FULL_MSP_PAYOUT').replace(/_/g, ' ');
+  const netLotPayout = commercial.estimated_net_payout_inr ?? (netRate * 50);
+  const dockageItems: any[] = commercial.dockage_items ?? [];
+
+  // Cold Storage Preservation Advisory
+  const storageAdv = report.storage_advisory || {};
+  const storageScore = storageAdv.mean_storageability_score ?? 85.0;
+  const storageRec = (storageAdv.storage_recommendation ?? 'BUFFER_STOCK_PREMIUM').replace(/_/g, ' ');
+  const storageDays = storageAdv.recommended_max_storage_days ?? 90;
+  const storageRisk = storageAdv.respiration_risk_level ?? 'LOW';
+  const storageAction = storageAdv.recommended_action ?? 'Approved for ventilated cold storage.';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -203,26 +214,147 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         </View>
       </FadeInView>
 
-      {/* Commercial NAFED Settlement Calculator */}
-      <FadeInView delay={200} distance={12}>
+      {/* Cold Storage Preservation Advisory */}
+      <FadeInView delay={180} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>Commercial Settlement Estimate</Text>
-          <View style={styles.settlementGrid}>
-            <View style={styles.settlementRow}>
-              <Text style={styles.settlementLabel}>Benchmark MSP (Nashik FAQ):</Text>
-              <Text style={styles.settlementValue}>₹{baseMsp.toLocaleString()}/qtl</Text>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.cardSectionTag}>ICAR-DOGR POST-HARVEST BIOLOGY</Text>
+              <Text style={styles.sectionHeaderTitle}>Cold Storage Survival Horizon</Text>
             </View>
-            <View style={styles.settlementRow}>
-              <Text style={styles.settlementLabel}>Dockage Deduction ({rejectPct.toFixed(1)}% Rejection):</Text>
-              <Text style={[styles.settlementValue, { color: dockageRate > 0 ? Colors.reject : Colors.text }]}>
-                {dockageRate > 0 ? `- ₹${dockageRate.toFixed(0)}/qtl` : '₹0/qtl (Full FAQ Pass)'}
+            <View
+              style={[
+                styles.storageTierBadge,
+                storageScore >= 80
+                  ? styles.storageTierBadgeGood
+                  : storageScore >= 60
+                  ? styles.storageTierBadgeWarn
+                  : styles.storageTierBadgeDanger,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.storageTierText,
+                  storageScore >= 80
+                    ? styles.storageTierTextGood
+                    : storageScore >= 60
+                    ? styles.storageTierTextWarn
+                    : styles.storageTierTextDanger,
+                ]}
+              >
+                {storageRec}
               </Text>
             </View>
-            <View style={[styles.settlementRow, styles.payoutRow]}>
-              <Text style={styles.payoutLabel}>Net Procurement Payout:</Text>
-              <Text style={styles.payoutValue}>₹{netProcurementPayout.toFixed(0)}/qtl</Text>
+          </View>
+
+          <View style={styles.storageScoreHeroRow}>
+            <View style={styles.storageScoreBox}>
+              <Text style={styles.storageScoreLarge}>{storageScore.toFixed(0)}</Text>
+              <Text style={styles.storageScoreOutOf}>/100</Text>
+            </View>
+            <View style={styles.storageHorizonBox}>
+              <Text style={styles.storageHorizonLabel}>MAX SAFE STORAGE</Text>
+              <Text style={styles.storageHorizonDays}>{storageDays} Days</Text>
+              <Text style={styles.storageHorizonSub}>0–2°C, 65–70% RH Cold Chamber</Text>
             </View>
           </View>
+
+          <View style={styles.storageBiomarkerRow}>
+            <View style={styles.biomarkerItem}>
+              <Text style={styles.biomarkerLabel}>RESPIRATION</Text>
+              <Text
+                style={[
+                  styles.biomarkerVal,
+                  storageRisk === 'LOW'
+                    ? { color: Colors.accentTeal }
+                    : storageRisk === 'MEDIUM'
+                    ? { color: Colors.urs }
+                    : { color: Colors.reject },
+                ]}
+              >
+                {storageRisk}
+              </Text>
+            </View>
+            <View style={styles.biomarkerItem}>
+              <Text style={styles.biomarkerLabel}>BLACK MOLD</Text>
+              <Text style={styles.biomarkerVal}>
+                {storageAdv.mean_black_mold_area_pct !== undefined
+                  ? `${storageAdv.mean_black_mold_area_pct.toFixed(2)}%`
+                  : '0.00%'}
+              </Text>
+            </View>
+            <View style={styles.biomarkerItem}>
+              <Text style={styles.biomarkerLabel}>TUNIC COVER</Text>
+              <Text style={styles.biomarkerVal}>
+                {storageAdv.mean_tunic_retention_pct !== undefined
+                  ? `${storageAdv.mean_tunic_retention_pct.toFixed(1)}%`
+                  : '94.2%'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.directiveBanner}>
+            <Text style={styles.directiveTag}>NAFED ALLOCATION DIRECTIVE</Text>
+            <Text style={styles.directiveText}>{storageAction}</Text>
+          </View>
+        </View>
+      </FadeInView>
+
+      {/* Commercial APMC Mandi Settlement Calculator */}
+      <FadeInView delay={220} distance={12}>
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.cardSectionTag}>APMC MANDI / PSF PROTOCOL</Text>
+              <Text style={styles.sectionHeaderTitle}>Commercial Settlement Slip</Text>
+            </View>
+            <View style={styles.tierPill}>
+              <Text style={styles.tierPillText}>{settlementTier}</Text>
+            </View>
+          </View>
+
+          <View style={styles.payoutHighlightRow}>
+            <View style={styles.payoutMetricBlock}>
+              <Text style={styles.payoutMetricLabel}>NET PAYOUT RATE</Text>
+              <Text style={styles.payoutRateVal}>₹{netRate.toFixed(2)}</Text>
+              <Text style={styles.payoutMetricSub}>per Quintal (100 kg)</Text>
+            </View>
+            <View style={styles.payoutDivider} />
+            <View style={styles.payoutMetricBlock}>
+              <Text style={styles.payoutMetricLabel}>EST. LOT PAYOUT</Text>
+              <Text style={styles.payoutTotalVal}>
+                ₹{netLotPayout.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </Text>
+              <Text style={styles.payoutMetricSub}>50 Qtl Consignment</Text>
+            </View>
+          </View>
+
+          <View style={styles.mspBenchmarkRow}>
+            <Text style={styles.mspBenchmarkLabel}>Benchmark MSP (Price Stabilisation Fund):</Text>
+            <Text style={styles.mspBenchmarkValue}>₹{baseMsp.toFixed(2)} / qtl</Text>
+          </View>
+
+          {dockageItems.length > 0 && (
+            <View style={styles.dockageSubSection}>
+              <View style={styles.dockageSubHeader}>
+                <Text style={styles.dockageSubTitle}>FAQ Quality Dockage Deductions</Text>
+                <Text style={styles.totalDockageBadge}>- ₹{totalDockage.toFixed(2)} / qtl</Text>
+              </View>
+              {dockageItems.map((item: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[styles.dockageItemRow, idx % 2 === 1 && styles.dockageItemRowAlt]}
+                >
+                  <Text style={styles.dockageItemName}>{item.description || item.code}</Text>
+                  <Text style={styles.dockageItemRate}>
+                    {item.deduction_inr_per_qtl > 0
+                      ? `- ₹${item.deduction_inr_per_qtl.toFixed(2)}`
+                      : '₹0.00'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </FadeInView>
 
@@ -259,12 +391,12 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         </View>
       </FadeInView>
 
-      {/* Share / Verification Link Card */}
+      {/* Share / Verification Link Card with SHA-256 Hash */}
       <FadeInView delay={300} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>Online Verification & Audit</Text>
+          <Text style={styles.sectionHeaderTitle}>Online Verification & Cryptographic Audit</Text>
           <Text style={styles.shareDesc}>
-            Mandi commissioners and farmers can view this immutable inspection audit online:
+            NAFED gate officers and farmers verify this appraisal via tamper-proof QR code scan:
           </Text>
           <AnimatedPressable
             haptic="selection"
@@ -275,6 +407,15 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
               {report.share_url}
             </Text>
           </AnimatedPressable>
+
+          {report.integrity_hash && (
+            <View style={styles.hashContainer}>
+              <Text style={styles.hashLabel}>SHA-256 INTEGRITY STAMP</Text>
+              <Text style={styles.hashValue} numberOfLines={1}>
+                {report.integrity_hash}
+              </Text>
+            </View>
+          )}
         </View>
       </FadeInView>
 
@@ -636,5 +777,287 @@ const styles = StyleSheet.create({
   retryBtnText: {
     color: Colors.text,
     fontWeight: '700',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  cardSectionTag: {
+    fontSize: 9.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.accentTeal,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  storageTierBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+  },
+  storageTierBadgeGood: {
+    backgroundColor: 'rgba(15, 118, 110, 0.1)',
+    borderColor: 'rgba(15, 118, 110, 0.3)',
+  },
+  storageTierBadgeWarn: {
+    backgroundColor: 'rgba(217, 119, 6, 0.1)',
+    borderColor: 'rgba(217, 119, 6, 0.3)',
+  },
+  storageTierBadgeDanger: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  storageTierText: {
+    fontSize: 10,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    letterSpacing: 0.3,
+  },
+  storageTierTextGood: { color: Colors.accentTeal },
+  storageTierTextWarn: { color: Colors.urs },
+  storageTierTextDanger: { color: Colors.reject },
+  storageScoreHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  storageScoreBox: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginRight: Spacing.lg,
+    paddingRight: Spacing.md,
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+  },
+  storageScoreLarge: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: Colors.text,
+    fontFamily: 'monospace',
+  },
+  storageScoreOutOf: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    fontFamily: 'monospace',
+    marginLeft: 2,
+  },
+  storageHorizonBox: {
+    flex: 1,
+  },
+  storageHorizonLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 0.4,
+  },
+  storageHorizonDays: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.accentTeal,
+    marginVertical: 1,
+  },
+  storageHorizonSub: {
+    fontSize: 10.5,
+    color: Colors.textSecondary,
+  },
+  storageBiomarkerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  biomarkerItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  biomarkerLabel: {
+    fontSize: 8.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  biomarkerVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    color: Colors.text,
+  },
+  directiveBanner: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accentTeal,
+  },
+  directiveTag: {
+    fontSize: 8.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    marginBottom: 2,
+  },
+  directiveText: {
+    fontSize: 11.5,
+    color: Colors.text,
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  tierPill: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tierPillText: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.accentTeal,
+  },
+  payoutHighlightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginVertical: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  payoutMetricBlock: {
+    flex: 1,
+  },
+  payoutDivider: {
+    width: 1,
+    height: '80%',
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing.md,
+  },
+  payoutMetricLabel: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.4,
+  },
+  payoutRateVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.accentTeal,
+    fontFamily: 'monospace',
+    marginVertical: 2,
+  },
+  payoutTotalVal: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.text,
+    fontFamily: 'monospace',
+    marginVertical: 2,
+  },
+  payoutMetricSub: {
+    fontSize: 10,
+    color: Colors.textDim,
+  },
+  mspBenchmarkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+  },
+  mspBenchmarkLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  mspBenchmarkValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: Colors.textSecondary,
+  },
+  dockageSubSection: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+  },
+  dockageSubHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  dockageSubTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  totalDockageBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    color: Colors.reject,
+  },
+  dockageItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    borderRadius: Radius.xs,
+  },
+  dockageItemRowAlt: {
+    backgroundColor: Colors.cardBgElevated,
+  },
+  dockageItemName: {
+    fontSize: 11,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  dockageItemRate: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.reject,
+  },
+  hashContainer: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  hashLabel: {
+    fontSize: 8.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  hashValue: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: Colors.accentTeal,
+    fontWeight: '600',
   },
 });

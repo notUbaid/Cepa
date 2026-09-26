@@ -5,6 +5,7 @@ import {
   ImageResizeMode,
   ImageSourcePropType,
   ImageStyle,
+  StyleProp,
   StyleSheet,
   Text,
   View,
@@ -15,8 +16,8 @@ import { Colors, Radius } from './Theme';
 
 interface LazyImageProps {
   source: ImageSourcePropType | { uri: string | null | undefined };
-  style?: ImageStyle;
-  containerStyle?: ViewStyle;
+  style?: StyleProp<ImageStyle>;
+  containerStyle?: StyleProp<ViewStyle>;
   resizeMode?: ImageResizeMode;
   fallbackText?: string;
   borderRadius?: number;

@@ -40,6 +40,10 @@ class SampleDetail(BaseModel):
     onion_count: int = 0
     onion_instances: list["OnionInstanceSummary"] = Field(default_factory=list)
 
+    # Post-harvest storage advisory & Mandi commercial settlement
+    storage_advisory: dict | None = None
+    commercial_settlement: dict | None = None
+
 
 # ── OnionInstance schemas ──────────────────────────────────────────────────────
 
@@ -70,6 +74,8 @@ class OnionInstanceSummary(BaseModel):
     is_mock_defect: bool = True
     grade: str | None = None              # GRADE_A | URS | REJECTED | NEEDS_REVIEW
     confidence_tier: str | None = None    # HIGH | NEEDS_REVIEW | UNUSABLE
+    storageability_score: float | None = None
+    storage_tier: str | None = None
 
     # Image evidence URLs (constructed by service layer from paths)
     crop_url: str | None = None
@@ -101,6 +107,12 @@ class OnionInstanceDetail(BaseModel):
     has_human_correction: bool = False
     corrected_by: str | None = None
     morphology: dict = Field(default_factory=dict)
+
+    # Post-harvest storage assessment
+    storageability_score: float | None = None
+    shelf_life_days_est: int | None = None
+    storage_tier: str | None = None
+    decay_risk_factors: list[str] = Field(default_factory=list)
 
     # Measurement
     equivalent_diameter_mm: float | None

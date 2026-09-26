@@ -56,6 +56,8 @@ export interface OnionInstanceSummary {
   is_mock_defect: boolean;
   grade: ClassificationGrade | null;
   confidence_tier: ConfidenceTier | null;
+  storageability_score?: number | null;
+  storage_tier?: string | null;
   crop_url: string | null;
   mask_url: string | null;
 }
@@ -67,6 +69,8 @@ export interface OnionInstanceDetail extends OnionInstanceSummary {
   major_axis_mm: number | null;
   minor_axis_mm: number | null;
   shape_index?: number | null;
+  shelf_life_days_est?: number | null;
+  decay_risk_factors?: string[];
   mask_area_px: number | null;
   scale_mm_per_px: number | null;
   projection_note: string | null;
@@ -103,6 +107,8 @@ export interface SampleDetail {
   created_at: string;
   onion_count: number;
   onion_instances: OnionInstanceSummary[];
+  storage_advisory?: any;
+  commercial_settlement?: any;
 }
 
 export interface ReportDetail {
@@ -127,6 +133,10 @@ export interface ReportDetail {
   urs_pct: number;
   rejected_pct: number;
   defect_counts: Record<string, number>;
+  storage_advisory?: any;
+  commercial_settlement?: any;
+  apmc_size_distribution?: any;
+  lot_weight_statistics?: any;
   ruleset_version: string;
   model_version: string;
   geo_lat: number | null;
@@ -136,5 +146,6 @@ export interface ReportDetail {
   finalized_at: string | null;
   pdf_url: string | null;
   share_url: string | null;
+  integrity_hash?: string | null;
   limitations_note: string;
 }

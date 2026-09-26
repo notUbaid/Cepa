@@ -256,6 +256,43 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
               </View>
             </FadeInView>
 
+            {/* Cold Storage Storageability Assessment */}
+            <FadeInView delay={120} distance={12}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>COLD STORAGE PRESERVATION</Text>
+                  <View style={[styles.tierTag, { backgroundColor: (onion.storage_tier === 'PREMIUM' ? Colors.gradeA : onion.storage_tier === 'STANDARD' ? Colors.urs : Colors.reject) + '20' }]}>
+                    <Text style={[styles.tierTagText, { color: onion.storage_tier === 'PREMIUM' ? Colors.gradeA : onion.storage_tier === 'STANDARD' ? Colors.urs : Colors.reject }]}>
+                      {onion.storage_tier || 'STANDARD'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Storageability Score:</Text>
+                  <Text style={[styles.metricValue, { color: Colors.accent }]}>
+                    {onion.storageability_score ? `${onion.storageability_score.toFixed(1)} / 100` : '—'}
+                  </Text>
+                </View>
+
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Projected Survival Horizon:</Text>
+                  <Text style={styles.metricValue}>
+                    {onion.shelf_life_days_est ? `${onion.shelf_life_days_est} Days` : '—'}
+                  </Text>
+                </View>
+
+                {onion.decay_risk_factors && onion.decay_risk_factors.length > 0 && (
+                  <View style={styles.riskFactorsBox}>
+                    <Text style={styles.riskFactorsTitle}>Identified Storage Risk Factors:</Text>
+                    {onion.decay_risk_factors.map((factor, idx) => (
+                      <Text key={idx} style={styles.riskFactorItem}>• {factor}</Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </FadeInView>
+
             {/* Defect Probability Breakdown */}
             <FadeInView delay={150} distance={12}>
               <View style={styles.sectionCard}>
@@ -797,5 +834,36 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 11,
     fontWeight: '700',
+  },
+  tierTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  tierTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+  },
+  riskFactorsBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    gap: 4,
+  },
+  riskFactorsTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: Colors.reject,
+    textTransform: 'uppercase',
+  },
+  riskFactorItem: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    lineHeight: 15,
   },
 });

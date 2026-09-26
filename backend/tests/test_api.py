@@ -156,10 +156,23 @@ class TestFullInspectionWorkflow:
         assert get_rep.status_code == 200
         assert get_rep.json()["id"] == report["id"]
 
-        # 9. Public share URL check
+        # 9. Public share URL check (JSON for REST clients)
         share_resp = client.get(f"/api/v1/reports/share/{share_token}")
         assert share_resp.status_code == 200
         assert share_resp.json()["lot_id"] == "LOT-2026-NASHIK-001"
+        assert "storage_advisory" in share_resp.json()
+        assert "commercial_settlement" in share_resp.json()
+
+        # 9b. Public share URL as HTML (for mobile browser QR scans)
+        share_html_resp = client.get(
+            f"/api/v1/reports/share/{share_token}",
+            headers={"Accept": "text/html,application/xhtml+xml"},
+        )
+        assert share_html_resp.status_code == 200
+        assert "text/html" in share_html_resp.headers["content-type"]
+        assert "Cepa Mandi Procurement Record" in share_html_resp.text
+        assert "SHA256:" in share_html_resp.text
+        assert "Net Procurement Rate" in share_html_resp.text
 
         # 10. Download PDF
         pdf_resp = client.get(f"/api/v1/inspections/{inspection_id}/reports/pdf")
