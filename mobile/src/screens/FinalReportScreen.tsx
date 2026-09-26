@@ -126,14 +126,14 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       <FadeInView delay={50} distance={10}>
         <View style={styles.reportHeaderCard}>
           <View style={styles.badgeRow}>
-            <Text style={styles.docTypeLabel}>CERTIFICATE OF INSPECTION</Text>
+            <Text style={styles.docTypeLabel}>CERTIFICATE OF INSPECTION · गुणवत्ता प्रमाणपत्र</Text>
             <Text style={styles.certDate}>
               {new Date(report.finalized_at || report.created_at).toLocaleDateString()}
             </Text>
           </View>
           <Text style={styles.certTitle}>Onion Quality Appraisal Record</Text>
           <Text style={styles.certSub}>
-            Lot Assessment Complete • NAFED Procurement Protocol
+            Lot Assessment Complete • NAFED Procurement Protocol • भारत सरकार
           </Text>
         </View>
       </FadeInView>
@@ -141,7 +141,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Lot Metadata Card */}
       <FadeInView delay={100} distance={12}>
         <View style={styles.certCard}>
-          <Text style={styles.sectionHeaderTitle}>Consignment Metadata</Text>
+          <Text style={styles.sectionHeaderTitle}>Consignment Metadata · लॉट तपशील</Text>
 
           <View style={styles.metaGrid}>
             <View style={styles.metaRow}>
@@ -175,12 +175,12 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
       {/* Lot Grade Distribution */}
       <FadeInView delay={150} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>Lot Grade Distribution</Text>
+          <Text style={styles.sectionHeaderTitle}>Lot Grade Distribution · प्रतवारी वर्गीकरण</Text>
 
           <View style={styles.gradeRow}>
             <View style={styles.gradeLeft}>
               <View style={[styles.gradeDot, { backgroundColor: Colors.accent }]} />
-              <Text style={styles.gradeName}>Grade A (Super 45–65 mm)</Text>
+              <Text style={styles.gradeName}>Grade A (Super · सुपर 45–65 mm)</Text>
             </View>
             <Text style={styles.gradeCount}>
               {report.grade_a_count} ({report.grade_a_pct.toFixed(1)}%)
@@ -190,7 +190,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
           <View style={styles.gradeRow}>
             <View style={styles.gradeLeft}>
               <View style={[styles.gradeDot, { backgroundColor: Colors.urs }]} />
-              <Text style={styles.gradeName}>URS (Under Rejection Standard 35–70 mm)</Text>
+              <Text style={styles.gradeName}>URS (Relaxed · मध्यम 35–70 mm)</Text>
             </View>
             <Text style={[styles.gradeCount, { color: Colors.urs }]}>
               {report.urs_count} ({report.urs_pct.toFixed(1)}%)
@@ -200,7 +200,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
           <View style={styles.gradeRow}>
             <View style={styles.gradeLeft}>
               <View style={[styles.gradeDot, { backgroundColor: Colors.reject }]} />
-              <Text style={styles.gradeName}>Rejected (Rotten / Under 35 mm)</Text>
+              <Text style={styles.gradeName}>Rejected (Off-Grade · रद्द / &lt;35 mm)</Text>
             </View>
             <Text style={[styles.gradeCount, { color: Colors.reject }]}>
               {report.rejected_count} ({report.rejected_pct.toFixed(1)}%)
@@ -220,7 +220,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
           <View style={styles.cardHeaderRow}>
             <View>
               <Text style={styles.cardSectionTag}>ICAR-DOGR POST-HARVEST BIOLOGY</Text>
-              <Text style={styles.sectionHeaderTitle}>Cold Storage Survival Horizon</Text>
+              <Text style={styles.sectionHeaderTitle}>Cold Storage Survival Horizon · शीतगृह कालावधी</Text>
             </View>
             <View
               style={[
@@ -253,7 +253,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
               <Text style={styles.storageScoreOutOf}>/100</Text>
             </View>
             <View style={styles.storageHorizonBox}>
-              <Text style={styles.storageHorizonLabel}>MAX SAFE STORAGE</Text>
+              <Text style={styles.storageHorizonLabel}>MAX SAFE STORAGE · सुरक्षित कालावधी</Text>
               <Text style={styles.storageHorizonDays}>{storageDays} Days</Text>
               <Text style={styles.storageHorizonSub}>0–2°C, 65–70% RH Cold Chamber</Text>
             </View>
@@ -306,7 +306,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
           <View style={styles.cardHeaderRow}>
             <View>
               <Text style={styles.cardSectionTag}>APMC MANDI / PSF PROTOCOL</Text>
-              <Text style={styles.sectionHeaderTitle}>Commercial Settlement Slip</Text>
+              <Text style={styles.sectionHeaderTitle}>Commercial Settlement Slip · बाजार भाव पावती</Text>
             </View>
             <View style={styles.tierPill}>
               <Text style={styles.tierPillText}>{settlementTier}</Text>
