@@ -401,30 +401,30 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
 
     <!-- Consignment Details -->
     <div class="section-card">
-      <div class="section-title">Consignment Metadata</div>
+      <div class="section-title">Consignment Metadata · लॉट तपशील</div>
       <div class="data-grid">
         <div class="data-item">
-          <span class="data-label">Lot Identifier</span>
+          <span class="data-label">Lot Identifier · लॉट क्र.</span>
           <span class="data-value">{r.lot_id or 'N/A'}</span>
         </div>
         <div class="data-item">
-          <span class="data-label">APMC Mandi / Centre</span>
+          <span class="data-label">APMC Mandi / Centre · कृषी उत्पन्न बाजार समिती</span>
           <span class="data-value">{r.procurement_centre or 'N/A'}</span>
         </div>
         <div class="data-item">
-          <span class="data-label">Authorized Grading Officer</span>
+          <span class="data-label">Authorized Grading Officer · तपासणी अधिकारी</span>
           <span class="data-value">{r.officer_name or 'N/A'} ({r.officer_id or 'ID: —'})</span>
         </div>
         <div class="data-item">
-          <span class="data-label">Grading Specification Standard</span>
+          <span class="data-label">Grading Specification Standard · निकष</span>
           <span class="data-value-mono">{r.ruleset_version} (BIS IS 17912:2022)</span>
         </div>
         <div class="data-item">
-          <span class="data-label">Sample Bulbs Assessed</span>
+          <span class="data-label">Sample Bulbs Assessed · मोजलेले कांदे</span>
           <span class="data-value">{r.total_bulbs} verified onion instances</span>
         </div>
         <div class="data-item">
-          <span class="data-label">Optical Scale Calibration</span>
+          <span class="data-label">Optical Scale Calibration · प्रमाणन</span>
           <span class="data-value-mono">{scale_mm or 'ChArUco 7×5 Active'}</span>
         </div>
       </div>
@@ -432,88 +432,88 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
 
     <!-- Quality Grade Distribution -->
     <div class="section-card">
-      <div class="section-title">Agronomic Lot Grade Distribution</div>
+      <div class="section-title">Agronomic Lot Grade Distribution · गुणवत्ता प्रतवारी</div>
       <div class="kpi-row">
         <div class="kpi-box" style="border-left: 3px solid var(--grade-a);">
           <span class="kpi-box-val" style="color:var(--grade-a);">{r.grade_a_pct:.1f}%</span>
-          <span class="kpi-box-lbl">Grade A ({r.grade_a_count} bulbs)</span>
-          <span style="font-size:10px; color:var(--text-dim);">45–65 mm target</span>
+          <span class="kpi-box-lbl">Grade A · दर्जा 'अ' ({r.grade_a_count} bulbs)</span>
+          <span style="font-size:10px; color:var(--text-dim);">45–65 mm target (सुपर)</span>
         </div>
         <div class="kpi-box" style="border-left: 3px solid var(--urs);">
           <span class="kpi-box-val" style="color:var(--urs);">{r.urs_pct:.1f}%</span>
-          <span class="kpi-box-lbl">URS ({r.urs_count} bulbs)</span>
-          <span style="font-size:10px; color:var(--text-dim);">35–70 mm relaxed</span>
+          <span class="kpi-box-lbl">URS · शिथिल निकष ({r.urs_count} bulbs)</span>
+          <span style="font-size:10px; color:var(--text-dim);">35–70 mm relaxed (मध्यम)</span>
         </div>
         <div class="kpi-box" style="border-left: 3px solid var(--reject);">
           <span class="kpi-box-val" style="color:var(--reject);">{r.rejected_pct:.1f}%</span>
-          <span class="kpi-box-lbl">Rejected ({r.rejected_count} bulbs)</span>
-          <span style="font-size:10px; color:var(--text-dim);">Rot / &lt;35 mm</span>
+          <span class="kpi-box-lbl">Rejected · अमान्य ({r.rejected_count} bulbs)</span>
+          <span style="font-size:10px; color:var(--text-dim);">Rot / &lt;35 mm (रद्द / गोली)</span>
         </div>
       </div>
     </div>
 
     <!-- Cold Storage Shelf-Life & Storageability Advisory -->
     <div class="section-card">
-      <div class="section-title">Post-Harvest Cold Storage Preservation Advisory</div>
+      <div class="section-title">Post-Harvest Cold Storage Preservation Advisory · शीतगृह साठवणूक सल्ला</div>
       <div class="storage-box">
         <div class="storage-score-row">
           <div>
-            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Storageability Score</div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Storageability Score · साठवणूक निर्देशांक</div>
             <div style="font-size:15px; font-weight:600; color:#fff;">{storage_rec}</div>
           </div>
           <div class="storage-score-num">{storage_score:.0f}<span style="font-size:13px; color:var(--text-dim);">/100</span></div>
         </div>
         <div class="data-grid" style="margin-top:6px;">
           <div class="data-item">
-            <span class="data-label">Recommended Cold Storage Window</span>
-            <span class="data-value" style="color:var(--accent);">Up to {storage_days} Days</span>
+            <span class="data-label">Recommended Cold Storage Window · सुरक्षित कालावधी</span>
+            <span class="data-value" style="color:var(--accent);">Up to {storage_days} Days (दिवस)</span>
           </div>
           <div class="data-item">
-            <span class="data-label">Respiration & Spoilage Risk</span>
+            <span class="data-label">Respiration & Spoilage Risk · सडण्याचा धोका</span>
             <span class="data-value">{storage_risk}</span>
           </div>
         </div>
         <div class="advisory-text" style="border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">
-          <b>NAFED Directive:</b> {storage_action}
+          <b>NAFED Directive (मार्गदर्शक सूचना):</b> {storage_action}
         </div>
       </div>
     </div>
 
     <!-- Commercial Mandi Settlement Slip -->
     <div class="section-card">
-      <div class="section-title">NAFED Mandi Commercial Settlement Voucher</div>
+      <div class="section-title">NAFED Mandi Commercial Settlement Voucher · बाजार भाव व हिशोब पावती</div>
       <div class="payout-highlight">
         <div class="payout-rate-box">
-          <span class="payout-rate-lbl">Net Procurement Rate</span>
-          <span class="payout-rate-val">₹{net_rate:.1f} <span style="font-size:14px; font-weight:400; color:var(--text-muted);">/ quintal</span></span>
+          <span class="payout-rate-lbl">Net Procurement Rate · निव्वळ खरेदी दर</span>
+          <span class="payout-rate-val">₹{net_rate:.1f} <span style="font-size:14px; font-weight:400; color:var(--text-muted);">/ quintal (प्रति क्विंटल)</span></span>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:11px; color:var(--text-dim);">Est. Consignment Payout (50 qtl)</div>
+          <div style="font-size:11px; color:var(--text-dim);">Est. Payout (50 qtl) · अंदाजे एकूण रक्कम</div>
           <div class="payout-total-val">₹{net_payout:,.0f}</div>
           <div style="font-size:10px; color:var(--accent);">{tier}</div>
         </div>
       </div>
 
       <div style="margin-top:10px;">
-        <div style="font-size:11px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase;">Itemized FAQ Dockage Deductions</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase;">Itemized FAQ Dockage Deductions · गुणवत्ता कपात तपशील (Dockage)</div>
         <table class="table-custom">
           <thead>
             <tr>
-              <th>Deduction Parameter</th>
-              <th style="text-align:center">Measured</th>
-              <th style="text-align:center">Permissible</th>
-              <th style="text-align:right">Deduction</th>
+              <th>Deduction Parameter · निकष</th>
+              <th style="text-align:center">Measured · आढळलेले</th>
+              <th style="text-align:center">Permissible · अनुज्ञेय</th>
+              <th style="text-align:right">Deduction · कपात</th>
             </tr>
           </thead>
           <tbody>
             {dockage_rows_html}
             <tr style="border-top: 1px solid rgba(255,255,255,0.1); font-weight:600;">
-              <td>Base Benchmark MSP (Nashik FAQ)</td>
+              <td>Base Benchmark MSP (Nashik FAQ) · आधारभूत हमीभाव</td>
               <td colspan="2"></td>
               <td style="text-align:right">₹{base_msp:.1f}/qtl</td>
             </tr>
             <tr style="font-weight:700;">
-              <td>Total FAQ Dockage Applied</td>
+              <td>Total FAQ Dockage Applied · एकूण कपात</td>
               <td colspan="2"></td>
               <td style="text-align:right; color:#ef4444;">-₹{total_dockage:.1f}/qtl</td>
             </tr>
