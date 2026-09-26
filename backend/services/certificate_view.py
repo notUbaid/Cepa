@@ -434,17 +434,17 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     <div class="section-card">
       <div class="section-title">Agronomic Lot Grade Distribution · गुणवत्ता प्रतवारी</div>
       <div class="kpi-row">
-        <div class="kpi-box" style="border-left: 3px solid var(--grade-a);">
+        <div class="kpi-box" style="border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.04);">
           <span class="kpi-box-val" style="color:var(--grade-a);">{r.grade_a_pct:.1f}%</span>
           <span class="kpi-box-lbl">Grade A · दर्जा 'अ' ({r.grade_a_count} bulbs)</span>
           <span style="font-size:10px; color:var(--text-dim);">45–65 mm target (सुपर)</span>
         </div>
-        <div class="kpi-box" style="border-left: 3px solid var(--urs);">
+        <div class="kpi-box" style="border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.04);">
           <span class="kpi-box-val" style="color:var(--urs);">{r.urs_pct:.1f}%</span>
           <span class="kpi-box-lbl">URS · शिथिल निकष ({r.urs_count} bulbs)</span>
           <span style="font-size:10px; color:var(--text-dim);">35–70 mm relaxed (मध्यम)</span>
         </div>
-        <div class="kpi-box" style="border-left: 3px solid var(--reject);">
+        <div class="kpi-box" style="border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
           <span class="kpi-box-val" style="color:var(--reject);">{r.rejected_pct:.1f}%</span>
           <span class="kpi-box-lbl">Rejected · अमान्य ({r.rejected_count} bulbs)</span>
           <span style="font-size:10px; color:var(--text-dim);">Rot / &lt;35 mm (रद्द / गोली)</span>

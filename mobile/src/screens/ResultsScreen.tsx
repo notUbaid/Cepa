@@ -592,7 +592,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           {total === 0 ? (
             <View style={styles.zeroStateCard}>
               <View style={styles.zeroStateIconBox}>
-                <Text style={styles.zeroStateIcon}>🔍</Text>
+                <Text style={[styles.zeroStateIcon, { fontSize: 16, color: Colors.textMuted }]}>⌕</Text>
               </View>
               <Text style={styles.zeroStateTitle}>No Onion Bulbs Detected in Capture</Text>
               <Text style={styles.zeroStateDesc}>

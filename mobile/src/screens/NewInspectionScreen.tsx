@@ -150,6 +150,23 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         {/* Form Inputs Card */}
         <FadeInView delay={160} distance={15}>
           <View style={styles.formCard}>
+            <View style={styles.quickPresetRow}>
+              <Text style={styles.quickPresetLabel}>Quick Fill:</Text>
+              <AnimatedPressable
+                haptic="selection"
+                onPress={() => {
+                  setLotId(`LOT-${new Date().getFullYear()}-NSK-${Math.floor(100 + Math.random() * 900)}`);
+                  setProcurementCentre('Lasalgaon APMC Mandi, Nashik');
+                  setOfficerName('S. Patil');
+                  setOfficerId('NAFED-MH-084');
+                  setNotes('Rabi Season · Garwa Red Onion · FAQ Grade Assessment');
+                }}
+                style={styles.quickPresetChip}
+              >
+                <Text style={styles.quickPresetChipText}>+ Lasalgaon Mandi FAQ</Text>
+              </AnimatedPressable>
+            </View>
+
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Lot Identifier</Text>
               <TextInput
@@ -332,6 +349,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     ...Shadows.card,
+  },
+  quickPresetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  quickPresetLabel: {
+    fontSize: 11,
+    color: Colors.textDim,
+  },
+  quickPresetChip: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickPresetChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.accentTeal,
   },
   fieldGroup: {
     gap: 5,

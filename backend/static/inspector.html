@@ -695,10 +695,10 @@
       margin-top: 2px;
     }
     .storage-directive {
-      background: var(--surface-1);
-      border-left: 2px solid var(--grade-a);
-      border-radius: 0 4px 4px 0;
-      padding: 6px 8px;
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 6px;
+      padding: 8px 10px;
       font-size: 11px;
       color: var(--text-muted);
       line-height: 1.4;
@@ -2162,26 +2162,65 @@
       showInspector();
     }
 
-    function handleUpload(e) {
+    async function handleUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
       playClick(600);
-      const reader = new FileReader();
-      reader.onload = evt => {
-        const img = new Image();
-        img.onload = () => {
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          ctx.drawImage(img, 0, 0);
-          activeBulbs = [];
-          document.getElementById('scale-bar').textContent = `Uploaded: ${file.name} (${img.naturalWidth}×${img.naturalHeight})`;
-          document.getElementById('sb-dims').textContent = `${img.naturalWidth}×${img.naturalHeight}`;
-          showInspector();
-          showToast('Image loaded — use the API or upload via Mobile app to run AI inspection', 'info');
-        };
-        img.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
+
+      // Clear the input value so user can upload again if needed
+      e.target.value = '';
+
+      showToast('Processing photo through 8-stage CV pipeline...', 'info');
+
+      try {
+        let inspId = selectedInspectionId;
+        if (!inspId) {
+          // Auto-create inspection session for instant assessment
+          const lotCode = 'LOT-WEB-' + Math.floor(1000 + Math.random() * 9000);
+          const r = await fetch(`${BASE}/api/v1/inspections`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lot_id: lotCode,
+              procurement_centre: 'Lasalgaon APMC Mandi, Nashik',
+              officer_name: 'Mandi Quality Grader',
+              officer_id: 'NAFED-WEB-01',
+              notes: 'Uploaded via Cepa Inspector Studio',
+            }),
+          });
+          if (!r.ok) throw new Error('Could not create inspection session');
+          const newInsp = await r.json();
+          inspId = newInsp.id;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file, file.name);
+
+        const ur = await fetch(`${BASE}/api/v1/inspections/${inspId}/samples`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!ur.ok) {
+          let msg = `Processing failed (HTTP ${ur.status})`;
+          try {
+            const errObj = await ur.json();
+            if (errObj.detail) msg = typeof errObj.detail === 'string' ? errObj.detail : JSON.stringify(errObj.detail);
+          } catch (_) {}
+          throw new Error(msg);
+        }
+
+        const sample = await ur.json();
+        await loadInspections();
+        selectedInspectionId = null; // force fresh reload
+        await selectInspection(inspId);
+
+        const count = (sample.onion_instances || []).length;
+        playSuccessTone();
+        showToast(`AI assessment complete: ${count} bulbs measured and graded.`, 'success');
+      } catch (err) {
+        showToast(err.message || 'Inspection failed', 'error');
+      }
     }
 
     // ── Modal ──────────────────────────────────────────────────────────────────
@@ -2347,6 +2386,21 @@
         g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
         o.connect(g); g.connect(a.destination);
         o.start(); o.stop(a.currentTime + dur);
+      } catch(e) {}
+    }
+
+    function playSuccessTone() {
+      try {
+        const a = new (window.AudioContext || window.webkitAudioContext)();
+        const o = a.createOscillator();
+        const g = a.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(523.25, a.currentTime);
+        o.frequency.setValueAtTime(659.25, a.currentTime + 0.08);
+        g.gain.setValueAtTime(0.04, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.22);
+        o.connect(g); g.connect(a.destination);
+        o.start(); o.stop(a.currentTime + 0.22);
       } catch(e) {}
     }
 

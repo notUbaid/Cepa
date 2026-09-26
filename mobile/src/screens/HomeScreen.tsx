@@ -184,7 +184,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         >
           <View style={styles.demoLotBannerContent}>
             <View style={styles.demoLotIconBox}>
-              <Text style={styles.demoLotIcon}>📦</Text>
+              <Text style={styles.demoLotIcon}>◈</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.demoLotTitle}>Inspect Verified Mandi Demo Lot</Text>
@@ -286,7 +286,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </View>
 
                   <Text style={styles.procurementCentreText} numberOfLines={1}>
-                    📍 {item.procurement_centre || 'APMC Mandi Yard'}
+                    APMC: {item.procurement_centre || 'Mandi Yard'}
                   </Text>
 
                   <View style={styles.cardFooter}>

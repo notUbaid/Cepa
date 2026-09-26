@@ -16,7 +16,7 @@ import asyncio
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -209,7 +209,7 @@ async def process_sample_image(
         sample_index=sample_index,
         image_path=image_path,
         processing_status="RUNNING",
-        processing_started_at=datetime.utcnow(),
+        processing_started_at=datetime.now(timezone.utc),
         geo_lat=geo_lat,
         geo_lon=geo_lon,
         location_accuracy_m=location_accuracy,
@@ -284,7 +284,7 @@ def _persist_pipeline_results(
     sample.marker_detected = result.marker_detected
     sample.scale_mm_per_px = result.scale_mm_per_px
     sample.perspective_valid = result.perspective_valid
-    sample.processing_finished_at = datetime.utcnow()
+    sample.processing_finished_at = datetime.now(timezone.utc)
     if result.processed_image_path:
         sample.processed_image_path = result.processed_image_path
 
@@ -416,7 +416,7 @@ def apply_officer_correction(
     defect_obs.human_correction = json.dumps(correction)
     defect_obs.final_decision = json.dumps(correction)
     defect_obs.corrected_by = corrected_by
-    defect_obs.corrected_at = datetime.utcnow()
+    defect_obs.corrected_at = datetime.now(timezone.utc)
 
     # Recompute classification from corrected values
     if _active_policy and instance.measurement:
@@ -472,7 +472,7 @@ def finalize_inspection(db: Session, inspection_id: str) -> Inspection | None:
     if inspection is None:
         return None
     inspection.status = "FINALIZED"
-    inspection.finalized_at = datetime.utcnow()
+    inspection.finalized_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(inspection)
     return inspection

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import platform
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -25,7 +25,7 @@ async def health() -> dict:
     """Basic liveness check."""
     return {
         "status": "ok",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "cepa-backend",
         "version": "0.1.0",
         "python": platform.python_version(),

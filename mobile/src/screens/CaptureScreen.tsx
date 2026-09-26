@@ -356,7 +356,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   disabled={capturing}
                 >
                   <View style={styles.sideBtnIconBox}>
-                    <Text style={styles.sideBtnIcon}>🖼</Text>
+                    <Text style={[styles.sideBtnIcon, { color: '#ffffff', fontSize: 11, fontWeight: '700' }]}>FILE</Text>
                   </View>
                   <Text style={styles.sideBtnLabel}>Library</Text>
                 </AnimatedPressable>
