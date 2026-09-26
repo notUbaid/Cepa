@@ -152,14 +152,20 @@ class TestFullInspectionWorkflow:
         assert corrected_onion["corrected_by"] == "Rajesh Sharma"
         assert corrected_onion["rotten_prob"] == 0.0
 
-        # 6. Finalize inspection
+        # 6. Finalize inspection (auto-generates the Report and PDF)
         fin_resp = client.post(f"/api/v1/inspections/{inspection_id}/finalize")
         assert fin_resp.status_code == 200
         fin_data = fin_resp.json()
         assert fin_data["status"] == "FINALIZED"
         assert fin_data["finalized_at"] is not None
 
-        # 7. Generate PDF Report
+        # 6b. Verify report is immediately available via GET without calling POST /reports
+        auto_rep = client.get(f"/api/v1/inspections/{inspection_id}/reports")
+        assert auto_rep.status_code == 200
+        assert auto_rep.json()["inspection_id"] == inspection_id
+        assert auto_rep.json()["total_bulbs"] > 0
+
+        # 7. Generate PDF Report (idempotent regeneration)
         report_resp = client.post(f"/api/v1/inspections/{inspection_id}/reports")
         assert report_resp.status_code == 201
         report = report_resp.json()

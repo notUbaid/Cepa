@@ -40,6 +40,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [guideVisible, setGuideVisible] = useState(false);
   const [activeMode, setActiveMode] = useState<'SINGLE' | 'BATCH' | 'CALIBRATE'>('SINGLE');
   const [torchOn, setTorchOn] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   // Artificial Gyroscopic Horizon (Simulated / Reactive)
@@ -91,10 +92,17 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       if (photo?.uri) {
         Haptics.snap();
         onPhotoCaptured(photo.uri);
+      } else {
+        throw new Error('No image returned from camera sensor');
       }
     } catch (err: any) {
       Haptics.error();
-      alert(`Camera capture error: ${err.message}`);
+      if (Platform.OS === 'web') {
+        console.warn('takePictureAsync failed on web, loading verified demo lot:', err.message);
+        loadDemoSample();
+      } else {
+        alert(`Camera capture error: ${err.message}`);
+      }
     } finally {
       setCapturing(false);
     }
@@ -183,12 +191,59 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     );
   }
 
+  if (cameraError) {
+    return (
+      <View style={styles.centerContainer}>
+        <FadeInView delay={50} distance={15} style={styles.permCard}>
+          <View style={styles.permBadge}>
+            <Text style={styles.permBadgeText}>OPTICAL SENSOR NOTICE</Text>
+          </View>
+          <Text style={styles.permTitle}>Camera Hardware Stream Unavailable</Text>
+          <Text style={styles.permDesc}>
+            {Platform.OS === 'web'
+              ? 'Web browser camera stream could not be started. You can select an onion spread photograph from your device or test with the verified 24-bulb Mandi demo sample.'
+              : cameraError}
+          </Text>
+
+          <AnimatedPressable
+            haptic="medium"
+            style={styles.permBtn}
+            onPress={loadDemoSample}
+          >
+            <Text style={styles.permBtnText}>Load Verified Mandi Demo Lot</Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            haptic="light"
+            style={styles.galleryFallbackBtn}
+            onPress={pickFromGallery}
+          >
+            <Text style={styles.galleryFallbackText}>
+              Select Spread from Photo Library
+            </Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            haptic="light"
+            style={styles.demoCardBtn}
+            onPress={onCancel}
+          >
+            <Text style={styles.demoCardBtnText}>
+              Return to Inspection
+            </Text>
+          </AnimatedPressable>
+        </FadeInView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
         enableTorch={torchOn}
+        onMountError={(e) => setCameraError(e?.message || 'Camera stream failed to mount')}
       >
         <View style={styles.overlayContainer}>
           {/* Top Floating Aerospace HUD */}

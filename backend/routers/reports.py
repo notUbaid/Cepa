@@ -133,24 +133,11 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
     )
 
 
-@router.post("/inspections/{inspection_id}/reports", status_code=201)
-async def generate_report(
-    inspection_id: str,
-    db: Session = Depends(get_db),
-) -> ReportDetail:
+def create_or_update_report(inspection: Inspection, db: Session) -> ReportDetail:
     """
-    Generate (or regenerate) the inspection report and PDF.
-    Only callable on FINALIZED inspections.
+    Core service helper to aggregate inspection instances, persist the Report entity,
+    and generate the PDF document.
     """
-    inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
-    if inspection is None:
-        raise HTTPException(status_code=404, detail="Inspection not found")
-    if inspection.status != "FINALIZED":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Inspection must be FINALIZED before generating report. Current: {inspection.status}"
-        )
-
     # Aggregate lot statistics from all onion instances
     all_instances = []
     for sample in inspection.samples:
@@ -172,7 +159,7 @@ async def generate_report(
     # Create or update the Report record
     report = inspection.report
     if report is None:
-        report = Report(inspection_id=inspection_id)
+        report = Report(inspection_id=inspection.id)
         db.add(report)
 
     report.total_bulbs = agg.total_bulbs
@@ -207,6 +194,27 @@ async def generate_report(
     return _report_to_detail(report, inspection)
 
 
+@router.post("/inspections/{inspection_id}/reports", status_code=201)
+async def generate_report(
+    inspection_id: str,
+    db: Session = Depends(get_db),
+) -> ReportDetail:
+    """
+    Generate (or regenerate) the inspection report and PDF.
+    Only callable on FINALIZED inspections.
+    """
+    inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    if inspection.status != "FINALIZED":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Inspection must be FINALIZED before generating report. Current: {inspection.status}"
+        )
+
+    return create_or_update_report(inspection, db)
+
+
 @router.get("/inspections/{inspection_id}/reports")
 async def get_report(
     inspection_id: str,
@@ -217,6 +225,9 @@ async def get_report(
     if inspection is None:
         raise HTTPException(status_code=404, detail="Inspection not found")
     if inspection.report is None:
+        if inspection.status == "FINALIZED":
+            # Auto-generate report on demand if missing on finalized inspection
+            return create_or_update_report(inspection, db)
         raise HTTPException(status_code=404, detail="No report generated yet")
     return _report_to_detail(inspection.report, inspection)
 
@@ -256,16 +267,35 @@ async def download_pdf(
 ) -> FileResponse:
     """Stream the PDF report for download."""
     inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
-    if inspection is None or inspection.report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    if inspection.report is None:
+        if inspection.status == "FINALIZED":
+            create_or_update_report(inspection, db)
+            db.refresh(inspection)
+        else:
+            raise HTTPException(status_code=404, detail="Report not found")
 
     report = inspection.report
     if not report.pdf_path:
-        raise HTTPException(status_code=404, detail="PDF not yet generated")
+        # Attempt generating PDF now
+        try:
+            generate_pdf_report(report=report, inspection=inspection)
+            report.pdf_path = f"reports/{report.report_id}.pdf"
+            db.commit()
+            db.refresh(report)
+        except Exception:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
 
     pdf_abs = settings.storage_dir / report.pdf_path
     if not pdf_abs.exists():
-        raise HTTPException(status_code=404, detail="PDF file not found on disk")
+        try:
+            generate_pdf_report(report=report, inspection=inspection)
+            db.commit()
+            db.refresh(report)
+        except Exception:
+            raise HTTPException(status_code=404, detail="PDF file not found on disk")
 
     return FileResponse(
         path=str(pdf_abs),

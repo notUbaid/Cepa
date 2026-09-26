@@ -2341,10 +2341,18 @@
       playClick(800);
       try {
         const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/finalize`, { method: 'POST' });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {
+          let errDetail = `HTTP ${r.status}`;
+          try {
+            const ej = await r.json();
+            if (ej.detail) errDetail = ej.detail;
+          } catch (_) {}
+          throw new Error(errDetail);
+        }
         showToast('Inspection certified and finalized', 'success');
         await loadInspections();
         renderList();
+        await selectInspection(selectedInspectionId);
       } catch(e) {
         showToast('Finalization failed: ' + e.message, 'error');
       }

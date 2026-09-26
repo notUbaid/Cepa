@@ -100,6 +100,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
       });
 
       if (!isMounted) return;
+      setSampleResult(sample);
 
       if (sample.quality_passed && sample.processing_status === 'DONE') {
         setCheckProgress({
@@ -109,7 +110,6 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
           segmentation: true,
         });
         setStage('done');
-        setSampleResult(sample);
         Haptics.success();
 
         setTimeout(() => {
@@ -262,6 +262,18 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
               )}
 
               <View style={styles.actionBtnGroup}>
+                {sampleResult && (sampleResult.onion_count ?? 0) > 0 && (
+                  <AnimatedPressable
+                    haptic="heavy"
+                    style={styles.overrideBtn}
+                    onPress={() => onCheckPassed(sampleResult)}
+                  >
+                    <Text style={styles.overrideBtnText}>
+                      Proceed to Review ({sampleResult.onion_count} Bulbs Detected) →
+                    </Text>
+                  </AnimatedPressable>
+                )}
+
                 <AnimatedPressable
                   haptic="medium"
                   style={styles.retakeBtn}
@@ -545,6 +557,20 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 8,
     marginTop: Spacing.md,
+  },
+  overrideBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.sm,
+    width: '100%',
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  overrideBtnText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   retakeBtn: {
     backgroundColor: '#0c0c0e',

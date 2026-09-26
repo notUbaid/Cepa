@@ -522,4 +522,10 @@ async def finalize_inspection(
             detail=f"Cannot finalize inspection with status '{inspection.status}'"
         )
     updated = inspection_service.finalize_inspection(db, inspection_id)
+    # Auto-generate the official report and PDF so certificates and downloads are immediately available
+    from routers.reports import create_or_update_report
+    try:
+        create_or_update_report(updated, db)
+    except Exception as exc:
+        logger.exception("Failed to auto-generate report during finalize: %s", exc)
     return _inspection_to_detail(updated, db)

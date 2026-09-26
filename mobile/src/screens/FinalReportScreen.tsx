@@ -36,21 +36,27 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOrCreateReport = async () => {
+  const fetchOrCreateReport = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      let rep: ReportDetail;
       try {
-        setLoading(true);
-        const rep = await ApiClient.generateReport(inspection.id);
-        setReport(rep);
-        Haptics.success();
-      } catch (err: any) {
-        setError(err.message);
-        Haptics.error();
-      } finally {
-        setLoading(false);
+        rep = await ApiClient.getReport(inspection.id);
+      } catch {
+        rep = await ApiClient.generateReport(inspection.id);
       }
-    };
+      setReport(rep);
+      Haptics.success();
+    } catch (err: any) {
+      setError(err.message || 'Failed to retrieve or compile official certificate.');
+      Haptics.error();
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchOrCreateReport();
   }, [inspection.id]);
 
@@ -91,14 +97,22 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
           <Text style={styles.failIcon}>✕</Text>
         </View>
         <Text style={styles.errorTitle}>Report Generation Failed</Text>
-        <Text style={styles.errorDesc}>{error}</Text>
-        <AnimatedPressable
-          haptic="medium"
-          style={styles.retryBtn}
-          onPress={onStartNewInspection}
-        >
-          <Text style={styles.retryBtnText}>Return to Home</Text>
-        </AnimatedPressable>
+        <View style={styles.errorBtnRow}>
+          <AnimatedPressable
+            haptic="heavy"
+            style={styles.retryBtnPrimary}
+            onPress={fetchOrCreateReport}
+          >
+            <Text style={styles.retryBtnPrimaryText}>Retry Compilation</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            haptic="medium"
+            style={styles.retryBtn}
+            onPress={onStartNewInspection}
+          >
+            <Text style={styles.retryBtnText}>Return to Home</Text>
+          </AnimatedPressable>
+        </View>
       </View>
     );
   }
@@ -767,16 +781,35 @@ const styles = StyleSheet.create({
     marginTop: 6,
     lineHeight: 18,
   },
-  retryBtn: {
-    backgroundColor: Colors.cardBgElevated,
-    paddingHorizontal: Spacing.xl,
+  errorBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  retryBtnPrimary: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: Radius.md,
-    marginTop: Spacing.lg,
+  },
+  retryBtnPrimaryText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  retryBtn: {
+    backgroundColor: Colors.cardBgElevated,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
   },
   retryBtnText: {
     color: Colors.text,
-    fontWeight: '700',
+    fontWeight: '600',
+    fontSize: 13,
   },
   cardHeaderRow: {
     flexDirection: 'row',
