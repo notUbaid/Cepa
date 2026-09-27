@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { getApiBaseUrl } from '../config';
 import { InspectionDetail, ReportDetail } from '../types';
@@ -94,7 +95,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
     return (
       <View style={styles.centerContainer}>
         <View style={styles.failGlowBadge}>
-          <Text style={styles.failIcon}>✕</Text>
+          <Feather name="alert-triangle" size={32} color="#dc2626" />
         </View>
         <Text style={styles.errorTitle}>Report Generation Failed</Text>
         <View style={styles.errorBtnRow}>
@@ -449,7 +450,10 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             style={styles.pdfBtn}
             onPress={handleDownloadPdf}
           >
-            <Text style={styles.pdfBtnText}>Download Official PDF Certificate</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Feather name="download" size={15} color="#ffffff" />
+              <Text style={styles.pdfBtnText}>Download Official PDF Certificate</Text>
+            </View>
           </AnimatedPressable>
 
           <AnimatedPressable
@@ -457,7 +461,10 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             style={styles.nextBtn}
             onPress={onStartNewInspection}
           >
-            <Text style={styles.nextBtnText}>Start Next Lot Inspection →</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Text style={styles.nextBtnText}>Start Next Lot Inspection</Text>
+              <Feather name="arrow-right" size={14} color="#059669" />
+            </View>
           </AnimatedPressable>
         </View>
       </FadeInView>

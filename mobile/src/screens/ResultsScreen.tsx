@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { EvidenceDrilldownModal } from '../components/EvidenceDrilldownModal';
 import {
@@ -283,7 +284,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         <FadeInView delay={80} distance={8}>
           <View style={styles.calibratedBanner}>
             <View style={styles.calibratedIconBadge}>
-              <Text style={styles.calibratedIcon}>✓</Text>
+              <Feather name="check-circle" size={16} color="#059669" />
             </View>
             <View style={styles.uncalibratedTextWrap}>
               <View style={styles.bannerHeaderRow}>
@@ -314,7 +315,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             style={styles.autonomousBanner}
           >
             <View style={styles.autonomousIconBadge}>
-              <Text style={styles.autonomousIcon}>⚡</Text>
+              <Feather name="cpu" size={16} color="#0284c7" />
             </View>
             <View style={styles.uncalibratedTextWrap}>
               <View style={styles.bannerHeaderRow}>
@@ -342,15 +343,22 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               style={[styles.viewModeBtn, viewMode === 'grid' && styles.viewModeBtnActive]}
               onPress={() => setViewMode('grid')}
             >
-              <Text
-                style={[
-                  styles.viewModeText,
-                  viewMode === 'grid' && styles.viewModeTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                Bulbs ({filteredOnions.length})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather
+                  name="grid"
+                  size={12}
+                  color={viewMode === 'grid' ? '#ffffff' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.viewModeText,
+                    viewMode === 'grid' && styles.viewModeTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  Bulbs ({filteredOnions.length})
+                </Text>
+              </View>
             </AnimatedPressable>
 
             <AnimatedPressable
@@ -362,16 +370,23 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               ]}
               onPress={() => setViewMode('ai_agronomist')}
             >
-              <Text
-                style={[
-                  styles.viewModeText,
-                  viewMode === 'ai_agronomist' && styles.viewModeTextActive,
-                  { color: viewMode === 'ai_agronomist' ? '#ffffff' : '#38bdf8' },
-                ]}
-                numberOfLines={1}
-              >
-                AI Agronomist ✦
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather
+                  name="cpu"
+                  size={12}
+                  color={viewMode === 'ai_agronomist' ? '#ffffff' : '#38bdf8'}
+                />
+                <Text
+                  style={[
+                    styles.viewModeText,
+                    viewMode === 'ai_agronomist' && styles.viewModeTextActive,
+                    { color: viewMode === 'ai_agronomist' ? '#ffffff' : '#38bdf8' },
+                  ]}
+                  numberOfLines={1}
+                >
+                  AI Agronomist
+                </Text>
+              </View>
             </AnimatedPressable>
 
             {(videoResult || currentSample.calibration_method === 'AUTONOMOUS_VIDEO_SWEEP') && (
@@ -384,16 +399,23 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 ]}
                 onPress={() => setViewMode('video_sweep')}
               >
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'video_sweep' && styles.viewModeTextActive,
-                    { color: viewMode === 'video_sweep' ? '#ffffff' : '#f87171' },
-                  ]}
-                  numberOfLines={1}
-                >
-                  Video Sweep 🎥
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Feather
+                    name="video"
+                    size={12}
+                    color={viewMode === 'video_sweep' ? '#ffffff' : '#f87171'}
+                  />
+                  <Text
+                    style={[
+                      styles.viewModeText,
+                      viewMode === 'video_sweep' && styles.viewModeTextActive,
+                      { color: viewMode === 'video_sweep' ? '#ffffff' : '#f87171' },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Video Sweep
+                  </Text>
+                </View>
               </AnimatedPressable>
             )}
 
@@ -402,15 +424,22 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               style={[styles.viewModeBtn, viewMode === 'storage' && styles.viewModeBtnActive]}
               onPress={() => setViewMode('storage')}
             >
-              <Text
-                style={[
-                  styles.viewModeText,
-                  viewMode === 'storage' && styles.viewModeTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                Storage
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather
+                  name="archive"
+                  size={12}
+                  color={viewMode === 'storage' ? '#ffffff' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.viewModeText,
+                    viewMode === 'storage' && styles.viewModeTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  Storage
+                </Text>
+              </View>
             </AnimatedPressable>
 
             <AnimatedPressable
@@ -418,15 +447,22 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               style={[styles.viewModeBtn, viewMode === 'settlement' && styles.viewModeBtnActive]}
               onPress={() => setViewMode('settlement')}
             >
-              <Text
-                style={[
-                  styles.viewModeText,
-                  viewMode === 'settlement' && styles.viewModeTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                Mandi Price
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather
+                  name="trending-up"
+                  size={12}
+                  color={viewMode === 'settlement' ? '#ffffff' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.viewModeText,
+                    viewMode === 'settlement' && styles.viewModeTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  Mandi Price
+                </Text>
+              </View>
             </AnimatedPressable>
 
             <AnimatedPressable
@@ -434,15 +470,22 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               style={[styles.viewModeBtn, viewMode === 'overlay' && styles.viewModeBtnActive]}
               onPress={() => setViewMode('overlay')}
             >
-              <Text
-                style={[
-                  styles.viewModeText,
-                  viewMode === 'overlay' && styles.viewModeTextActive,
-                ]}
-                numberOfLines={1}
-              >
-                HUD
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Feather
+                  name="layers"
+                  size={12}
+                  color={viewMode === 'overlay' ? '#ffffff' : '#64748b'}
+                />
+                <Text
+                  style={[
+                    styles.viewModeText,
+                    viewMode === 'overlay' && styles.viewModeTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  HUD
+                </Text>
+              </View>
             </AnimatedPressable>
           </View>
         </ScrollView>
@@ -702,9 +745,12 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     ))
                   ) : (
                     <View style={styles.emptyTimelineBox}>
-                      <Text style={styles.emptyTimelineText}>
-                        ✓ No defects spotted! All bulbs across this video sweep appear sound.
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <Feather name="check-circle" size={15} color="#059669" />
+                        <Text style={styles.emptyTimelineText}>
+                          No defects spotted. All bulbs across this video sweep appear sound.
+                        </Text>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -747,7 +793,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 onPress={onAddSample}
                 style={styles.addVideoSweepBtn}
               >
-                <Text style={styles.addVideoSweepBtnText}>Record Video Sweep →</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Text style={styles.addVideoSweepBtnText}>Record Video Sweep</Text>
+                  <Feather name="arrow-right" size={14} color="#ffffff" />
+                </View>
               </AnimatedPressable>
             </View>
           )}
@@ -1018,7 +1067,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 onPress={() => setGradeFilter('ALL')}
                 style={styles.clearFilterBtn}
               >
-                <Text style={styles.clearFilterText}>Reset ✕</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.clearFilterText}>Reset</Text>
+                  <Feather name="x" size={12} color="#dc2626" />
+                </View>
               </AnimatedPressable>
             </View>
           )}
@@ -1027,7 +1079,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           {total === 0 ? (
             <View style={styles.zeroStateCard}>
               <View style={styles.zeroStateIconBox}>
-                <Text style={[styles.zeroStateIcon, { fontSize: 16, color: Colors.textMuted }]}>⌕</Text>
+                <Feather name="search" size={16} color={Colors.textMuted} />
               </View>
               <Text style={styles.zeroStateTitle}>No Onion Bulbs Detected in Capture</Text>
               <Text style={styles.zeroStateDesc}>
@@ -1140,13 +1192,23 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                       </View>
                     ) : item.storageability_score ? (
                       <View style={styles.storageScorePill}>
-                        <Text style={[
-                          styles.storageScoreText,
-                          item.storageability_score >= 80 ? styles.storageScoreGood :
-                          item.storageability_score >= 60 ? styles.storageScoreMid : styles.storageScorePoor
-                        ]}>
-                          ★ {item.storageability_score.toFixed(0)} Index
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                          <Feather
+                            name="shield"
+                            size={10}
+                            color={
+                              item.storageability_score >= 80 ? '#059669' :
+                              item.storageability_score >= 60 ? '#d97706' : '#dc2626'
+                            }
+                          />
+                          <Text style={[
+                            styles.storageScoreText,
+                            item.storageability_score >= 80 ? styles.storageScoreGood :
+                            item.storageability_score >= 60 ? styles.storageScoreMid : styles.storageScorePoor
+                          ]}>
+                            {item.storageability_score.toFixed(0)} Index
+                          </Text>
+                        </View>
                       </View>
                     ) : null}
                   </View>
@@ -1166,7 +1228,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           onPress={onAddSample}
           disabled={finalizing}
         >
-          <Text style={styles.addSampleText}>+ Sample 2</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <Feather name="plus" size={14} color="#0f172a" />
+            <Text style={styles.addSampleText}>Sample 2</Text>
+          </View>
         </AnimatedPressable>
 
         <AnimatedPressable
@@ -1178,7 +1243,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           {finalizing ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text style={styles.finalizeBtnText}>Finalize & Certify Lot →</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Text style={styles.finalizeBtnText}>Finalize & Certify Lot</Text>
+              <Feather name="arrow-right" size={14} color="#ffffff" />
+            </View>
           )}
         </AnimatedPressable>
       </View>

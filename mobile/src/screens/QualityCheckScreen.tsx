@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { InspectionDetail, SampleDetail } from '../types';
 import {
@@ -230,7 +231,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
           ) : stage === 'done' ? (
             <View style={styles.stateCenter}>
               <View style={styles.successBadge}>
-                <Text style={styles.successIcon}>✓</Text>
+                <Feather name="check-circle" size={32} color="#059669" />
               </View>
               <Text style={styles.successTitle}>Verification Certified</Text>
               <Text style={styles.successSubtitle}>
@@ -246,7 +247,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
           ) : (
             <View style={styles.failureContainer}>
               <View style={styles.failBadge}>
-                <Text style={styles.failIcon}>✕</Text>
+                <Feather name="alert-triangle" size={32} color="#dc2626" />
               </View>
               <Text style={styles.failureTitle}>Quality Gate Verification Failed</Text>
               <Text style={styles.failureDesc}>{errorMessage}</Text>
@@ -268,9 +269,12 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                     style={styles.overrideBtn}
                     onPress={() => onCheckPassed(sampleResult)}
                   >
-                    <Text style={styles.overrideBtnText}>
-                      Proceed to Review ({sampleResult.onion_count} Bulbs Detected) →
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Text style={styles.overrideBtnText}>
+                        Proceed to Review ({sampleResult.onion_count} Bulbs Detected)
+                      </Text>
+                      <Feather name="arrow-right" size={14} color="#ffffff" />
+                    </View>
                   </AnimatedPressable>
                 )}
 
@@ -313,7 +317,7 @@ const CheckItem: React.FC<{ label: string; sub?: string; passed: boolean }> = ({
         },
       ]}
     >
-      {passed && <Text style={styles.checkTick}>✓</Text>}
+      {passed && <Feather name="check" size={11} color="#ffffff" />}
     </View>
     <View style={{ flex: 1 }}>
       <Text

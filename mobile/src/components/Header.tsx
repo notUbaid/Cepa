@@ -60,41 +60,37 @@ export const Header: React.FC<HeaderProps> = ({
           <View>
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>CEPA</Text>
-              <View style={styles.protocolBadge}>
-                <Text style={styles.protocolBadgeText}>NAFED / APMC PROTOCOL</Text>
+              <View style={styles.mandiPill}>
+                <Text style={styles.mandiPillText}>APMC TERMINAL</Text>
               </View>
             </View>
-            <Text style={styles.subtitle}>Onion Quality & Optical Caliper Appraisal</Text>
+            <Text style={styles.subtitle}>Autonomous Optical &amp; AI Quality Suite</Text>
           </View>
         </View>
 
-        <View style={[styles.statusIndicator, serverConnected ? styles.statusIndicatorOnline : styles.statusIndicatorOffline]}>
+        <View
+          style={[
+            styles.statusIndicator,
+            serverConnected ? styles.statusIndicatorOnline : styles.statusIndicatorOffline,
+          ]}
+        >
           <Animated.View
             style={[
               styles.dot,
               {
-                backgroundColor: serverConnected ? '#10b981' : Colors.reject,
+                backgroundColor: serverConnected ? '#059669' : '#dc2626',
                 opacity: serverConnected ? pulseAnim : 1,
               },
             ]}
           />
-          <Text style={[styles.statusText, serverConnected ? styles.statusTextOnline : styles.statusTextOffline]}>
-            {serverConnected ? 'System Live' : 'Offline'}
+          <Text
+            style={[
+              styles.statusText,
+              serverConnected ? styles.statusTextOnline : styles.statusTextOffline,
+            ]}
+          >
+            {serverConnected ? 'ONLINE' : 'OFFLINE'}
           </Text>
-        </View>
-      </View>
-
-      {/* Sub-header strip: Standard & Center info chips */}
-      <View style={styles.subStrip}>
-        <View style={styles.stripChip}>
-          <Text style={styles.stripChipTag}>STANDARD</Text>
-          <Text style={styles.stripChipText}>
-            {policyVersion.includes('BIS') ? 'BIS IS 17912:2022' : 'NAFED FAQ Standard'}
-          </Text>
-        </View>
-        <View style={styles.stripChip}>
-          <Text style={styles.stripChipTag}>CALIPER</Text>
-          <Text style={styles.stripChipText}>Sub-mm Optical Engine</Text>
         </View>
       </View>
     </View>
@@ -143,25 +139,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brandTitle: {
-    ...Typography.title2,
-    fontSize: 18,
-    color: '#0c0c0e',
-    letterSpacing: 0.5,
+    fontSize: 17,
+    color: '#0f172a',
+    letterSpacing: 1.8,
     fontWeight: '800',
   },
-  protocolBadge: {
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
+  mandiPill: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#a7f3d0',
+    borderColor: '#e2e8f0',
   },
-  protocolBadgeText: {
+  mandiPillText: {
     fontSize: 9,
-    fontWeight: '800',
-    color: '#047857',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    color: '#475569',
+    letterSpacing: 0.8,
   },
   subtitle: {
     fontSize: 11,
@@ -173,64 +168,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
   },
   statusIndicatorOnline: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
   },
   statusIndicatorOffline: {
     backgroundColor: '#fef2f2',
     borderColor: '#fecaca',
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
+    letterSpacing: 0.8,
   },
   statusTextOnline: {
-    color: '#047857',
+    color: '#059669',
   },
   statusTextOffline: {
-    color: '#b91c1c',
-  },
-  subStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 8,
-  },
-  stripChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  stripChipTag: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#0284c7',
-    letterSpacing: 0.5,
-  },
-  stripChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#334155',
+    color: '#dc2626',
   },
 });

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { InspectionDetail } from '../types';
 import {
@@ -249,7 +250,10 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Continue to Camera →</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Text style={styles.submitBtnText}>Continue to Camera</Text>
+                    <Feather name="arrow-right" size={14} color="#ffffff" />
+                  </View>
                 )}
               </AnimatedPressable>
             </View>
@@ -260,7 +264,11 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
               onPress={() => handleStartCapture('UPLOAD')}
               disabled={submitting}
             >
-              <Text style={styles.uploadDirectBtnText}>Upload Photo File Directly →</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Feather name="upload-cloud" size={14} color="#059669" />
+                <Text style={styles.uploadDirectBtnText}>Upload Photo File Directly</Text>
+                <Feather name="arrow-right" size={14} color="#059669" />
+              </View>
             </AnimatedPressable>
           </View>
         </FadeInView>

@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { InspectionSummary } from '../types';
 import {
@@ -97,7 +98,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const totalLots = inspections.length;
   const finalizedLots = inspections.filter((i) => i.status === 'FINALIZED').length;
-  const inReviewLots = inspections.filter((i) => i.status !== 'FINALIZED').length;
 
   return (
     <View style={styles.container}>
@@ -114,18 +114,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <>
               <View style={[styles.kpiCard, styles.kpiCardSlate]}>
                 <View style={styles.kpiHeaderRow}>
+                  <Feather name="layers" size={11} color="#64748b" />
                   <Text style={styles.kpiPillTag}>TOTAL LOTS</Text>
                 </View>
                 <Text style={styles.kpiValue}>{totalLots}</Text>
-                <Text style={styles.kpiSubLabel}>Inspections Done</Text>
+                <Text style={styles.kpiSubLabel}>Recorded Appraisals</Text>
               </View>
 
               <View style={[styles.kpiCard, styles.kpiCardEmerald]}>
                 <View style={styles.kpiHeaderRow}>
-                  <View style={styles.liveEmeraldDot} />
-                  <Text style={[styles.kpiPillTag, { color: '#047857' }]}>TOP GRADE A</Text>
+                  <Feather name="award" size={11} color="#059669" />
+                  <Text style={[styles.kpiPillTag, { color: '#059669' }]}>GRADE A</Text>
                 </View>
-                <Text style={[styles.kpiValue, { color: '#047857' }]}>{finalizedLots}</Text>
+                <Text style={[styles.kpiValue, { color: '#059669' }]}>{finalizedLots}</Text>
                 <Text style={styles.kpiSubLabel}>
                   {totalLots > 0 ? `${Math.round((finalizedLots / totalLots) * 100)}% Certified` : '0% Certified'}
                 </Text>
@@ -133,12 +134,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
               <View style={[styles.kpiCard, styles.kpiCardCyan]}>
                 <View style={styles.kpiHeaderRow}>
-                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>AI ACCURACY</Text>
+                  <Feather name="crosshair" size={11} color="#0284c7" />
+                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>PRECISION</Text>
                 </View>
                 <Text style={[styles.kpiValue, { color: '#0369a1' }]}>
-                  99.2<Text style={styles.kpiUnit}>%</Text>
+                  ±0.5<Text style={styles.kpiUnit}>mm</Text>
                 </Text>
-                <Text style={styles.kpiSubLabel}>Groq Multimodal</Text>
+                <Text style={styles.kpiSubLabel}>Caliper Lock</Text>
               </View>
             </>
           )}
@@ -156,28 +158,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <View style={styles.stationOverlay}>
             <View style={styles.stationBadgeRow}>
               <View style={styles.stationBadge}>
+                <Feather name="cpu" size={10} color="#38bdf8" style={{ marginRight: 4 }} />
                 <Text style={styles.stationBadgeText}>AI QUALITY SUITE</Text>
               </View>
               <View style={styles.stationPillSecondary}>
                 <Text style={styles.stationPillSecondaryText}>GROQ MULTIMODAL</Text>
               </View>
             </View>
-            <Text style={styles.stationTitle}>Instant AI Onion Quality Checker</Text>
+            <Text style={styles.stationTitle}>Autonomous Mandi Quality Terminal</Text>
             <Text style={styles.stationDesc}>
-              Take a video sweep or snap a photo of onions. Multimodal AI identifies rot, sprouting, bulb size, and fair mandi market price in seconds.
+              Continuous video sweeps or top-down photo inspection. Real-time rot detection, optical caliper sizing, and APMC valuation in seconds.
             </Text>
             <View style={styles.stationChipRow}>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>🎥 Video Sweep</Text>
+                <Feather name="video" size={10} color="#38bdf8" style={{ marginRight: 4 }} />
+                <Text style={styles.stationChipText}>Video Sorter</Text>
               </View>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>⚡ Rot & Sprout Alert</Text>
+                <Feather name="shield" size={10} color="#34d399" style={{ marginRight: 4 }} />
+                <Text style={styles.stationChipText}>Rot Defense</Text>
               </View>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>💰 Mandi Payout</Text>
+                <Feather name="trending-up" size={10} color="#fbbf24" style={{ marginRight: 4 }} />
+                <Text style={styles.stationChipText}>Mandi Payout</Text>
               </View>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>📦 Shelf-Life Guide</Text>
+                <Feather name="archive" size={10} color="#c084fc" style={{ marginRight: 4 }} />
+                <Text style={styles.stationChipText}>Storage Horizon</Text>
               </View>
             </View>
           </View>
@@ -186,7 +193,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* Action Center */}
       <FadeInView delay={110} distance={12}>
-        {/* NEW: Video Sweep Inspection Action Card */}
+        {/* Flagship: Video Sweep Inspection Action Card */}
         <AnimatedPressable
           haptic="heavy"
           onPress={() => onStartNewInspection('VIDEO')}
@@ -194,20 +201,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         >
           <View style={styles.heroContent}>
             <View style={[styles.heroAperturePod, { borderColor: 'rgba(56, 189, 248, 0.5)' }]}>
-              <Text style={styles.heroApertureIcon}>🎥</Text>
+              <Feather name="video" size={18} color="#38bdf8" />
             </View>
             <View style={styles.heroTextContainer}>
               <View style={[styles.heroMicroPill, { backgroundColor: 'rgba(56, 189, 248, 0.18)' }]}>
                 <View style={[styles.heroDotLive, { backgroundColor: '#38bdf8' }]} />
-                <Text style={[styles.heroMicroPillText, { color: '#38bdf8' }]}>NEW • VIDEO SWEEP INSPECTION</Text>
+                <Text style={[styles.heroMicroPillText, { color: '#38bdf8' }]}>REAL-TIME VIDEO SWEEP</Text>
               </View>
               <Text style={styles.heroTitle}>Video Sweep &amp; Sorter</Text>
               <Text style={styles.heroSubtitle}>
-                Pan camera across onion lot or inspect one by one with live defect timestamps
+                Pan camera across lot or inspect one by one with live defect timestamps
               </Text>
             </View>
-            <View style={[styles.heroChevronBadge, { backgroundColor: '#38bdf8' }]}>
-              <Text style={[styles.heroChevron, { color: '#09090b' }]}>Record →</Text>
+            <View style={styles.nestedButton}>
+              <Text style={styles.nestedButtonText}>Sweep</Text>
+              <View style={styles.nestedButtonIcon}>
+                <Feather name="arrow-right" size={11} color="#09090b" />
+              </View>
             </View>
           </View>
         </AnimatedPressable>
@@ -216,24 +226,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <AnimatedPressable
           haptic="heavy"
           onPress={() => onStartNewInspection('CAMERA')}
-          style={styles.heroActionCard}
+          style={styles.heroActionCardLight}
         >
           <View style={styles.heroContent}>
-            <View style={styles.heroAperturePod}>
-              <Text style={styles.heroApertureIcon}>📷</Text>
+            <View style={styles.heroAperturePodLight}>
+              <Feather name="camera" size={18} color="#0f172a" />
             </View>
             <View style={styles.heroTextContainer}>
-              <View style={styles.heroMicroPill}>
-                <View style={styles.heroDotLive} />
-                <Text style={styles.heroMicroPillText}>INSTANT PHOTO SCANNER</Text>
+              <View style={styles.heroMicroPillSlate}>
+                <Text style={styles.heroMicroPillTextSlate}>PRECISION OPTICAL CALIPER</Text>
               </View>
-              <Text style={styles.heroTitle}>Photo Lot Inspection</Text>
-              <Text style={styles.heroSubtitle}>
+              <Text style={styles.heroTitleDark}>Photo Lot Inspection</Text>
+              <Text style={styles.heroSubtitleDark}>
                 Capture an overhead photo of an onion spread for instant caliber sizing
               </Text>
             </View>
-            <View style={styles.heroChevronBadge}>
-              <Text style={styles.heroChevron}>Snap →</Text>
+            <View style={styles.nestedButtonDark}>
+              <Text style={styles.nestedButtonDarkText}>Snap</Text>
+              <View style={styles.nestedButtonDarkIcon}>
+                <Feather name="arrow-right" size={11} color="#ffffff" />
+              </View>
             </View>
           </View>
         </AnimatedPressable>
@@ -247,7 +259,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             style={styles.rapidCard}
           >
             <View style={styles.rapidIconPod}>
-              <Text style={styles.rapidIcon}>↑</Text>
+              <Feather name="upload-cloud" size={16} color="#0f172a" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rapidTitle}>Upload Media File</Text>
@@ -268,12 +280,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             disabled={loadingDemoLot}
           >
             <View style={[styles.rapidIconPod, styles.rapidIconPodAmber]}>
-              <Text style={styles.rapidIconAmber}>◈</Text>
+              <Feather name="zap" size={16} color="#b45309" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rapidTitle}>Instant Demo Lot</Text>
               <Text style={styles.rapidSubtitle}>
-                24 real bulbs · 1-click test
+                24 real bulbs · 1-click benchmark
               </Text>
             </View>
             <View style={styles.demoLotBadge}>
@@ -350,18 +362,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             }
             renderItem={({ item, index }) => {
               const isCertified = item.status === 'FINALIZED';
-              const isDraft = item.status === 'DRAFT';
-              const accentColor = isCertified ? '#059669' : isDraft ? '#64748b' : '#0284c7';
 
               return (
                 <FadeInView delay={Math.min(index * 40, 200)} distance={8}>
                   <AnimatedPressable
                     haptic="medium"
                     onPress={() => onSelectInspection(item.id)}
-                    style={[
-                      styles.inspectionCard,
-                      { borderLeftColor: accentColor, borderLeftWidth: 3.5 },
-                    ]}
+                    style={styles.inspectionCard}
                   >
                     <View style={styles.cardTopRow}>
                       <View style={styles.lotIdRow}>
@@ -378,7 +385,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </View>
 
                     <View style={styles.cardLocationRow}>
-                      <Text style={styles.locationPinIcon}>📍</Text>
+                      <Feather name="map-pin" size={11} color="#64748b" style={{ marginRight: 5 }} />
                       <Text style={styles.procurementCentreText} numberOfLines={1}>
                         {item.procurement_centre || 'Mandi Yard, Lasalgaon APMC'}
                       </Text>
@@ -392,21 +399,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <View style={[styles.caliberBarSegment, { flex: isCertified ? 7 : 20, backgroundColor: '#dc2626' }]} />
                       </View>
                       <View style={styles.caliberLegendRow}>
-                        <Text style={styles.caliberLegendItem}>
-                          <Text style={{ color: '#047857', fontWeight: '800' }}>● </Text>
-                          Grade A
-                        </Text>
-                        <Text style={styles.caliberLegendItem}>
-                          <Text style={{ color: '#b45309', fontWeight: '800' }}>● </Text>
-                          URS
-                        </Text>
-                        <Text style={styles.caliberLegendItem}>
-                          <Text style={{ color: '#b91c1c', fontWeight: '800' }}>● </Text>
-                          Rejection
-                        </Text>
-                        <Text style={styles.caliberLegendAction}>
-                          Inspect →
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#059669' }} />
+                          <Text style={styles.caliberLegendItem}>Grade A</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#d97706' }} />
+                          <Text style={styles.caliberLegendItem}>URS</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#dc2626' }} />
+                          <Text style={styles.caliberLegendItem}>Rejection</Text>
+                        </View>
+                        <View style={styles.inspectActionPill}>
+                          <Text style={styles.caliberLegendAction}>View</Text>
+                          <Feather name="chevron-right" size={12} color="#0f172a" />
+                        </View>
                       </View>
                     </View>
 
@@ -606,23 +614,39 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.14)',
     ...Shadows.cardElevated,
   },
+  heroActionCardLight: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.lg,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    ...Shadows.card,
+  },
   heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   heroAperturePod: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(56, 189, 248, 0.35)',
   },
-  heroApertureIcon: {
-    fontSize: 20,
+  heroAperturePodLight: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   heroTextContainer: {
     flex: 1,
@@ -632,22 +656,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginBottom: 3,
   },
+  heroMicroPillSlate: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 3,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
   heroDotLive: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#10b981',
+    backgroundColor: '#38bdf8',
   },
   heroMicroPillText: {
     fontSize: 8.5,
     fontWeight: '800',
-    color: '#34d399',
+    color: '#38bdf8',
+    letterSpacing: 0.5,
+  },
+  heroMicroPillTextSlate: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#475569',
     letterSpacing: 0.5,
   },
   heroTitle: {
@@ -656,11 +696,69 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     letterSpacing: -0.2,
   },
+  heroTitleDark: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
+  },
   heroSubtitle: {
     fontSize: 11,
     color: '#94a3b8',
     marginTop: 2,
     lineHeight: 15,
+  },
+  heroSubtitleDark: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  nestedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#38bdf8',
+    paddingLeft: 10,
+    paddingRight: 5,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  nestedButtonText: {
+    color: '#09090b',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  nestedButtonIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(9, 9, 11, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nestedButtonDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0f172a',
+    paddingLeft: 10,
+    paddingRight: 5,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  nestedButtonDarkText: {
+    color: '#ffffff',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  nestedButtonDarkIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   heroChevronBadge: {
     backgroundColor: '#ffffff',
@@ -809,10 +907,10 @@ const styles = StyleSheet.create({
   },
   inspectionCard: {
     backgroundColor: '#ffffff',
-    borderRadius: Radius.md,
-    padding: 13,
+    borderRadius: Radius.lg,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e2db',
+    borderColor: '#e2e8f0',
     marginBottom: 10,
     ...Shadows.card,
   },
@@ -849,11 +947,7 @@ const styles = StyleSheet.create({
   cardLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
     marginTop: 6,
-  },
-  locationPinIcon: {
-    fontSize: 11,
   },
   procurementCentreText: {
     fontSize: 11.5,
@@ -887,9 +981,18 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontWeight: '600',
   },
+  inspectActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 12,
+  },
   caliberLegendAction: {
     fontSize: 10,
-    color: '#0284c7',
+    color: '#0f172a',
     fontWeight: '700',
   },
   cardFooter: {

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { InspectionDetail, VideoScanResult } from '../types';
 import {
@@ -426,7 +427,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             onPress={onCancel}
             style={styles.hudCircleBtn}
           >
-            <Text style={styles.hudCircleBtnText}>✕</Text>
+            <Feather name="x" size={16} color="#ffffff" />
           </AnimatedPressable>
 
           <View style={styles.hudCenterBadge}>
@@ -447,7 +448,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setGuideVisible(true)}
               style={styles.hudCircleBtn}
             >
-              <Text style={styles.hudGuideText}>?</Text>
+              <Feather name="help-circle" size={16} color="#ffffff" />
             </AnimatedPressable>
           </View>
         </View>
@@ -460,6 +461,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('CAMERA')}
               style={[styles.modeSwitcherBtn, activeTab === 'CAMERA' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="camera"
+                size={12}
+                color={activeTab === 'CAMERA' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'CAMERA' && styles.modeSwitcherBtnTextActive]}>
                 Camera
               </Text>
@@ -469,6 +476,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('VIDEO')}
               style={[styles.modeSwitcherBtn, activeTab === 'VIDEO' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="video"
+                size={12}
+                color={activeTab === 'VIDEO' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'VIDEO' && styles.modeSwitcherBtnTextActive]}>
                 Video Sweep
               </Text>
@@ -478,6 +491,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('UPLOAD')}
               style={[styles.modeSwitcherBtn, activeTab === 'UPLOAD' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="upload-cloud"
+                size={12}
+                color={activeTab === 'UPLOAD' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'UPLOAD' && styles.modeSwitcherBtnTextActive]}>
                 Upload
               </Text>
@@ -498,7 +517,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={triggerFileUpload}
             >
               <View style={styles.dropzoneIconCircle}>
-                <Text style={styles.dropzoneArrow}>↑</Text>
+                <Feather name="upload-cloud" size={26} color="#0f172a" />
               </View>
               <Text style={styles.dropzoneTitle}>Upload Onion Spread Photo</Text>
               <Text style={styles.dropzoneSubtitle}>
@@ -528,9 +547,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 style={styles.loadDemoActionBtn}
                 onPress={loadDemoSample}
               >
-                <Text style={styles.loadDemoActionBtnText}>
-                  Load Verified Mandi Demo Lot →
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Text style={styles.loadDemoActionBtnText}>
+                    Load Verified Mandi Demo Lot
+                  </Text>
+                  <Feather name="arrow-right" size={14} color="#059669" />
+                </View>
               </AnimatedPressable>
             </View>
           </FadeInView>
@@ -591,7 +613,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             onPress={onCancel}
             style={styles.hudCircleBtn}
           >
-            <Text style={styles.hudCircleBtnText}>✕</Text>
+            <Feather name="x" size={16} color="#ffffff" />
           </AnimatedPressable>
 
           <View style={styles.hudCenterBadge}>
@@ -612,7 +634,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setGuideVisible(true)}
               style={styles.hudCircleBtn}
             >
-              <Text style={styles.hudGuideText}>?</Text>
+              <Feather name="help-circle" size={16} color="#ffffff" />
             </AnimatedPressable>
           </View>
         </View>
@@ -625,6 +647,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('CAMERA')}
               style={[styles.modeSwitcherBtn, activeTab === 'CAMERA' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="camera"
+                size={12}
+                color={activeTab === 'CAMERA' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'CAMERA' && styles.modeSwitcherBtnTextActive]}>
                 Camera
               </Text>
@@ -634,6 +662,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('VIDEO')}
               style={[styles.modeSwitcherBtn, activeTab === 'VIDEO' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="video"
+                size={12}
+                color={activeTab === 'VIDEO' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'VIDEO' && styles.modeSwitcherBtnTextActive]}>
                 Video Sweep
               </Text>
@@ -643,6 +677,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={() => setActiveTab('UPLOAD')}
               style={[styles.modeSwitcherBtn, activeTab === 'UPLOAD' && styles.modeSwitcherBtnActive]}
             >
+              <Feather
+                name="upload-cloud"
+                size={12}
+                color={activeTab === 'UPLOAD' ? '#0f172a' : '#64748b'}
+                style={{ marginRight: 5 }}
+              />
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'UPLOAD' && styles.modeSwitcherBtnTextActive]}>
                 Upload
               </Text>
@@ -687,7 +727,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   onPress={triggerVideoUpload}
                 >
                   <View style={[styles.dropzoneIconCircle, { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                    <Text style={[styles.dropzoneArrow, { color: '#38bdf8' }]}>🎥</Text>
+                    <Feather name="video" size={26} color="#38bdf8" />
                   </View>
                   <Text style={styles.dropzoneTitle}>Record or Select Video Sweep</Text>
                   <Text style={styles.dropzoneSubtitle}>
@@ -715,9 +755,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     style={[styles.loadDemoActionBtn, { backgroundColor: 'rgba(56, 189, 248, 0.18)', borderColor: 'rgba(56, 189, 248, 0.4)' }]}
                     onPress={handleLoadDemoVideoSweep}
                   >
-                    <Text style={[styles.loadDemoActionBtnText, { color: '#38bdf8' }]}>
-                      Run Demo Video Sweep →
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Text style={[styles.loadDemoActionBtnText, { color: '#38bdf8' }]}>
+                        Run Demo Video Sweep
+                      </Text>
+                      <Feather name="arrow-right" size={14} color="#38bdf8" />
+                    </View>
                   </AnimatedPressable>
                 </View>
               </FadeInView>
@@ -782,7 +825,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   onPress={onCancel}
                   style={styles.hudCircleBtn}
                 >
-                  <Text style={styles.hudCircleBtnText}>✕</Text>
+                  <Feather name="x" size={18} color="#ffffff" />
                 </AnimatedPressable>
 
                 <View style={styles.hudCenterBadge}>
@@ -805,7 +848,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     style={styles.hudCircleBtn}
                     accessibilityLabel="Flip Camera"
                   >
-                    <Text style={styles.hudFlipIcon}>⟲</Text>
+                    <Feather name="refresh-cw" size={16} color="#ffffff" />
                   </AnimatedPressable>
 
                   {/* Guide Button */}
@@ -814,7 +857,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     onPress={() => setGuideVisible(true)}
                     style={styles.hudCircleBtn}
                   >
-                    <Text style={styles.hudGuideText}>?</Text>
+                    <Feather name="help-circle" size={16} color="#ffffff" />
                   </AnimatedPressable>
 
                   {/* Torch Toggle */}
@@ -823,9 +866,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     onPress={() => setTorchOn(!torchOn)}
                     style={[styles.hudCircleBtn, torchOn && styles.hudTorchActive]}
                   >
-                    <Text style={[styles.hudTorchText, torchOn && { color: '#000' }]}>
-                      ⚡
-                    </Text>
+                    <Feather name="zap" size={16} color={torchOn ? '#0f172a' : '#ffffff'} />
                   </AnimatedPressable>
                 </View>
               </View>
@@ -983,7 +1024,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     accessibilityLabel="Upload Image File"
                   >
                     <View style={[styles.sideBtnIconBox, styles.uploadIconBox]}>
-                      <Text style={styles.uploadIconDeckText}>↑</Text>
+                      <Feather name="upload-cloud" size={15} color="#ffffff" />
                     </View>
                     <Text style={styles.sideBtnLabel}>Upload</Text>
                   </AnimatedPressable>
@@ -1048,7 +1089,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 onPress={() => setGuideVisible(false)}
                 style={styles.guideCloseBtn}
               >
-                <Text style={styles.guideCloseText}>✕</Text>
+                <Feather name="x" size={16} color="#0f172a" />
               </AnimatedPressable>
             </View>
 

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "expo": "~57.0.24",
     "expo-camera": "~57.0.5",
     "expo-haptics": "~57.0.3",

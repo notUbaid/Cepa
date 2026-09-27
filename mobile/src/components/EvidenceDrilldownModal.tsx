@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { OnionInstanceDetail } from '../types';
 import {
@@ -104,7 +105,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 onPress={onClose}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Feather name="x" size={18} color="#0f172a" />
               </AnimatedPressable>
             </View>
           </View>
