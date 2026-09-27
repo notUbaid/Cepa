@@ -203,6 +203,32 @@ class WatershedSegmentationProvider(SegmentationProvider):
             if area < self.min_bulb_area_px or area > self.max_bulb_area_px:
                 continue
 
+            # Morphological bulb authenticity check (filter out loose skins, peels, crescent debris)
+            cnts, _ = cv2.findContours(inst_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not cnts:
+                continue
+            c = max(cnts, key=cv2.contourArea)
+            c_area = cv2.contourArea(c)
+            if c_area < self.min_bulb_area_px:
+                continue
+
+            hull = cv2.convexHull(c)
+            hull_area = max(1.0, float(cv2.contourArea(hull)))
+            solidity = float(c_area) / hull_area
+            peri = cv2.arcLength(c, True)
+            circularity = (4.0 * np.pi * c_area) / max(1.0, peri * peri)
+
+            # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.70)
+            # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.70)
+            if solidity < 0.70:
+                logger.debug("Watershed: discarded peel/skin debris (solidity=%.2f)", solidity)
+                continue
+
+            # Crescent slices or elongated peel strips
+            if circularity < 0.35 and solidity < 0.80:
+                logger.debug("Watershed: discarded non-bulb strip (circ=%.2f, sol=%.2f)", circularity, solidity)
+                continue
+
             # Bounding box
             y_indices, x_indices = np.where(inst_mask > 0)
             if len(y_indices) == 0:

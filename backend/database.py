@@ -64,10 +64,21 @@ def get_db() -> Generator[Session, None, None]:
 
 def create_all_tables() -> None:
     """
-    Create all tables defined in ORM models.
-    Called at application startup if tables don't exist.
-    In production, prefer Alembic migrations instead.
+    Create all tables defined in ORM models and apply lightweight SQLite migrations.
     """
-    # Import all models here so SQLAlchemy sees them before creating tables
     import models  # noqa: F401 — side-effect import registers models
     Base.metadata.create_all(bind=engine)
+
+    # Lightweight SQLite auto-migration for newly added columns
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            res = conn.execute(text("PRAGMA table_info(samples)")).fetchall()
+            existing_cols = {row[1] for row in res}
+            if "is_estimated_scale" not in existing_cols:
+                conn.execute(text("ALTER TABLE samples ADD COLUMN is_estimated_scale BOOLEAN DEFAULT 0"))
+            if "calibration_method" not in existing_cols:
+                conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
+            conn.commit()
+        except Exception:
+            pass

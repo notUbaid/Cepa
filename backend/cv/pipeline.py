@@ -80,6 +80,9 @@ class PipelineResult:
     marker_detected: bool = False
     scale_mm_per_px: float | None = None
     perspective_valid: bool = False
+    is_estimated_scale: bool = False
+    calibration_method: str = "CHARUCO_BOARD"
+    scale_uncertainty_mm: float = 0.5
 
     # ── Quality failures (codes + human message) ───────────────────────────────
     quality_flags: list[str] = field(default_factory=list)
@@ -173,6 +176,9 @@ def run_pipeline(
     result.calibration = calibration
     result.scale_mm_per_px = calibration.scale_mm_per_px
     result.perspective_valid = calibration.perspective_valid
+    result.is_estimated_scale = calibration.is_estimated
+    result.calibration_method = calibration.calibration_method
+    result.scale_uncertainty_mm = calibration.uncertainty_mm
 
     if not calibration.perspective_valid and calibration.failure_code:
         if calibration.failure_code not in result.quality_flags:
@@ -194,7 +200,7 @@ def run_pipeline(
     result.seg_model_version = seg_result.model_version
 
     logger.info(
-        "Segmentation: %d instances detected in %.1fms (model=%s)",
+        "Segmentation: %d raw instances detected in %.1fms (model=%s)",
         seg_result.count,
         result.segmentation_elapsed_ms,
         seg_result.model_version,
@@ -208,8 +214,82 @@ def run_pipeline(
         result.quality_flags.append("no_detections")
         return result
 
+    # Debris & Peel filtering: exclude papery skin slivers, peel cutoffs, and foreign material
+    raw_detections = seg_result.detections
+    valid_detections: list[OnionDetection] = []
+    for d in raw_detections:
+        cnts, _ = cv2.findContours(d.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            continue
+        c = max(cnts, key=cv2.contourArea)
+        c_area = cv2.contourArea(c)
+        if c_area < 1200:
+            continue
+        hull = cv2.convexHull(c)
+        hull_area = max(1.0, float(cv2.contourArea(hull)))
+        solidity = float(c_area) / hull_area
+        peri = cv2.arcLength(c, True)
+        circ = (4.0 * np.pi * c_area) / max(1.0, peri * peri)
+
+        # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.70)
+        # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.70)
+        if solidity < 0.70:
+            logger.debug("Pipeline: filtered out peel/skin debris (solidity=%.2f)", solidity)
+            continue
+        if circ < 0.35 and solidity < 0.80:
+            logger.debug("Pipeline: filtered out non-bulb strip (circ=%.2f, sol=%.2f)", circ, solidity)
+            continue
+        valid_detections.append(d)
+
+    # If all detections were filtered out as debris, keep the largest raw detection rather than failing
+    if not valid_detections and raw_detections:
+        logger.warning("All detections filtered by morphology; retaining largest detection as fallback.")
+        valid_detections = [max(raw_detections, key=lambda d: cv2.countNonZero(d.mask))]
+
+    # Re-index valid detections
+    detections = [
+        OnionDetection(
+            bbox_x=vd.bbox_x,
+            bbox_y=vd.bbox_y,
+            bbox_w=vd.bbox_w,
+            bbox_h=vd.bbox_h,
+            mask=vd.mask,
+            confidence=vd.confidence,
+            touches_border=vd.touches_border,
+            instance_index=i,
+        )
+        for i, vd in enumerate(valid_detections)
+    ]
+
+    # Refine autonomous scale with empirical bulb population prior
+    if calibration.is_estimated and len(detections) >= 1:
+        bulb_diameters_px = []
+        for d in detections:
+            area_px = float(np.count_nonzero(d.mask))
+            if area_px > 0:
+                diam_px = 2.0 * np.sqrt(area_px / np.pi)
+                bulb_diameters_px.append(diam_px)
+
+        if bulb_diameters_px:
+            med_diam_px = float(np.median(bulb_diameters_px))
+            # Indian APMC typical adult onion median diameter is 52.5mm
+            if med_diam_px > 25.0:
+                empirical_scale = 52.5 / med_diam_px
+                # Blend 50% FOV prior + 50% bulb prior
+                blended_scale = 0.50 * (calibration.scale_mm_per_px or 0.36) + 0.50 * empirical_scale
+                blended_scale = float(np.clip(
+                    blended_scale,
+                    settings.scale_min_mm_per_px,
+                    settings.scale_max_mm_per_px,
+                ))
+                calibration.scale_mm_per_px = blended_scale
+                result.scale_mm_per_px = blended_scale
+                logger.info(
+                    "Refined autonomous scale with bulb prior: med_px=%.1f -> scale=%.4f mm/px",
+                    med_diam_px, blended_scale,
+                )
+
     # Post-processing quality checks
-    detections = seg_result.detections
     n_border = sum(1 for d in detections if d.touches_border)
     if n_border > len(detections) * 0.3:
         result.quality_flags.append("many_edge_cutoffs")

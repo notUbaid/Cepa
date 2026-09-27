@@ -94,6 +94,9 @@ export interface SampleDetail {
   marker_detected: boolean;
   scale_mm_per_px: number | null;
   perspective_valid: boolean;
+  is_estimated_scale?: boolean;
+  calibration_method?: string;
+  scale_uncertainty_mm?: number;
   quality_passed: boolean;
   quality_flags: string[];
   processing_status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';

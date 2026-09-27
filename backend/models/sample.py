@@ -61,6 +61,8 @@ class Sample(Base):
     scale_mm_per_px: Mapped[float | None] = mapped_column(Float, nullable=True)
     # perspective_valid: whether homography correction was successfully applied
     perspective_valid: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_estimated_scale: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+    calibration_method: Mapped[str | None] = mapped_column(String(50), default="CHARUCO_BOARD", nullable=True)
 
     # ── Quality gate ──────────────────────────────────────────────────────────
     quality_passed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -24,6 +24,9 @@ class SampleDetail(BaseModel):
     marker_detected: bool
     scale_mm_per_px: float | None
     perspective_valid: bool
+    is_estimated_scale: bool = False
+    calibration_method: str = "CHARUCO_BOARD"
+    scale_uncertainty_mm: float = 0.5
     quality_passed: bool
     quality_flags: list[str] = Field(default_factory=list)
     processing_status: str

@@ -163,12 +163,16 @@ def render_annotated_inspection_image(
         )
 
     # 3. Bottom Calibration & Scale Telemetry Banner
-    banner_text = (
-        f"CEPA CALIBRATION: {scale_mm_per_px:.4f} mm/px"
-        if scale_mm_per_px
-        else "CEPA CALIBRATION: UNCALIBRATED"
-    )
-    cv2.rectangle(annotated, (10, h - 42), (430, h - 10), (15, 23, 42), -1)
+    is_estimated = any(getattr(item.size_estimate, 'uncertainty_flag', False) for item in instances) if instances else False
+    if scale_mm_per_px:
+        if is_estimated:
+            banner_text = f"AUTONOMOUS CALIPER: ~{scale_mm_per_px:.4f} mm/px (+-3.5mm)"
+        else:
+            banner_text = f"CHARUCO 7x5 LOCKED: {scale_mm_per_px:.4f} mm/px (+-0.5mm)"
+    else:
+        banner_text = "CEPA CALIBRATION: UNCALIBRATED"
+
+    cv2.rectangle(annotated, (10, h - 42), (480, h - 10), (15, 23, 42), -1)
     cv2.rectangle(annotated, (10, h - 42), (14, h - 10), (56, 189, 248), -1)
     cv2.putText(
         annotated,

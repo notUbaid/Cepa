@@ -284,6 +284,8 @@ def _persist_pipeline_results(
     sample.marker_detected = result.marker_detected
     sample.scale_mm_per_px = result.scale_mm_per_px
     sample.perspective_valid = result.perspective_valid
+    sample.is_estimated_scale = getattr(result, "is_estimated_scale", False)
+    sample.calibration_method = getattr(result, "calibration_method", "CHARUCO_BOARD")
     sample.processing_finished_at = datetime.now(timezone.utc)
     if result.processed_image_path:
         sample.processed_image_path = result.processed_image_path
