@@ -6,51 +6,56 @@
 
 export const Colors = {
   // Surfaces
-  bg: '#f9f8f6',                // Warm linen off-white
+  bg: '#f8f7f4',                // Warm tactile editorial background
+  bgDeep: '#0c0c0e',            // Obsidian dark hero surfaces
   cardBg: '#ffffff',            // Pure white card
   cardBgElevated: '#f4f3ef',    // Subtle warm tinted surface
-  cardBgHover: '#ecebe6',
+  cardBgHover: '#eeebe5',
   surfaceGlass: 'rgba(255, 255, 255, 0.94)',
 
   // Borders
-  border: '#e7e5e4',            // Clean 1px light border (stone-200)
+  border: '#e5e2db',            // Crisp light border
   borderActive: '#18181b',      // Focused solid charcoal
-  borderMuted: '#f0eeea',       // Faint divider
-  borderHighlight: '#d6d3d1',   // Stronger outline
+  borderMuted: '#eeebe5',       // Faint divider
+  borderHighlight: '#d4cfc7',   // Stronger outline
 
-  // Primary Actions
-  accent: '#18181b',            // Deep obsidian / charcoal
-  accentDark: '#09090b',
+  // Primary Actions & Accents
+  accent: '#0c0c0e',            // Deep obsidian
+  accentDark: '#050506',
   accentSubtle: '#f4f4f5',
   accentTeal: '#0f766e',        // Calm agricultural teal accent
+  accentCyan: '#0284c7',        // Caliper laser cyan
+  accentAmber: '#d97706',       // APMC harvest amber
+  accentRuby: '#be123c',        // Onion skin ruby
 
-  // Mandi Quality Standards
-  gradeA: '#18181b',            // Restrained obsidian
-  gradeABg: '#f4f3ef',          // Clean warm surface
-  gradeABorder: '#e7e5e4',
+  // Mandi Quality Standards — Vibrant, Prestigious & High-Contrast
+  gradeA: '#047857',            // Emerald green for certified Grade A
+  gradeABg: '#ecfdf5',          // Soft crisp mint
+  gradeABorder: '#a7f3d0',      // Mint border
 
-  urs: '#9a3412',               // Warm ochre / amber
-  ursBg: '#fffbeb',             // Pale cream
+  urs: '#b45309',               // Warm ochre / amber for Under Rejection Standard
+  ursBg: '#fffbeb',             // Soft warm gold
   ursBorder: '#fde68a',
 
-  reject: '#991b1b',            // Deep brick crimson
+  reject: '#b91c1c',            // Deep brick crimson for rejects
   rejectBg: '#fef2f2',          // Light rose
   rejectBorder: '#fecaca',
 
-  review: '#3f3f46',            // Restrained charcoal
-  reviewBg: '#f4f4f5',
-  reviewBorder: '#e4e4e7',
+  review: '#0369a1',            // Technical cyan for in-review / pending
+  reviewBg: '#f0f9ff',
+  reviewBorder: '#bae6fd',
 
   // Typography
-  text: '#18181b',              // Near-black charcoal
-  textSecondary: '#52525b',      // Subdued charcoal
-  textMuted: '#71717a',          // Mid-gray caption
-  textDim: '#a1a1aa',            // Light gray
+  text: '#0c0c0e',              // Near-black charcoal
+  textSecondary: '#475569',      // Slate charcoal
+  textMuted: '#64748b',          // Mid-slate caption
+  textDim: '#94a3b8',            // Light slate
+  textInverted: '#ffffff',
 
   // Skeleton Loaders
-  skeletonBase: '#ece9e3',
-  skeletonHighlight: '#f7f6f2',
-  overlayDark: 'rgba(24, 24, 27, 0.65)',
+  skeletonBase: '#e8e5de',
+  skeletonHighlight: '#f5f3ed',
+  overlayDark: 'rgba(12, 12, 14, 0.72)',
 };
 
 export const Spacing = {
@@ -116,31 +121,52 @@ export const Typography = {
 
 export const Shadows = {
   sm: {
-    shadowColor: '#000',
+    shadowColor: '#0c0a09',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 3,
-    elevation: 1,
+    elevation: 2,
   },
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowColor: '#0c0a09',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardElevated: {
+    shadowColor: '#0c0a09',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
   },
   cardHover: {
-    shadowColor: '#000',
+    shadowColor: '#0c0a09',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  glowGreen: {
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  glowAmber: {
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modal: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    elevation: 10,
   },
 };

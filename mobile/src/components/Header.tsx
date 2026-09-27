@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Colors, Radius, Spacing, Typography } from '../ui';
+import { Colors, Radius, Shadows, Spacing, Typography } from '../ui';
 
 interface HeaderProps {
   serverConnected?: boolean;
@@ -61,14 +61,14 @@ export const Header: React.FC<HeaderProps> = ({
             <View style={styles.titleRow}>
               <Text style={styles.brandTitle}>CEPA</Text>
               <View style={styles.protocolBadge}>
-                <Text style={styles.protocolBadgeText}>MANDI PROTOCOL</Text>
+                <Text style={styles.protocolBadgeText}>NAFED / APMC PROTOCOL</Text>
               </View>
             </View>
             <Text style={styles.subtitle}>Onion Quality & Optical Caliper Appraisal</Text>
           </View>
         </View>
 
-        <View style={styles.statusIndicator}>
+        <View style={[styles.statusIndicator, serverConnected ? styles.statusIndicatorOnline : styles.statusIndicatorOffline]}>
           <Animated.View
             style={[
               styles.dot,
@@ -78,23 +78,23 @@ export const Header: React.FC<HeaderProps> = ({
               },
             ]}
           />
-          <Text style={[styles.statusText, serverConnected && { color: '#047857' }]}>
-            {serverConnected ? 'System Online' : 'Offline'}
+          <Text style={[styles.statusText, serverConnected ? styles.statusTextOnline : styles.statusTextOffline]}>
+            {serverConnected ? 'System Live' : 'Offline'}
           </Text>
         </View>
       </View>
 
-      {/* Sub-header strip: Standard & Center info */}
+      {/* Sub-header strip: Standard & Center info chips */}
       <View style={styles.subStrip}>
-        <View style={styles.stripLeft}>
-          <Text style={styles.subStripTag}>STANDARD</Text>
-          <Text style={styles.subStripText}>
+        <View style={styles.stripChip}>
+          <Text style={styles.stripChipTag}>STANDARD</Text>
+          <Text style={styles.stripChipText}>
             {policyVersion.includes('BIS') ? 'BIS IS 17912:2022' : 'NAFED FAQ Standard'}
           </Text>
         </View>
-        <View style={styles.stripRight}>
-          <Text style={styles.subStripTag}>ENGINE</Text>
-          <Text style={styles.subStripText}>Sub-mm Optical Caliper</Text>
+        <View style={styles.stripChip}>
+          <Text style={styles.stripChipTag}>CALIPER</Text>
+          <Text style={styles.stripChipText}>Sub-mm Optical Engine</Text>
         </View>
       </View>
     </View>
@@ -108,12 +108,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e7e5e4',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomColor: '#e5e2db',
+    ...Shadows.sm,
   },
   topRow: {
     flexDirection: 'row',
@@ -126,19 +122,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoWrapper: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     backgroundColor: '#0c0c0e',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...Shadows.glowGreen,
   },
   logoImage: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
   },
   titleRow: {
     flexDirection: 'row',
@@ -153,34 +150,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   protocolBadge: {
-    backgroundColor: '#f4f3ef',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#a7f3d0',
   },
   protocolBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#52525b',
-    letterSpacing: 0.4,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 11,
-    color: '#71717a',
+    color: '#64748b',
     marginTop: 2,
+    fontWeight: '500',
   },
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#f4f3ef',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+  },
+  statusIndicatorOnline: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  statusIndicatorOffline: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
   },
   dot: {
     width: 7,
@@ -189,37 +193,44 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#52525b',
+    fontWeight: '700',
+  },
+  statusTextOnline: {
+    color: '#047857',
+  },
+  statusTextOffline: {
+    color: '#b91c1c',
   },
   subStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 6,
+    marginTop: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f5f5f4',
+    borderTopColor: '#f1f5f9',
+    gap: 8,
   },
-  stripLeft: {
+  stripChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  stripRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  subStripTag: {
+  stripChipTag: {
     fontSize: 9,
-    fontWeight: '700',
-    color: '#a1a1aa',
+    fontWeight: '800',
+    color: '#0284c7',
     letterSpacing: 0.5,
   },
-  subStripText: {
+  stripChipText: {
     fontSize: 11,
-    fontWeight: '500',
-    color: '#44403c',
+    fontWeight: '600',
+    color: '#334155',
   },
 });

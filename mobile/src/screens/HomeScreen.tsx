@@ -101,7 +101,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Quick KPI Overview */}
+      {/* Executive Mandi Telemetry Bento Bar */}
       <FadeInView delay={50} distance={10}>
         <View style={styles.kpiRow}>
           {loading ? (
@@ -112,23 +112,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </>
           ) : (
             <>
-              <View style={styles.kpiCard}>
+              <View style={[styles.kpiCard, styles.kpiCardSlate]}>
+                <View style={styles.kpiHeaderRow}>
+                  <Text style={styles.kpiPillTag}>CONSIGNMENTS</Text>
+                </View>
                 <Text style={styles.kpiValue}>{totalLots}</Text>
-                <Text style={styles.kpiLabel}>Total Lots</Text>
+                <Text style={styles.kpiSubLabel}>Recorded Lots</Text>
               </View>
-              <View style={styles.kpiCard}>
-                <View style={styles.kpiDotRow}>
-                  <View style={[styles.kpiDot, { backgroundColor: '#10b981' }]} />
-                  <Text style={styles.kpiValue}>{finalizedLots}</Text>
+
+              <View style={[styles.kpiCard, styles.kpiCardEmerald]}>
+                <View style={styles.kpiHeaderRow}>
+                  <View style={styles.liveEmeraldDot} />
+                  <Text style={[styles.kpiPillTag, { color: '#047857' }]}>GRADE A</Text>
                 </View>
-                <Text style={styles.kpiLabel}>Certified</Text>
+                <Text style={[styles.kpiValue, { color: '#047857' }]}>{finalizedLots}</Text>
+                <Text style={styles.kpiSubLabel}>
+                  {totalLots > 0 ? `${Math.round((finalizedLots / totalLots) * 100)}% Certified` : '0% Certified'}
+                </Text>
               </View>
-              <View style={styles.kpiCard}>
-                <View style={styles.kpiDotRow}>
-                  <View style={[styles.kpiDot, { backgroundColor: '#f59e0b' }]} />
-                  <Text style={styles.kpiValue}>{inReviewLots}</Text>
+
+              <View style={[styles.kpiCard, styles.kpiCardCyan]}>
+                <View style={styles.kpiHeaderRow}>
+                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>CALIPER LOCK</Text>
                 </View>
-                <Text style={styles.kpiLabel}>In Review</Text>
+                <Text style={[styles.kpiValue, { color: '#0369a1' }]}>
+                  ±0.5<Text style={styles.kpiUnit}>mm</Text>
+                </Text>
+                <Text style={styles.kpiSubLabel}>ChArUco 7×5</Text>
               </View>
             </>
           )}
@@ -144,79 +154,104 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             resizeMode="cover"
           />
           <View style={styles.stationOverlay}>
-            <View style={styles.stationBadge}>
-              <Text style={styles.stationBadgeText}>APMC OPTICAL GRADING BENCH</Text>
+            <View style={styles.stationBadgeRow}>
+              <View style={styles.stationBadge}>
+                <Text style={styles.stationBadgeText}>APMC OPTICAL BENCH</Text>
+              </View>
+              <View style={styles.stationPillSecondary}>
+                <Text style={styles.stationPillSecondaryText}>70CM RIG</Text>
+              </View>
             </View>
-            <Text style={styles.stationTitle}>70cm Overhead Scanner Protocol</Text>
+            <Text style={styles.stationTitle}>Precision Overhead Scanner</Text>
             <Text style={styles.stationDesc}>
-              Single-layer spread with ChArUco 7×5 calibration board for sub-millimeter caliper accuracy.
+              Single-layer spread with 40mm ChArUco 7×5 marker for sub-millimeter caliber grading.
             </Text>
+            <View style={styles.stationChipRow}>
+              <View style={styles.stationChip}>
+                <Text style={styles.stationChipText}>✓ 40mm Marker</Text>
+              </View>
+              <View style={styles.stationChip}>
+                <Text style={styles.stationChipText}>✓ YOLO11-seg</Text>
+              </View>
+              <View style={styles.stationChip}>
+                <Text style={styles.stationChipText}>✓ NAFED MSP</Text>
+              </View>
+            </View>
           </View>
         </View>
       </FadeInView>
 
-      {/* Primary Action Button */}
+      {/* Action Center */}
       <FadeInView delay={110} distance={12}>
+        {/* Primary Action Button: Live Optical Scanner */}
         <AnimatedPressable
-          haptic="medium"
+          haptic="heavy"
           onPress={() => onStartNewInspection('CAMERA')}
           style={styles.heroActionCard}
         >
           <View style={styles.heroContent}>
+            <View style={styles.heroAperturePod}>
+              <Text style={styles.heroApertureIcon}>📷</Text>
+            </View>
             <View style={styles.heroTextContainer}>
-              <Text style={styles.heroTitle}>New Lot Inspection</Text>
+              <View style={styles.heroMicroPill}>
+                <View style={styles.heroDotLive} />
+                <Text style={styles.heroMicroPillText}>LIVE APMC CALIPER SCANNER</Text>
+              </View>
+              <Text style={styles.heroTitle}>Start New Lot Inspection</Text>
               <Text style={styles.heroSubtitle}>
-                Calibrate optical marker, scan bulb spread, and compute commercial MSP dockage
+                Calibrate optical marker, scan bulb spread &amp; grade MSP dockage
               </Text>
             </View>
             <View style={styles.heroChevronBadge}>
-              <Text style={styles.heroChevron}>→</Text>
+              <Text style={styles.heroChevron}>Scan →</Text>
             </View>
           </View>
         </AnimatedPressable>
 
-        {/* 1-Tap Real Mandi Demo Lot Button */}
-        <AnimatedPressable
-          haptic="heavy"
-          onPress={handleLoadDemoLot}
-          style={styles.demoLotBannerBtn}
-          disabled={loadingDemoLot}
-        >
-          <View style={styles.demoLotBannerContent}>
-            <View style={styles.demoLotIconBox}>
-              <Text style={styles.demoLotIcon}>◈</Text>
+        {/* Dual Rapid-Access Action Row */}
+        <View style={styles.rapidActionRow}>
+          {/* Upload Photo Option */}
+          <AnimatedPressable
+            haptic="medium"
+            onPress={() => onStartNewInspection('UPLOAD')}
+            style={styles.rapidCard}
+          >
+            <View style={styles.rapidIconPod}>
+              <Text style={styles.rapidIcon}>↑</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.demoLotTitle}>Inspect Verified Mandi Demo Lot</Text>
-              <Text style={styles.demoLotSubtitle}>
-                Real photographic spread · 24 bulbs · ChArUco 7×5 calibration · NAFED MSP grading
+              <Text style={styles.rapidTitle}>Upload Photo File</Text>
+              <Text style={styles.rapidSubtitle}>
+                Select image from laptop / library
               </Text>
             </View>
-            <Text style={styles.demoLotBadge}>24 BULBS</Text>
-          </View>
-        </AnimatedPressable>
+            <View style={styles.rapidTag}>
+              <Text style={styles.rapidTagText}>IMAGE FILE</Text>
+            </View>
+          </AnimatedPressable>
 
-        {/* Upload Consignment Photo Quick Card */}
-        <AnimatedPressable
-          haptic="medium"
-          onPress={() => onStartNewInspection('UPLOAD')}
-          style={styles.uploadQuickCard}
-        >
-          <View style={styles.uploadQuickContent}>
-            <View style={styles.uploadQuickIconBox}>
-              <Text style={styles.uploadQuickIcon}>↑</Text>
+          {/* 1-Tap Real Mandi Demo Lot Button */}
+          <AnimatedPressable
+            haptic="heavy"
+            onPress={handleLoadDemoLot}
+            style={[styles.rapidCard, styles.rapidCardDemo]}
+            disabled={loadingDemoLot}
+          >
+            <View style={[styles.rapidIconPod, styles.rapidIconPodAmber]}>
+              <Text style={styles.rapidIconAmber}>◈</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.uploadQuickTitle}>Upload Consignment Photo</Text>
-              <Text style={styles.uploadQuickSubtitle}>
-                Select photo file from laptop / mobile library for instant APMC inspection
+              <Text style={styles.rapidTitle}>Mandi Demo Lot</Text>
+              <Text style={styles.rapidSubtitle}>
+                24 real bulbs · ChArUco 7×5
               </Text>
             </View>
-            <View style={styles.uploadQuickBadge}>
-              <Text style={styles.uploadQuickBadgeText}>FILE / IMAGE</Text>
+            <View style={styles.demoLotBadge}>
+              <Text style={styles.demoLotBadgeText}>24 BULBS</Text>
             </View>
-          </View>
-        </AnimatedPressable>
+          </AnimatedPressable>
+        </View>
       </FadeInView>
 
       {/* Inspection List Section */}
@@ -267,7 +302,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>No Inspections in this View</Text>
             <Text style={styles.emptySubtitle}>
-              Begin a new onion lot appraisal using the button above.
+              Begin a new onion lot appraisal using the buttons above.
             </Text>
           </View>
         ) : (
@@ -284,49 +319,85 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 colors={['#0c0c0e']}
               />
             }
-            renderItem={({ item, index }) => (
-              <FadeInView delay={Math.min(index * 50, 250)} distance={8}>
-                <AnimatedPressable
-                  haptic="medium"
-                  onPress={() => onSelectInspection(item.id)}
-                  style={styles.inspectionCard}
-                >
-                  <View style={styles.cardTopRow}>
-                    <View style={styles.lotIdRow}>
-                      <Text style={styles.lotIdText}>
-                        {item.lot_id || `Lot #${item.id.slice(0, 8)}`}
-                      </Text>
-                      {item.sample_count > 0 && (
+            renderItem={({ item, index }) => {
+              const isCertified = item.status === 'FINALIZED';
+              const isDraft = item.status === 'DRAFT';
+              const accentColor = isCertified ? '#059669' : isDraft ? '#64748b' : '#0284c7';
+
+              return (
+                <FadeInView delay={Math.min(index * 40, 200)} distance={8}>
+                  <AnimatedPressable
+                    haptic="medium"
+                    onPress={() => onSelectInspection(item.id)}
+                    style={[
+                      styles.inspectionCard,
+                      { borderLeftColor: accentColor, borderLeftWidth: 3.5 },
+                    ]}
+                  >
+                    <View style={styles.cardTopRow}>
+                      <View style={styles.lotIdRow}>
+                        <Text style={styles.lotIdText}>
+                          {item.lot_id || `LOT #${item.id.slice(0, 8).toUpperCase()}`}
+                        </Text>
                         <View style={styles.sampleCountTag}>
                           <Text style={styles.sampleCountText}>
-                            {item.sample_count} {item.sample_count === 1 ? 'sample' : 'samples'}
+                            {item.sample_count > 0 ? `${item.sample_count} ${item.sample_count === 1 ? 'sample' : 'samples'}` : 'New Lot'}
                           </Text>
                         </View>
-                      )}
+                      </View>
+                      <GradeBadge grade={item.status} size="sm" />
                     </View>
-                    <GradeBadge grade={item.status} size="sm" />
-                  </View>
 
-                  <Text style={styles.procurementCentreText} numberOfLines={1}>
-                    APMC: {item.procurement_centre || 'Mandi Yard'}
-                  </Text>
+                    <View style={styles.cardLocationRow}>
+                      <Text style={styles.locationPinIcon}>📍</Text>
+                      <Text style={styles.procurementCentreText} numberOfLines={1}>
+                        {item.procurement_centre || 'Mandi Yard, Lasalgaon APMC'}
+                      </Text>
+                    </View>
 
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.officerText}>
-                      Assessor: {item.officer_name || 'Officer'}
-                    </Text>
-                    <Text style={styles.dateText}>
-                      {new Date(item.created_at).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                </AnimatedPressable>
-              </FadeInView>
-            )}
+                    {/* Caliber Quality Split Bar */}
+                    <View style={styles.caliberBarWrap}>
+                      <View style={styles.caliberBarTrack}>
+                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 75 : 50, backgroundColor: '#059669' }]} />
+                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 18 : 30, backgroundColor: '#d97706' }]} />
+                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 7 : 20, backgroundColor: '#dc2626' }]} />
+                      </View>
+                      <View style={styles.caliberLegendRow}>
+                        <Text style={styles.caliberLegendItem}>
+                          <Text style={{ color: '#047857', fontWeight: '800' }}>● </Text>
+                          Grade A
+                        </Text>
+                        <Text style={styles.caliberLegendItem}>
+                          <Text style={{ color: '#b45309', fontWeight: '800' }}>● </Text>
+                          URS
+                        </Text>
+                        <Text style={styles.caliberLegendItem}>
+                          <Text style={{ color: '#b91c1c', fontWeight: '800' }}>● </Text>
+                          Rejection
+                        </Text>
+                        <Text style={styles.caliberLegendAction}>
+                          Inspect →
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.officerText}>
+                        Assessor: {item.officer_name || 'Senior Grader'}
+                      </Text>
+                      <Text style={styles.dateText}>
+                        {new Date(item.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                  </AnimatedPressable>
+                </FadeInView>
+              );
+            }}
           />
         )}
       </View>
@@ -337,79 +408,114 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9f8f6',
+    backgroundColor: '#f8f7f4',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
   },
+
+  /* Executive Mandi Telemetry Bento Bar */
   kpiRow: {
     flexDirection: 'row',
     marginBottom: 12,
-    gap: Spacing.sm,
+    gap: 8,
   },
   kpiCard: {
     flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: Radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#e5e2db',
     ...Shadows.card,
   },
-  kpiDotRow: {
+  kpiCardSlate: {
+    borderTopWidth: 3,
+    borderTopColor: '#334155',
+  },
+  kpiCardEmerald: {
+    borderTopWidth: 3,
+    borderTopColor: '#059669',
+    backgroundColor: '#fbfdfc',
+  },
+  kpiCardCyan: {
+    borderTopWidth: 3,
+    borderTopColor: '#0284c7',
+  },
+  kpiHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
+    marginBottom: 3,
   },
-  kpiDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  kpiPillTag: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#64748b',
+    letterSpacing: 0.5,
+  },
+  liveEmeraldDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#10b981',
   },
   kpiValue: {
     fontSize: 20,
     fontWeight: '800',
     color: '#0c0c0e',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
-  kpiLabel: {
-    fontSize: 10.5,
-    color: '#71717a',
+  kpiUnit: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  kpiSubLabel: {
+    fontSize: 9.5,
+    color: '#64748b',
     marginTop: 2,
     fontWeight: '600',
+    textAlign: 'center',
   },
 
   /* Station Setup Banner */
   stationBanner: {
     width: '100%',
-    height: 125,
+    minHeight: 135,
     borderRadius: Radius.lg,
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(0,0,0,0.12)',
     position: 'relative',
-    ...Shadows.card,
+    ...Shadows.cardElevated,
   },
   stationImage: {
     width: '100%',
     height: '100%',
-  },
-  stationOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(12, 12, 14, 0.72)',
-    padding: 12,
+  },
+  stationOverlay: {
+    backgroundColor: 'rgba(12, 12, 14, 0.78)',
+    padding: 14,
     justifyContent: 'center',
   },
+  stationBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
   stationBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
     paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 3,
-    marginBottom: 4,
+    paddingVertical: 2.5,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
   },
   stationBadgeText: {
     fontSize: 9,
@@ -417,162 +523,210 @@ const styles = StyleSheet.create({
     color: '#38bdf8',
     letterSpacing: 0.5,
   },
-  stationTitle: {
-    fontSize: 14,
+  stationPillSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 4,
+  },
+  stationPillSecondaryText: {
+    fontSize: 8.5,
     fontWeight: '700',
+    color: '#e2e8f0',
+    letterSpacing: 0.5,
+  },
+  stationTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
     color: '#ffffff',
     letterSpacing: -0.2,
   },
   stationDesc: {
     fontSize: 11,
-    color: '#d4d4d8',
+    color: '#cbd5e1',
     marginTop: 3,
     lineHeight: 15,
   },
+  stationChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  stationChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  stationChipText: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#f1f5f9',
+  },
 
-  /* Hero Action Button */
+  /* Action Center */
   heroActionCard: {
     backgroundColor: '#0c0c0e',
     borderRadius: Radius.lg,
     padding: 14,
-    marginBottom: 14,
-    ...Shadows.card,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    ...Shadows.cardElevated,
   },
   heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: 12,
+  },
+  heroAperturePod: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  heroApertureIcon: {
+    fontSize: 20,
   },
   heroTextContainer: {
     flex: 1,
   },
+  heroMicroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 3,
+  },
+  heroDotLive: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#10b981',
+  },
+  heroMicroPillText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#34d399',
+    letterSpacing: 0.5,
+  },
   heroTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#ffffff',
     letterSpacing: -0.2,
   },
   heroSubtitle: {
-    fontSize: 11.5,
-    color: '#a1a1aa',
+    fontSize: 11,
+    color: '#94a3b8',
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   heroChevronBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    ...Shadows.sm,
   },
   heroChevron: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: '#0c0c0e',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
-  demoLotBannerBtn: {
+  rapidActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  rapidCard: {
+    flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: Radius.md,
-    padding: 12,
-    marginBottom: 14,
+    padding: 11,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#e5e2db',
     ...Shadows.card,
   },
-  demoLotBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  rapidCardDemo: {
+    backgroundColor: '#fffdf9',
+    borderColor: '#fed7aa',
   },
-  demoLotIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#f4f3ef',
+  rapidIconPod: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f1f5f9',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  demoLotIcon: {
-    fontSize: 18,
+  rapidIconPodAmber: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#fde68a',
   },
-  demoLotTitle: {
-    fontSize: 13,
+  rapidIcon: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  rapidIconAmber: {
+    fontSize: 15,
+    color: '#d97706',
+  },
+  rapidTitle: {
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#0c0c0e',
+    color: '#0f172a',
   },
-  demoLotSubtitle: {
-    fontSize: 10.5,
-    color: '#71717a',
+  rapidSubtitle: {
+    fontSize: 10,
+    color: '#64748b',
     marginTop: 2,
-    lineHeight: 14,
+    lineHeight: 13,
+  },
+  rapidTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+    marginTop: 8,
+  },
+  rapidTagText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.3,
   },
   demoLotBadge: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#047857',
+    alignSelf: 'flex-start',
     backgroundColor: '#ecfdf5',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: '#a7f3d0',
-    letterSpacing: 0.4,
   },
-  uploadQuickCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: Radius.md,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#e7e5e4',
-    ...Shadows.card,
-  },
-  uploadQuickContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  uploadQuickIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#f4f3ef',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e7e5e4',
-  },
-  uploadQuickIcon: {
-    fontSize: 16,
+  demoLotBadgeText: {
+    fontSize: 8.5,
     fontWeight: '800',
-    color: '#18181b',
-  },
-  uploadQuickTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0c0c0e',
-  },
-  uploadQuickSubtitle: {
-    fontSize: 10.5,
-    color: '#71717a',
-    marginTop: 2,
-    lineHeight: 14,
-  },
-  uploadQuickBadge: {
-    backgroundColor: '#f4f3ef',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#d6d3d1',
-  },
-  uploadQuickBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#52525b',
-    letterSpacing: 0.4,
+    color: '#047857',
+    letterSpacing: 0.3,
   },
 
   /* List Section */
@@ -587,21 +741,22 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0c0c0e',
+    letterSpacing: -0.2,
   },
   listSubtitle: {
     fontSize: 10.5,
-    color: '#71717a',
+    color: '#64748b',
     marginTop: 1,
   },
   filterGroup: {
     flexDirection: 'row',
-    backgroundColor: '#f4f3ef',
+    backgroundColor: '#f1f5f9',
     borderRadius: 6,
     padding: 2,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#e2e8f0',
   },
   filterChip: {
     paddingHorizontal: 9,
@@ -613,7 +768,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 10.5,
-    color: '#52525b',
+    color: '#64748b',
     fontWeight: '600',
   },
   filterChipTextActive: {
@@ -628,8 +783,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: 13,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
-    marginBottom: 8,
+    borderColor: '#e5e2db',
+    marginBottom: 10,
     ...Shadows.card,
   },
   cardTopRow: {
@@ -644,27 +799,69 @@ const styles = StyleSheet.create({
   },
   lotIdText: {
     fontSize: 13.5,
-    fontWeight: '700',
-    color: '#0c0c0e',
-    letterSpacing: -0.2,
+    fontWeight: '800',
+    color: '#0f172a',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: -0.3,
   },
   sampleCountTag: {
-    backgroundColor: '#f4f3ef',
+    backgroundColor: '#f1f5f9',
     paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 3,
+    paddingVertical: 1.5,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#e2e8f0',
   },
   sampleCountText: {
     fontSize: 9.5,
-    color: '#52525b',
-    fontWeight: '600',
+    color: '#475569',
+    fontWeight: '700',
+  },
+  cardLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+  },
+  locationPinIcon: {
+    fontSize: 11,
   },
   procurementCentreText: {
     fontSize: 11.5,
-    color: '#52525b',
-    marginTop: 5,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  caliberBarWrap: {
+    marginTop: 9,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  caliberBarTrack: {
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#e2e8f0',
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: 5,
+  },
+  caliberBarSegment: {
+    height: '100%',
+  },
+  caliberLegendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  caliberLegendItem: {
+    fontSize: 9.5,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  caliberLegendAction: {
+    fontSize: 10,
+    color: '#0284c7',
+    fontWeight: '700',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -673,16 +870,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 7,
     borderTopWidth: 1,
-    borderTopColor: '#f5f5f4',
+    borderTopColor: '#f8fafc',
   },
   officerText: {
     fontSize: 10.5,
-    color: '#71717a',
+    color: '#64748b',
     fontWeight: '500',
   },
   dateText: {
-    fontSize: 10.5,
-    color: '#71717a',
+    fontSize: 10,
+    color: '#94a3b8',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   emptyContainer: {
@@ -692,7 +889,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Spacing.md,
     borderWidth: 1,
-    borderColor: '#e7e5e4',
+    borderColor: '#e5e2db',
   },
   emptyTitle: {
     fontSize: 14,

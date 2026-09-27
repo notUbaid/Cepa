@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -101,84 +102,86 @@ export default function App() {
         barStyle={currentScreen === 'CAPTURE' ? 'light-content' : 'dark-content'}
         backgroundColor={currentScreen === 'CAPTURE' ? '#000000' : Colors.bg}
       />
-      {currentScreen !== 'CAPTURE' && (
-        <Header
-          serverConnected={serverOnline}
-          policyVersion={policyVersion}
-          isMockActive={isMockActive}
-        />
-      )}
-
-      <Animated.View style={[styles.content, { opacity: screenFade }]}>
-        {currentScreen === 'HOME' && (
-          <HomeScreen
-            onStartNewInspection={(mode = 'CAMERA') => {
-              setCaptureInitialTab(mode);
-              navigateTo('NEW_INSPECTION');
-            }}
-            onSelectInspection={handleSelectInspection}
+      <View style={[styles.appShell, currentScreen === 'CAPTURE' && styles.appShellCapture]}>
+        {currentScreen !== 'CAPTURE' && (
+          <Header
+            serverConnected={serverOnline}
+            policyVersion={policyVersion}
+            isMockActive={isMockActive}
           />
         )}
 
-        {currentScreen === 'NEW_INSPECTION' && (
-          <NewInspectionScreen
-            onInspectionCreated={(inspection, mode = 'CAMERA') => {
-              setActiveInspection(inspection);
-              setCaptureInitialTab(mode);
-              navigateTo('CAPTURE');
-            }}
-            onCancel={() => navigateTo('HOME')}
-          />
-        )}
+        <Animated.View style={[styles.content, { opacity: screenFade }]}>
+          {currentScreen === 'HOME' && (
+            <HomeScreen
+              onStartNewInspection={(mode = 'CAMERA') => {
+                setCaptureInitialTab(mode);
+                navigateTo('NEW_INSPECTION');
+              }}
+              onSelectInspection={handleSelectInspection}
+            />
+          )}
 
-        {currentScreen === 'CAPTURE' && activeInspection && (
-          <CaptureScreen
-            inspection={activeInspection}
-            initialTab={captureInitialTab}
-            onPhotoCaptured={(uri) => {
-              setCapturedPhotoUri(uri);
-              navigateTo('QUALITY_CHECK');
-            }}
-            onCancel={() => navigateTo('HOME')}
-          />
-        )}
+          {currentScreen === 'NEW_INSPECTION' && (
+            <NewInspectionScreen
+              onInspectionCreated={(inspection, mode = 'CAMERA') => {
+                setActiveInspection(inspection);
+                setCaptureInitialTab(mode);
+                navigateTo('CAPTURE');
+              }}
+              onCancel={() => navigateTo('HOME')}
+            />
+          )}
 
-        {currentScreen === 'QUALITY_CHECK' && activeInspection && capturedPhotoUri && (
-          <QualityCheckScreen
-            inspection={activeInspection}
-            photoUri={capturedPhotoUri}
-            onCheckPassed={(sample) => {
-              setActiveSample(sample);
-              navigateTo('RESULTS');
-            }}
-            onRetake={() => navigateTo('CAPTURE')}
-          />
-        )}
+          {currentScreen === 'CAPTURE' && activeInspection && (
+            <CaptureScreen
+              inspection={activeInspection}
+              initialTab={captureInitialTab}
+              onPhotoCaptured={(uri) => {
+                setCapturedPhotoUri(uri);
+                navigateTo('QUALITY_CHECK');
+              }}
+              onCancel={() => navigateTo('HOME')}
+            />
+          )}
 
-        {currentScreen === 'RESULTS' && activeInspection && activeSample && (
-          <ResultsScreen
-            inspection={activeInspection}
-            sample={activeSample}
-            onFinalize={(finalized) => {
-              setActiveInspection(finalized);
-              navigateTo('FINAL_REPORT');
-            }}
-            onAddSample={() => navigateTo('CAPTURE')}
-          />
-        )}
+          {currentScreen === 'QUALITY_CHECK' && activeInspection && capturedPhotoUri && (
+            <QualityCheckScreen
+              inspection={activeInspection}
+              photoUri={capturedPhotoUri}
+              onCheckPassed={(sample) => {
+                setActiveSample(sample);
+                navigateTo('RESULTS');
+              }}
+              onRetake={() => navigateTo('CAPTURE')}
+            />
+          )}
 
-        {currentScreen === 'FINAL_REPORT' && activeInspection && (
-          <FinalReportScreen
-            inspection={activeInspection}
-            onStartNewInspection={() => {
-              setActiveInspection(null);
-              setActiveSample(null);
-              setCapturedPhotoUri(null);
-              navigateTo('HOME');
-            }}
-          />
-        )}
-      </Animated.View>
+          {currentScreen === 'RESULTS' && activeInspection && activeSample && (
+            <ResultsScreen
+              inspection={activeInspection}
+              sample={activeSample}
+              onFinalize={(finalized) => {
+                setActiveInspection(finalized);
+                navigateTo('FINAL_REPORT');
+              }}
+              onAddSample={() => navigateTo('CAPTURE')}
+            />
+          )}
+
+          {currentScreen === 'FINAL_REPORT' && activeInspection && (
+            <FinalReportScreen
+              inspection={activeInspection}
+              onStartNewInspection={() => {
+                setActiveInspection(null);
+                setActiveSample(null);
+                setCapturedPhotoUri(null);
+                navigateTo('HOME');
+              }}
+            />
+          )}
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -186,10 +189,34 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: '#09090b', // Deep sleek backdrop on desktop web
   },
   safeAreaCapture: {
     backgroundColor: '#000000',
+  },
+  appShell: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    backgroundColor: Colors.bg,
+    ...(Platform.OS === 'web'
+      ? {
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.35,
+          shadowRadius: 28,
+        }
+      : {}),
+  },
+  appShellCapture: {
+    maxWidth: '100%',
+    backgroundColor: '#000000',
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
   },
   content: {
     flex: 1,

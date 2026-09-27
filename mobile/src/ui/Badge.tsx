@@ -14,48 +14,56 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
   style,
 }) => {
   const getGradeConfig = () => {
-    switch (grade) {
+    switch (grade?.toUpperCase()) {
       case 'GRADE_A':
         return {
           label: 'Grade A',
-          color: Colors.text,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          color: Colors.gradeA,
+          bg: Colors.gradeABg,
+          borderColor: Colors.gradeABorder,
         };
       case 'URS':
         return {
-          label: 'URS',
+          label: 'URS Standard',
           color: Colors.urs,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          bg: Colors.ursBg,
+          borderColor: Colors.ursBorder,
         };
       case 'REJECTED':
+      case 'REJECT':
         return {
           label: 'Rejected',
           color: Colors.reject,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          bg: Colors.rejectBg,
+          borderColor: Colors.rejectBorder,
         };
       case 'FINALIZED':
         return {
-          label: 'Certified',
-          color: Colors.text,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          label: 'Certified Lot',
+          color: Colors.gradeA,
+          bg: Colors.gradeABg,
+          borderColor: Colors.gradeABorder,
         };
       case 'PROCESSING':
         return {
           label: 'Processing',
-          color: Colors.textSecondary,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          color: Colors.review,
+          bg: Colors.reviewBg,
+          borderColor: Colors.reviewBorder,
+        };
+      case 'DRAFT':
+        return {
+          label: 'Draft Lot',
+          color: '#475569',
+          bg: '#f1f5f9',
+          borderColor: '#cbd5e1',
         };
       default:
         return {
-          label: grade ? grade.replace(/_/g, ' ') : 'Review',
+          label: grade ? grade.replace(/_/g, ' ') : 'Pending Review',
           color: Colors.review,
-          bg: Colors.cardBgElevated,
-          borderColor: Colors.border,
+          bg: Colors.reviewBg,
+          borderColor: Colors.reviewBorder,
         };
     }
   };
@@ -72,8 +80,8 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
         {
           backgroundColor: config.bg,
           borderColor: config.borderColor,
-          paddingHorizontal: isSmall ? 6 : isLarge ? 10 : 8,
-          paddingVertical: isSmall ? 2 : isLarge ? 4 : 2.5,
+          paddingHorizontal: isSmall ? 7 : isLarge ? 12 : 9,
+          paddingVertical: isSmall ? 3 : isLarge ? 5 : 3.5,
         },
         style,
       ]}
@@ -83,9 +91,9 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
           styles.dot,
           {
             backgroundColor: config.color,
-            width: isSmall ? 4 : isLarge ? 6 : 5,
-            height: isSmall ? 4 : isLarge ? 6 : 5,
-            borderRadius: isSmall ? 2 : isLarge ? 3 : 2.5,
+            width: isSmall ? 5 : isLarge ? 7 : 6,
+            height: isSmall ? 5 : isLarge ? 7 : 6,
+            borderRadius: 4,
           },
         ]}
       />
@@ -94,7 +102,7 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
           styles.label,
           {
             color: config.color,
-            fontSize: isSmall ? 10 : isLarge ? 12 : 11,
+            fontSize: isSmall ? 10.5 : isLarge ? 12.5 : 11.5,
           },
         ]}
       >
@@ -108,35 +116,35 @@ export const SizeTierBadge: React.FC<{ tier?: string | null; style?: ViewStyle }
   tier,
   style,
 }) => {
-  const getTierColor = () => {
+  const getTierConfig = () => {
     switch (tier?.toUpperCase()) {
       case 'SUPER':
-        return Colors.text;
+        return { color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' };
       case 'MADHYAM':
-        return Colors.textSecondary;
+        return { color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd' };
       case 'JUMBO':
-        return Colors.text;
+        return { color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' };
       case 'GOLI':
-        return Colors.urs;
+        return { color: '#b45309', bg: '#fffbeb', border: '#fde68a' };
       default:
-        return Colors.textMuted;
+        return { color: '#475569', bg: '#f1f5f9', border: '#e2e8f0' };
     }
   };
 
-  const color = getTierColor();
+  const config = getTierConfig();
 
   return (
     <View
       style={[
         styles.sizeBadge,
         {
-          borderColor: Colors.border,
-          backgroundColor: Colors.cardBgElevated,
+          borderColor: config.border,
+          backgroundColor: config.bg,
         },
         style,
       ]}
     >
-      <Text style={[styles.sizeLabel, { color }]}>
+      <Text style={[styles.sizeLabel, { color: config.color }]}>
         {tier ? tier.toUpperCase() : 'STANDARD'}
       </Text>
     </View>
