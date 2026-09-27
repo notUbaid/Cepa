@@ -25,7 +25,7 @@ import {
 } from '../ui';
 
 interface HomeScreenProps {
-  onStartNewInspection: () => void;
+  onStartNewInspection: (mode?: 'CAMERA' | 'UPLOAD') => void;
   onSelectInspection: (id: string) => void;
 }
 
@@ -159,7 +159,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <FadeInView delay={110} distance={12}>
         <AnimatedPressable
           haptic="medium"
-          onPress={onStartNewInspection}
+          onPress={() => onStartNewInspection('CAMERA')}
           style={styles.heroActionCard}
         >
           <View style={styles.heroContent}>
@@ -193,6 +193,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </Text>
             </View>
             <Text style={styles.demoLotBadge}>24 BULBS</Text>
+          </View>
+        </AnimatedPressable>
+
+        {/* Upload Consignment Photo Quick Card */}
+        <AnimatedPressable
+          haptic="medium"
+          onPress={() => onStartNewInspection('UPLOAD')}
+          style={styles.uploadQuickCard}
+        >
+          <View style={styles.uploadQuickContent}>
+            <View style={styles.uploadQuickIconBox}>
+              <Text style={styles.uploadQuickIcon}>↑</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.uploadQuickTitle}>Upload Consignment Photo</Text>
+              <Text style={styles.uploadQuickSubtitle}>
+                Select photo file from laptop / mobile library for instant APMC inspection
+              </Text>
+            </View>
+            <View style={styles.uploadQuickBadge}>
+              <Text style={styles.uploadQuickBadgeText}>FILE / IMAGE</Text>
+            </View>
           </View>
         </AnimatedPressable>
       </FadeInView>
@@ -496,6 +518,60 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#a7f3d0',
+    letterSpacing: 0.4,
+  },
+  uploadQuickCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: Radius.md,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    ...Shadows.card,
+  },
+  uploadQuickContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  uploadQuickIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#f4f3ef',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+  },
+  uploadQuickIcon: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#18181b',
+  },
+  uploadQuickTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0c0c0e',
+  },
+  uploadQuickSubtitle: {
+    fontSize: 10.5,
+    color: '#71717a',
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  uploadQuickBadge: {
+    backgroundColor: '#f4f3ef',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#d6d3d1',
+  },
+  uploadQuickBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#52525b',
     letterSpacing: 0.4,
   },
 

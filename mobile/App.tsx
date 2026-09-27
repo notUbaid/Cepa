@@ -30,6 +30,7 @@ export default function App() {
   const [activeInspection, setActiveInspection] = useState<InspectionDetail | null>(null);
   const [activeSample, setActiveSample] = useState<SampleDetail | null>(null);
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
+  const [captureInitialTab, setCaptureInitialTab] = useState<'CAMERA' | 'UPLOAD'>('CAMERA');
 
   const [serverOnline, setServerOnline] = useState(true);
   const [policyVersion, setPolicyVersion] = useState('BIS_IS_17912_2022');
@@ -86,6 +87,7 @@ export default function App() {
         setActiveSample(sample);
         navigateTo('RESULTS');
       } else {
+        setCaptureInitialTab('CAMERA');
         navigateTo('CAPTURE');
       }
     } catch (e: any) {
@@ -110,15 +112,19 @@ export default function App() {
       <Animated.View style={[styles.content, { opacity: screenFade }]}>
         {currentScreen === 'HOME' && (
           <HomeScreen
-            onStartNewInspection={() => navigateTo('NEW_INSPECTION')}
+            onStartNewInspection={(mode = 'CAMERA') => {
+              setCaptureInitialTab(mode);
+              navigateTo('NEW_INSPECTION');
+            }}
             onSelectInspection={handleSelectInspection}
           />
         )}
 
         {currentScreen === 'NEW_INSPECTION' && (
           <NewInspectionScreen
-            onInspectionCreated={(inspection) => {
+            onInspectionCreated={(inspection, mode = 'CAMERA') => {
               setActiveInspection(inspection);
+              setCaptureInitialTab(mode);
               navigateTo('CAPTURE');
             }}
             onCancel={() => navigateTo('HOME')}
@@ -128,6 +134,7 @@ export default function App() {
         {currentScreen === 'CAPTURE' && activeInspection && (
           <CaptureScreen
             inspection={activeInspection}
+            initialTab={captureInitialTab}
             onPhotoCaptured={(uri) => {
               setCapturedPhotoUri(uri);
               navigateTo('QUALITY_CHECK');

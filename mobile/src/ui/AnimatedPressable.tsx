@@ -19,6 +19,7 @@ interface AnimatedPressableProps {
   haptic?: 'light' | 'medium' | 'heavy' | 'selection' | 'none';
   scaleTo?: number;
   testID?: string;
+  accessibilityLabel?: string;
 }
 
 export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
@@ -30,6 +31,7 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
   haptic = 'light',
   scaleTo = 0.96,
   testID,
+  accessibilityLabel,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -72,6 +74,7 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
   return (
     <Pressable
       testID={testID}
+      accessibilityLabel={accessibilityLabel}
       disabled={disabled}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}

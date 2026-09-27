@@ -25,7 +25,7 @@ import {
 } from '../ui';
 
 interface NewInspectionScreenProps {
-  onInspectionCreated: (inspection: InspectionDetail) => void;
+  onInspectionCreated: (inspection: InspectionDetail, mode?: 'CAMERA' | 'UPLOAD') => void;
   onCancel: () => void;
 }
 
@@ -73,7 +73,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
     })();
   }, []);
 
-  const handleStartCapture = async () => {
+  const handleStartCapture = async (targetMode: 'CAMERA' | 'UPLOAD' = 'CAMERA') => {
     Haptics.heavy();
     setSubmitting(true);
     try {
@@ -87,7 +87,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         geo_lon: location.lon,
         location_accuracy: location.accuracy,
       });
-      onInspectionCreated(inspection);
+      onInspectionCreated(inspection, targetMode);
     } catch (err: any) {
       Haptics.error();
       alert(`Could not create inspection: ${err.message}`);
@@ -229,27 +229,38 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
 
         {/* Action Buttons */}
         <FadeInView delay={220} distance={15}>
-          <View style={styles.btnRow}>
-            <AnimatedPressable
-              haptic="light"
-              style={styles.cancelBtn}
-              onPress={onCancel}
-              disabled={submitting}
-            >
-              <Text style={styles.cancelBtnText}>Back</Text>
-            </AnimatedPressable>
+          <View style={styles.actionsContainer}>
+            <View style={styles.btnRow}>
+              <AnimatedPressable
+                haptic="light"
+                style={styles.cancelBtn}
+                onPress={onCancel}
+                disabled={submitting}
+              >
+                <Text style={styles.cancelBtnText}>Back</Text>
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                haptic="heavy"
+                style={styles.submitBtn}
+                onPress={() => handleStartCapture('CAMERA')}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Continue to Camera →</Text>
+                )}
+              </AnimatedPressable>
+            </View>
 
             <AnimatedPressable
-              haptic="heavy"
-              style={styles.submitBtn}
-              onPress={handleStartCapture}
+              haptic="medium"
+              style={styles.uploadDirectBtn}
+              onPress={() => handleStartCapture('UPLOAD')}
               disabled={submitting}
             >
-              {submitting ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Continue to Camera →</Text>
-              )}
+              <Text style={styles.uploadDirectBtnText}>Upload Photo File Directly →</Text>
             </AnimatedPressable>
           </View>
         </FadeInView>
@@ -397,9 +408,12 @@ const styles = StyleSheet.create({
     minHeight: 74,
     textAlignVertical: 'top',
   },
+  actionsContainer: {
+    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+  },
   btnRow: {
     flexDirection: 'row',
-    marginTop: Spacing.xl,
     gap: Spacing.md,
   },
   cancelBtn: {
@@ -431,5 +445,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  uploadDirectBtn: {
+    paddingVertical: 13,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.cardBgElevated,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  uploadDirectBtnText: {
+    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

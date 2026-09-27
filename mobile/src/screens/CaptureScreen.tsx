@@ -6,6 +6,7 @@ import {
   Linking,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,18 +21,21 @@ import {
   FadeInView,
   Haptics,
   Radius,
+  Shadows,
   Spacing,
   Typography,
 } from '../ui';
 
 interface CaptureScreenProps {
   inspection: InspectionDetail;
+  initialTab?: 'CAMERA' | 'UPLOAD';
   onPhotoCaptured: (photoUri: string) => void;
   onCancel: () => void;
 }
 
 export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   inspection,
+  initialTab = 'CAMERA',
   onPhotoCaptured,
   onCancel,
 }) => {
@@ -41,7 +45,52 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [activeMode, setActiveMode] = useState<'SINGLE' | 'BATCH' | 'CALIBRATE'>('SINGLE');
   const [torchOn, setTorchOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
+  const [activeTab, setActiveTab] = useState<'CAMERA' | 'UPLOAD'>(initialTab);
   const cameraRef = useRef<CameraView>(null);
+
+  const toggleFacing = () => {
+    Haptics.selection();
+    setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
+  };
+
+  const triggerFileUpload = () => {
+    Haptics.light();
+    if (Platform.OS === 'web') {
+      try {
+        let input = document.getElementById('cepa-web-file-input') as HTMLInputElement | null;
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'file';
+          input.id = 'cepa-web-file-input';
+          input.accept = 'image/*';
+          input.style.display = 'none';
+          document.body.appendChild(input);
+        }
+        input.value = '';
+        input.onchange = (e: any) => {
+          const file = e.target?.files?.[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (re) => {
+              const dataUri = re.target?.result as string;
+              if (dataUri) {
+                Haptics.snap();
+                onPhotoCaptured(dataUri);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      } catch (err: any) {
+        console.warn('Web file input trigger failed, falling back to ImagePicker:', err);
+        pickFromGallery();
+      }
+    } else {
+      pickFromGallery();
+    }
+  };
 
   // Artificial Gyroscopic Horizon (Simulated / Reactive)
   const [pitch, setPitch] = useState(-0.4);
@@ -139,322 +188,526 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     );
   };
 
-  if (!permission) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#ffffff" />
-        <Text style={styles.loadingText}>Initializing optical grading sensor...</Text>
-      </View>
-    );
-  }
+  if (activeTab === 'CAMERA') {
+    if (!permission) {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.loadingText}>Initializing optical grading sensor...</Text>
+        </View>
+      );
+    }
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.centerContainer}>
-        <FadeInView delay={50} distance={15} style={styles.permCard}>
-          <View style={styles.permBadge}>
-            <Text style={styles.permBadgeText}>OPTICAL SENSOR AUTHORIZATION</Text>
-          </View>
-          <Text style={styles.permTitle}>Camera Calibration Required</Text>
-          <Text style={styles.permDesc}>
-            Cepa requires top-down camera access to measure equatorial diameters and run AI defect classification against NAFED &amp; BIS standards.
-          </Text>
-          <AnimatedPressable
-            haptic="medium"
-            style={styles.permBtn}
-            onPress={requestPermission}
-          >
-            <Text style={styles.permBtnText}>Enable Optical Sensor</Text>
-          </AnimatedPressable>
-
-          <AnimatedPressable
-            haptic="light"
-            style={styles.galleryFallbackBtn}
-            onPress={pickFromGallery}
-          >
-            <Text style={styles.galleryFallbackText}>
-              Select Spread from Photo Library
-            </Text>
-          </AnimatedPressable>
-
-          <AnimatedPressable
-            haptic="medium"
-            style={styles.demoCardBtn}
-            onPress={loadDemoSample}
-          >
-            <Text style={styles.demoCardBtnText}>
-              Load Mandi Demo Lot (32 Bulbs + ChArUco)
-            </Text>
-          </AnimatedPressable>
-        </FadeInView>
-      </View>
-    );
-  }
-
-  if (cameraError) {
-    return (
-      <View style={styles.centerContainer}>
-        <FadeInView delay={50} distance={15} style={styles.permCard}>
-          <View style={styles.permBadge}>
-            <Text style={styles.permBadgeText}>OPTICAL SENSOR NOTICE</Text>
-          </View>
-          <Text style={styles.permTitle}>Camera Hardware Stream Unavailable</Text>
-          <Text style={styles.permDesc}>
-            {Platform.OS === 'web'
-              ? 'Web browser camera stream could not be started. You can select an onion spread photograph from your device or test with the verified 24-bulb Mandi demo sample.'
-              : cameraError}
-          </Text>
-
-          <AnimatedPressable
-            haptic="medium"
-            style={styles.permBtn}
-            onPress={loadDemoSample}
-          >
-            <Text style={styles.permBtnText}>Load Verified Mandi Demo Lot</Text>
-          </AnimatedPressable>
-
-          <AnimatedPressable
-            haptic="light"
-            style={styles.galleryFallbackBtn}
-            onPress={pickFromGallery}
-          >
-            <Text style={styles.galleryFallbackText}>
-              Select Spread from Photo Library
-            </Text>
-          </AnimatedPressable>
-
-          <AnimatedPressable
-            haptic="light"
-            style={styles.demoCardBtn}
-            onPress={onCancel}
-          >
-            <Text style={styles.demoCardBtnText}>
-              Return to Inspection
-            </Text>
-          </AnimatedPressable>
-        </FadeInView>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        enableTorch={torchOn}
-        onMountError={(e) => setCameraError(e?.message || 'Camera stream failed to mount')}
-      >
-        <View style={styles.overlayContainer}>
-          {/* Top Floating Aerospace HUD */}
-          <FadeInView delay={50} distance={-10}>
-            <View style={styles.topHudBar}>
-              <AnimatedPressable
-                haptic="light"
-                onPress={onCancel}
-                style={styles.hudCircleBtn}
-              >
-                <Text style={styles.hudCircleBtnText}>✕</Text>
-              </AnimatedPressable>
-
-              <View style={styles.hudCenterBadge}>
-                <View style={styles.hudDotLive} />
-                <View>
-                  <Text style={styles.hudLotId}>
-                    {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA OPTICAL SCANNER'}
-                  </Text>
-                  <Text style={styles.hudCentreText}>
-                    {inspection.procurement_centre || 'Mandi Caliper Node'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.hudRightActions}>
-                {/* Guide Button */}
-                <AnimatedPressable
-                  haptic="selection"
-                  onPress={() => setGuideVisible(true)}
-                  style={styles.hudCircleBtn}
-                >
-                  <Text style={styles.hudGuideText}>?</Text>
-                </AnimatedPressable>
-
-                {/* Torch Toggle */}
-                <AnimatedPressable
-                  haptic="selection"
-                  onPress={() => setTorchOn(!torchOn)}
-                  style={[styles.hudCircleBtn, torchOn && styles.hudTorchActive]}
-                >
-                  <Text style={[styles.hudTorchText, torchOn && { color: '#000' }]}>
-                    ⚡
-                  </Text>
-                </AnimatedPressable>
-              </View>
+    if (!permission.granted) {
+      return (
+        <View style={styles.centerContainer}>
+          <FadeInView delay={50} distance={15} style={styles.permCard}>
+            <View style={styles.permBadge}>
+              <Text style={styles.permBadgeText}>OPTICAL SENSOR AUTHORIZATION</Text>
             </View>
-          </FadeInView>
+            <Text style={styles.permTitle}>Camera Calibration Required</Text>
+            <Text style={styles.permDesc}>
+              Cepa requires top-down camera access to measure equatorial diameters and run AI defect classification against NAFED &amp; BIS standards.
+            </Text>
+            <AnimatedPressable
+              haptic="medium"
+              style={styles.permBtn}
+              onPress={requestPermission}
+            >
+              <Text style={styles.permBtnText}>Enable Optical Sensor</Text>
+            </AnimatedPressable>
 
-          {/* Level Guidance & Altitude Bar */}
-          <View style={styles.levelBannerWrap}>
-            <View style={[styles.levelBanner, isLevel ? styles.levelBannerLocked : styles.levelBannerWarning]}>
-              <Animated.View style={[styles.levelDot, isLevel && { transform: [{ scale: pulseAnim }] }]} />
-              <Text style={styles.levelBannerText}>
-                {isLevel
-                  ? `HORIZON LOCKED · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`
-                  : `ADJUST OVERHEAD TILT · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`}
+            <AnimatedPressable
+              haptic="heavy"
+              style={styles.galleryFallbackBtn}
+              onPress={() => setActiveTab('UPLOAD')}
+            >
+              <Text style={styles.galleryFallbackText}>
+                Switch to File Upload Mode
+              </Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="medium"
+              style={styles.demoCardBtn}
+              onPress={loadDemoSample}
+            >
+              <Text style={styles.demoCardBtnText}>
+                Load Mandi Demo Lot (24 Bulbs + ChArUco)
+              </Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="light"
+              style={styles.cancelLinkBtn}
+              onPress={onCancel}
+            >
+              <Text style={styles.cancelLinkBtnText}>Return to Home</Text>
+            </AnimatedPressable>
+          </FadeInView>
+        </View>
+      );
+    }
+
+    if (cameraError) {
+      return (
+        <View style={styles.centerContainer}>
+          <FadeInView delay={50} distance={15} style={styles.permCard}>
+            <View style={styles.permBadge}>
+              <Text style={styles.permBadgeText}>OPTICAL SENSOR NOTICE</Text>
+            </View>
+            <Text style={styles.permTitle}>Camera Hardware Stream Unavailable</Text>
+            <Text style={styles.permDesc}>
+              {Platform.OS === 'web'
+                ? 'Web browser camera stream could not be started. You can upload an onion spread photo directly or inspect the verified 24-bulb Mandi demo sample.'
+                : cameraError}
+            </Text>
+
+            <AnimatedPressable
+              haptic="heavy"
+              style={styles.permBtn}
+              onPress={() => setActiveTab('UPLOAD')}
+            >
+              <Text style={styles.permBtnText}>Switch to File Upload Mode</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="medium"
+              style={styles.demoCardBtn}
+              onPress={loadDemoSample}
+            >
+              <Text style={styles.demoCardBtnText}>Load Verified Mandi Demo Lot</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="light"
+              style={styles.galleryFallbackBtn}
+              onPress={onCancel}
+            >
+              <Text style={styles.galleryFallbackText}>
+                Return to Inspection
+              </Text>
+            </AnimatedPressable>
+          </FadeInView>
+        </View>
+      );
+    }
+  }
+
+  const renderUploadSurface = () => {
+    return (
+      <View style={styles.uploadSurfaceContainer}>
+        {/* Top Floating Aerospace HUD */}
+        <View style={styles.topHudBar}>
+          <AnimatedPressable
+            haptic="light"
+            onPress={onCancel}
+            style={styles.hudCircleBtn}
+          >
+            <Text style={styles.hudCircleBtnText}>✕</Text>
+          </AnimatedPressable>
+
+          <View style={styles.hudCenterBadge}>
+            <View style={styles.hudDotLive} />
+            <View>
+              <Text style={styles.hudLotId}>
+                {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA PACKHOUSE INTAKE'}
+              </Text>
+              <Text style={styles.hudCentreText}>
+                {inspection.procurement_centre || 'Mandi Caliper Node'}
               </Text>
             </View>
           </View>
 
-          {/* Center Target Viewport with Aerospace Reticles */}
-          <View style={styles.targetViewport}>
-            {/* ChArUco Calibration Card Dock */}
-            <View style={styles.charucoReticle}>
-              <View style={[styles.cornerMini, styles.tlMini]} />
-              <View style={[styles.cornerMini, styles.trMini]} />
-              <View style={[styles.cornerMini, styles.blMini]} />
-              <View style={[styles.cornerMini, styles.brMini]} />
-              <View style={styles.charucoInnerPattern}>
-                <View style={styles.checkerBox} />
-                <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
-                <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
-                <View style={styles.checkerBox} />
+          <View style={styles.hudRightActions}>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setGuideVisible(true)}
+              style={styles.hudCircleBtn}
+            >
+              <Text style={styles.hudGuideText}>?</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+
+        {/* Viewfinder / Upload Mode Switcher */}
+        <View style={styles.modeSwitcherWrap}>
+          <View style={styles.modeSwitcherTrack}>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('CAMERA')}
+              style={[styles.modeSwitcherBtn, activeTab === 'CAMERA' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'CAMERA' && styles.modeSwitcherBtnTextActive]}>
+                Camera Viewfinder
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('UPLOAD')}
+              style={[styles.modeSwitcherBtn, activeTab === 'UPLOAD' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'UPLOAD' && styles.modeSwitcherBtnTextActive]}>
+                Upload Photo File
+              </Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.uploadScrollView}
+          contentContainerStyle={styles.uploadScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Main Upload Dropzone Card */}
+          <FadeInView delay={50} distance={12}>
+            <AnimatedPressable
+              haptic="heavy"
+              style={styles.uploadDropzoneCard}
+              onPress={triggerFileUpload}
+            >
+              <View style={styles.dropzoneIconCircle}>
+                <Text style={styles.dropzoneArrow}>↑</Text>
               </View>
-              <Text style={styles.charucoLabel}>ChArUco 7×5 BOARD DOCK</Text>
-              <Text style={styles.charucoSubLabel}>40mm Scale Reference</Text>
+              <Text style={styles.dropzoneTitle}>Upload Onion Spread Photo</Text>
+              <Text style={styles.dropzoneSubtitle}>
+                Select high-resolution overhead photograph from your computer or camera roll (.jpg, .png, .webp)
+              </Text>
+
+              <View style={styles.browsePillBtn}>
+                <Text style={styles.browsePillBtnText}>Browse &amp; Choose File</Text>
+              </View>
+            </AnimatedPressable>
+          </FadeInView>
+
+          {/* Instant Mandi Demo Sample Action */}
+          <FadeInView delay={100} distance={12}>
+            <View style={styles.demoLotActionCard}>
+              <View style={styles.demoLotHeaderRow}>
+                <Text style={styles.demoLotActionTag}>VERIFIED REAL SPECIMENS</Text>
+                <Text style={styles.demoLotBadgeText}>24 BULBS</Text>
+              </View>
+              <Text style={styles.demoLotActionTitle}>Instant Mandi Demo Sample</Text>
+              <Text style={styles.demoLotActionDesc}>
+                Real photographic spread of 24 red onion bulbs, 40mm ChArUco 7×5 calibration scale, and automated NAFED / APMC commercial grading.
+              </Text>
+
+              <AnimatedPressable
+                haptic="heavy"
+                style={styles.loadDemoActionBtn}
+                onPress={loadDemoSample}
+              >
+                <Text style={styles.loadDemoActionBtnText}>
+                  Load Verified Mandi Demo Lot →
+                </Text>
+              </AnimatedPressable>
             </View>
+          </FadeInView>
 
-            {/* Left Edge Altitude Gauge */}
-            <View style={styles.altitudeGauge}>
-              <Text style={styles.altitudeText}>70cm</Text>
-              <View style={styles.altitudeBarWrap}>
-                <View style={styles.altitudeBarOptimal} />
-                <View style={styles.altitudeCurrentMarker} />
+          {/* Optical Standards Guidelines Card */}
+          <FadeInView delay={150} distance={12}>
+            <View style={styles.specsCard}>
+              <Text style={styles.specsTitle}>Optical Capture Guidelines (NAFED / BIS IS 17912:2022)</Text>
+              <View style={styles.specItem}>
+                <View style={styles.specNumCircle}>
+                  <Text style={styles.specNumText}>1</Text>
+                </View>
+                <Text style={styles.specText}>
+                  <Text style={styles.specBold}>Top-Down Overhead Angle (90°):</Text> Position camera directly perpendicular to the spread to avoid perspective distortion.
+                </Text>
               </View>
-              <Text style={styles.altitudeSub}>ELEVATION</Text>
-            </View>
-
-            {/* Main Onion Spread Frame with Precision Corner Calipers */}
-            <View style={styles.spreadFrame}>
-              {/* Top-Left Corner Caliper */}
-              <View style={[styles.caliperCorner, styles.cTopLeft]}>
-                <View style={styles.tickH} />
-                <View style={styles.tickV} />
+              <View style={styles.specItem}>
+                <View style={styles.specNumCircle}>
+                  <Text style={styles.specNumText}>2</Text>
+                </View>
+                <Text style={styles.specText}>
+                  <Text style={styles.specBold}>ChArUco 7×5 Reference Marker:</Text> Include card in frame for true sub-millimeter caliber scale lock.
+                </Text>
               </View>
-              {/* Top-Right Corner Caliper */}
-              <View style={[styles.caliperCorner, styles.cTopRight]}>
-                <View style={styles.tickH} />
-                <View style={styles.tickV} />
-              </View>
-              {/* Bottom-Left Corner Caliper */}
-              <View style={[styles.caliperCorner, styles.cBottomLeft]}>
-                <View style={styles.tickH} />
-                <View style={styles.tickV} />
-              </View>
-              {/* Bottom-Right Corner Caliper */}
-              <View style={[styles.caliperCorner, styles.cBottomRight]}>
-                <View style={styles.tickH} />
-                <View style={styles.tickV} />
-              </View>
-
-              {/* Optical Center Crosshair with Concentric Aiming Rings */}
-              <View style={styles.centerReticle}>
-                <View style={styles.reticleRingOuter} />
-                <View style={styles.reticleRingInner} />
-                <View style={styles.reticleCrossH} />
-                <View style={styles.reticleCrossV} />
-                {isLevel && <View style={styles.reticleLockCenter} />}
-              </View>
-
-              {/* Dynamic Guidance Pill */}
-              <View style={styles.guidancePill}>
-                <Text style={styles.guidancePillText}>
-                  Spread 15–30 bulbs in single layer · Avoid bulb overlap
+              <View style={styles.specItem}>
+                <View style={styles.specNumCircle}>
+                  <Text style={styles.specNumText}>3</Text>
+                </View>
+                <Text style={styles.specText}>
+                  <Text style={styles.specBold}>Single-Layer Spread:</Text> Keep 15–30 bulbs separated without physical touching or stacking.
                 </Text>
               </View>
             </View>
-          </View>
+          </FadeInView>
 
-          {/* Bottom Industrial Shutter Deck */}
-          <FadeInView delay={100} distance={15}>
-            <View style={styles.bottomDeck}>
-              {/* Mode Selector Tabs */}
-              <View style={styles.modeTabsRow}>
-                {(['SINGLE', 'BATCH', 'CALIBRATE'] as const).map((mode) => {
-                  const active = activeMode === mode;
-                  const labelMap = {
-                    SINGLE: 'Single Lot',
-                    BATCH: 'Rapid Batch',
-                    CALIBRATE: 'Check Card',
-                  };
-                  return (
-                    <AnimatedPressable
-                      key={mode}
-                      haptic="selection"
-                      onPress={() => setActiveMode(mode)}
-                      style={[styles.modeTab, active && styles.modeTabActive]}
-                    >
-                      <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
-                        {labelMap[mode]}
-                      </Text>
-                    </AnimatedPressable>
-                  );
-                })}
-              </View>
+          {/* Switch to Camera button */}
+          <FadeInView delay={200} distance={10}>
+            <AnimatedPressable
+              haptic="light"
+              style={styles.switchBackBtn}
+              onPress={() => setActiveTab('CAMERA')}
+            >
+              <Text style={styles.switchBackText}>Switch to Overhead Camera Viewfinder</Text>
+            </AnimatedPressable>
+          </FadeInView>
+        </ScrollView>
+      </View>
+    );
+  };
 
-              {/* Primary Control Deck */}
-              <View style={styles.controlsRow}>
-                {/* Photo Library Upload */}
+  return (
+    <View style={styles.container}>
+      {activeTab === 'UPLOAD' ? (
+        renderUploadSurface()
+      ) : (
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing={facing}
+          enableTorch={torchOn}
+          onMountError={(e) => setCameraError(e?.message || 'Camera stream failed to mount')}
+        >
+          <View style={styles.overlayContainer}>
+            {/* Top Floating Aerospace HUD */}
+            <FadeInView delay={50} distance={-10}>
+              <View style={styles.topHudBar}>
                 <AnimatedPressable
                   haptic="light"
-                  style={styles.deckSideBtn}
-                  onPress={pickFromGallery}
-                  disabled={capturing}
+                  onPress={onCancel}
+                  style={styles.hudCircleBtn}
                 >
-                  <View style={styles.sideBtnIconBox}>
-                    <Text style={[styles.sideBtnIcon, { color: '#ffffff', fontSize: 11, fontWeight: '700' }]}>FILE</Text>
-                  </View>
-                  <Text style={styles.sideBtnLabel}>Library</Text>
+                  <Text style={styles.hudCircleBtnText}>✕</Text>
                 </AnimatedPressable>
 
-                {/* Tactile Shutter Button with Rotating Reticle */}
-                <AnimatedPressable
-                  haptic="heavy"
-                  scaleTo={0.90}
-                  style={[
-                    styles.shutterOuterRing,
-                    isLevel && styles.shutterOuterRingLevel,
-                  ]}
-                  onPress={takePhoto}
-                  disabled={capturing}
-                >
-                  <View style={[styles.shutterMiddleHalo, isLevel && styles.shutterMiddleHaloLevel]}>
-                    <View style={styles.shutterCoreButton}>
-                      {capturing ? (
-                        <ActivityIndicator color="#0c0c0e" size="small" />
-                      ) : (
-                        <View style={[styles.shutterCenterPip, isLevel && styles.shutterCenterPipLevel]} />
-                      )}
-                    </View>
+                <View style={styles.hudCenterBadge}>
+                  <View style={styles.hudDotLive} />
+                  <View>
+                    <Text style={styles.hudLotId}>
+                      {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA OPTICAL SCANNER'}
+                    </Text>
+                    <Text style={styles.hudCentreText}>
+                      {inspection.procurement_centre || 'Mandi Caliper Node'}
+                    </Text>
                   </View>
-                </AnimatedPressable>
+                </View>
 
-                {/* Instant Mandi Demo Sample */}
+                <View style={styles.hudRightActions}>
+                  {/* Flip Camera */}
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={toggleFacing}
+                    style={styles.hudCircleBtn}
+                    accessibilityLabel="Flip Camera"
+                  >
+                    <Text style={styles.hudFlipIcon}>⟲</Text>
+                  </AnimatedPressable>
+
+                  {/* Guide Button */}
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setGuideVisible(true)}
+                    style={styles.hudCircleBtn}
+                  >
+                    <Text style={styles.hudGuideText}>?</Text>
+                  </AnimatedPressable>
+
+                  {/* Torch Toggle */}
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setTorchOn(!torchOn)}
+                    style={[styles.hudCircleBtn, torchOn && styles.hudTorchActive]}
+                  >
+                    <Text style={[styles.hudTorchText, torchOn && { color: '#000' }]}>
+                      ⚡
+                    </Text>
+                  </AnimatedPressable>
+                </View>
+              </View>
+            </FadeInView>
+
+            {/* Viewfinder / Upload Mode Switcher */}
+            <View style={styles.modeSwitcherWrap}>
+              <View style={styles.modeSwitcherTrack}>
                 <AnimatedPressable
-                  haptic="medium"
-                  style={styles.deckSideBtn}
-                  onPress={loadDemoSample}
-                  disabled={capturing}
+                  haptic="selection"
+                  onPress={() => setActiveTab('CAMERA')}
+                  style={[styles.modeSwitcherBtn, styles.modeSwitcherBtnActive]}
                 >
-                  <View style={[styles.sideBtnIconBox, styles.demoIconBox]}>
-                    <Text style={styles.demoBadge}>DEMO</Text>
-                  </View>
-                  <Text style={styles.sideBtnLabel}>Test Lot</Text>
+                  <Text style={[styles.modeSwitcherBtnText, styles.modeSwitcherBtnTextActive]}>
+                    Camera Viewfinder
+                  </Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  haptic="selection"
+                  onPress={() => setActiveTab('UPLOAD')}
+                  style={styles.modeSwitcherBtn}
+                >
+                  <Text style={styles.modeSwitcherBtnText}>
+                    Upload Photo File
+                  </Text>
                 </AnimatedPressable>
               </View>
             </View>
-          </FadeInView>
-        </View>
-      </CameraView>
+
+            {/* Level Guidance & Altitude Bar */}
+            <View style={styles.levelBannerWrap}>
+              <View style={[styles.levelBanner, isLevel ? styles.levelBannerLocked : styles.levelBannerWarning]}>
+                <Animated.View style={[styles.levelDot, isLevel && { transform: [{ scale: pulseAnim }] }]} />
+                <Text style={styles.levelBannerText}>
+                  {isLevel
+                    ? `HORIZON LOCKED · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`
+                    : `ADJUST OVERHEAD TILT · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`}
+                </Text>
+              </View>
+            </View>
+
+            {/* Center Target Viewport with Aerospace Reticles */}
+            <View style={styles.targetViewport}>
+              {/* ChArUco Calibration Card Dock */}
+              <View style={styles.charucoReticle}>
+                <View style={[styles.cornerMini, styles.tlMini]} />
+                <View style={[styles.cornerMini, styles.trMini]} />
+                <View style={[styles.cornerMini, styles.blMini]} />
+                <View style={[styles.cornerMini, styles.brMini]} />
+                <View style={styles.charucoInnerPattern}>
+                  <View style={styles.checkerBox} />
+                  <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
+                  <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
+                  <View style={styles.checkerBox} />
+                </View>
+                <Text style={styles.charucoLabel}>ChArUco 7×5 BOARD DOCK</Text>
+                <Text style={styles.charucoSubLabel}>40mm Scale Reference</Text>
+              </View>
+
+              {/* Left Edge Altitude Gauge */}
+              <View style={styles.altitudeGauge}>
+                <Text style={styles.altitudeText}>70cm</Text>
+                <View style={styles.altitudeBarWrap}>
+                  <View style={styles.altitudeBarOptimal} />
+                  <View style={styles.altitudeCurrentMarker} />
+                </View>
+                <Text style={styles.altitudeSub}>ELEVATION</Text>
+              </View>
+
+              {/* Main Onion Spread Frame with Precision Corner Calipers */}
+              <View style={styles.spreadFrame}>
+                {/* Top-Left Corner Caliper */}
+                <View style={[styles.caliperCorner, styles.cTopLeft]}>
+                  <View style={styles.tickH} />
+                  <View style={styles.tickV} />
+                </View>
+                {/* Top-Right Corner Caliper */}
+                <View style={[styles.caliperCorner, styles.cTopRight]}>
+                  <View style={styles.tickH} />
+                  <View style={styles.tickV} />
+                </View>
+                {/* Bottom-Left Corner Caliper */}
+                <View style={[styles.caliperCorner, styles.cBottomLeft]}>
+                  <View style={styles.tickH} />
+                  <View style={styles.tickV} />
+                </View>
+                {/* Bottom-Right Corner Caliper */}
+                <View style={[styles.caliperCorner, styles.cBottomRight]}>
+                  <View style={styles.tickH} />
+                  <View style={styles.tickV} />
+                </View>
+
+                {/* Optical Center Crosshair with Concentric Aiming Rings */}
+                <View style={styles.centerReticle}>
+                  <View style={styles.reticleRingOuter} />
+                  <View style={styles.reticleRingInner} />
+                  <View style={styles.reticleCrossH} />
+                  <View style={styles.reticleCrossV} />
+                  {isLevel && <View style={styles.reticleLockCenter} />}
+                </View>
+
+                {/* Dynamic Guidance Pill */}
+                <View style={styles.guidancePill}>
+                  <Text style={styles.guidancePillText}>
+                    Spread 15–30 bulbs in single layer · Avoid bulb overlap
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Bottom Industrial Shutter Deck */}
+            <FadeInView delay={100} distance={15}>
+              <View style={styles.bottomDeck}>
+                {/* Mode Selector Tabs */}
+                <View style={styles.modeTabsRow}>
+                  {(['SINGLE', 'BATCH', 'CALIBRATE'] as const).map((mode) => {
+                    const active = activeMode === mode;
+                    const labelMap = {
+                      SINGLE: 'Single Lot',
+                      BATCH: 'Rapid Batch',
+                      CALIBRATE: 'Check Card',
+                    };
+                    return (
+                      <AnimatedPressable
+                        key={mode}
+                        haptic="selection"
+                        onPress={() => setActiveMode(mode)}
+                        style={[styles.modeTab, active && styles.modeTabActive]}
+                      >
+                        <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
+                          {labelMap[mode]}
+                        </Text>
+                      </AnimatedPressable>
+                    );
+                  })}
+                </View>
+
+                {/* Primary Control Deck */}
+                <View style={styles.controlsRow}>
+                  {/* Photo Upload Button */}
+                  <AnimatedPressable
+                    haptic="light"
+                    style={styles.deckSideBtn}
+                    onPress={triggerFileUpload}
+                    disabled={capturing}
+                    accessibilityLabel="Upload Image File"
+                  >
+                    <View style={[styles.sideBtnIconBox, styles.uploadIconBox]}>
+                      <Text style={styles.uploadIconDeckText}>↑</Text>
+                    </View>
+                    <Text style={styles.sideBtnLabel}>Upload</Text>
+                  </AnimatedPressable>
+
+                  {/* Tactile Shutter Button with Rotating Reticle */}
+                  <AnimatedPressable
+                    haptic="heavy"
+                    scaleTo={0.90}
+                    style={[
+                      styles.shutterOuterRing,
+                      isLevel && styles.shutterOuterRingLevel,
+                    ]}
+                    onPress={takePhoto}
+                    disabled={capturing}
+                  >
+                    <View style={[styles.shutterMiddleHalo, isLevel && styles.shutterMiddleHaloLevel]}>
+                      <View style={styles.shutterCoreButton}>
+                        {capturing ? (
+                          <ActivityIndicator color="#0c0c0e" size="small" />
+                        ) : (
+                          <View style={[styles.shutterCenterPip, isLevel && styles.shutterCenterPipLevel]} />
+                        )}
+                      </View>
+                    </View>
+                  </AnimatedPressable>
+
+                  {/* Instant Mandi Demo Sample */}
+                  <AnimatedPressable
+                    haptic="medium"
+                    style={styles.deckSideBtn}
+                    onPress={loadDemoSample}
+                    disabled={capturing}
+                  >
+                    <View style={[styles.sideBtnIconBox, styles.demoIconBox]}>
+                      <Text style={styles.demoBadge}>DEMO</Text>
+                    </View>
+                    <Text style={styles.sideBtnLabel}>Test Lot</Text>
+                  </AnimatedPressable>
+                </View>
+              </View>
+            </FadeInView>
+          </View>
+        </CameraView>
+      )}
 
       {/* Interactive Calibration Station Guide Sheet Modal */}
       <Modal
@@ -1183,5 +1436,246 @@ const styles = StyleSheet.create({
     color: '#0c0c0e',
     fontSize: 13.5,
     fontWeight: '700',
+  },
+
+  /* Camera Flip & Switcher */
+  hudFlipIcon: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  modeSwitcherWrap: {
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 6,
+    zIndex: 10,
+  },
+  modeSwitcherTrack: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    borderRadius: 20,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  modeSwitcherBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  modeSwitcherBtnActive: {
+    backgroundColor: '#ffffff',
+  },
+  modeSwitcherBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#a1a1aa',
+  },
+  modeSwitcherBtnTextActive: {
+    color: '#0c0c0e',
+    fontWeight: '800',
+  },
+  uploadIconBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  uploadIconDeckText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+
+  /* Dedicated Upload Surface */
+  uploadSurfaceContainer: {
+    flex: 1,
+    backgroundColor: '#09090b',
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+  },
+  uploadScrollView: {
+    flex: 1,
+  },
+  uploadScrollContent: {
+    paddingBottom: 40,
+    paddingTop: Spacing.xs,
+    gap: Spacing.md,
+  },
+  uploadDropzoneCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderStyle: 'dashed',
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+  },
+  dropzoneIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  dropzoneArrow: {
+    fontSize: 24,
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  dropzoneTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  dropzoneSubtitle: {
+    fontSize: 12,
+    color: '#a1a1aa',
+    textAlign: 'center',
+    lineHeight: 17,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  browsePillBtn: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 12,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  browsePillBtnText: {
+    color: '#0c0c0e',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  demoLotActionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  demoLotHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  demoLotActionTag: {
+    fontSize: 9.5,
+    fontFamily: 'monospace',
+    fontWeight: '800',
+    color: '#f59e0b',
+    letterSpacing: 0.5,
+  },
+  demoLotBadgeText: {
+    fontSize: 9.5,
+    fontFamily: 'monospace',
+    fontWeight: '800',
+    color: '#ffffff',
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  demoLotActionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  demoLotActionDesc: {
+    fontSize: 11.5,
+    color: '#a1a1aa',
+    lineHeight: 16,
+    marginBottom: Spacing.md,
+  },
+  loadDemoActionBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 11,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  loadDemoActionBtnText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  specsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  specsTitle: {
+    fontSize: 10.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: '#71717a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+  },
+  specItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 8,
+  },
+  specNumCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  specNumText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  specText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#a1a1aa',
+    lineHeight: 16,
+  },
+  specBold: {
+    color: '#f4f4f5',
+    fontWeight: '700',
+  },
+  switchBackBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  switchBackText: {
+    color: '#71717a',
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  cancelLinkBtn: {
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  cancelLinkBtnText: {
+    color: '#71717a',
+    fontSize: 11.5,
+    fontWeight: '600',
   },
 });
