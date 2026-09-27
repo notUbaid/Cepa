@@ -10,9 +10,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from config import settings
 from database import get_db
 from schemas.inspection import InspectionCreate, InspectionDetail, InspectionSummary, InspectionUpdate
-from schemas.sample import OnionCorrectionRequest, OnionInstanceDetail, OnionInstanceSummary, SampleDetail
+from schemas.sample import (
+    AskAiRequest,
+    OnionCorrectionRequest,
+    OnionInstanceDetail,
+    OnionInstanceSummary,
+    SampleDetail,
+)
 from services import inspection_service
 from services.image_storage import path_to_url
 
@@ -437,6 +444,28 @@ def _sample_to_detail(sample) -> SampleDetail:
         storageability_score=storage_adv.mean_storageability_score,
     )
 
+    ai_verdict = None
+    if sample.image_path:
+        cache_path = settings.storage_dir / f"{sample.image_path}.ai.json"
+        if cache_path.exists():
+            try:
+                ai_verdict = json.loads(cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        if not ai_verdict:
+            full_img_path = settings.storage_dir / sample.image_path
+            if full_img_path.exists():
+                try:
+                    import cv2
+                    img = cv2.imread(str(full_img_path))
+                    if img is not None:
+                        from services.groq_ai_service import analyze_inspection_with_ai
+                        ai_verdict = analyze_inspection_with_ai(img)
+                        cache_path.parent.mkdir(parents=True, exist_ok=True)
+                        cache_path.write_text(json.dumps(ai_verdict), encoding="utf-8")
+                except Exception as e:
+                    logger.warning("Error generating AI verdict: %s", e)
+
     return SampleDetail(
         id=sample.id,
         inspection_id=sample.inspection_id,
@@ -468,6 +497,7 @@ def _sample_to_detail(sample) -> SampleDetail:
         onion_instances=[_onion_to_summary(i) for i in sample.onion_instances],
         storage_advisory=storage_adv.as_dict(),
         commercial_settlement=settlement.as_dict(),
+        ai_agronomist_verdict=ai_verdict,
     )
 
 
@@ -532,3 +562,83 @@ async def finalize_inspection(
     except Exception as exc:
         logger.exception("Failed to auto-generate report during finalize: %s", exc)
     return _inspection_to_detail(updated, db)
+
+
+# ── Video Inspection Sweep ───────────────────────────────────────────────────
+
+@router.post("/inspections/{inspection_id}/video", status_code=status.HTTP_201_CREATED)
+async def process_video_endpoint(
+    inspection_id: str,
+    file: UploadFile = File(..., description="Recorded video sweep of onion lot (MP4/MOV/WebM)"),
+    db: Session = Depends(get_db),
+):
+    """
+    Process continuous video inspection sweep of an onion lot.
+    Segments keyframes, tracks defects across time, and runs Groq Multimodal Vision AI.
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    if inspection.status == "FINALIZED":
+        raise HTTPException(status_code=400, detail="Cannot add video to a finalized inspection")
+
+    video_bytes = await file.read()
+    if len(video_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded video file is empty")
+
+    from services.video_service import process_video_scan
+    try:
+        result = process_video_scan(
+            db=db,
+            inspection_id=inspection_id,
+            video_bytes=video_bytes,
+            original_filename=file.filename or "sweep.mp4",
+        )
+        return result
+    except Exception as e:
+        logger.exception("Failed to process video scan: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to process video: {str(e)}")
+
+
+# ── Groq AI Agronomist Interactive Q&A ────────────────────────────────────────
+
+@router.post("/inspections/{inspection_id}/ask-ai")
+async def ask_ai_endpoint(
+    inspection_id: str,
+    body: AskAiRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Ask the Multimodal Groq AI Agronomist an interactive question about the inspected onion lot.
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    detail = _inspection_to_detail(inspection, db)
+    context = {
+        "total_bulbs": detail.total_bulbs,
+        "grade_a_count": detail.grade_a_count,
+        "urs_count": detail.urs_count,
+        "rejected_count": detail.rejected_count,
+        "grade_a_pct": detail.grade_a_pct,
+        "urs_pct": detail.urs_pct,
+        "rejected_pct": detail.rejected_pct,
+    }
+    if inspection.samples:
+        last_sample = inspection.samples[-1]
+        sample_detail = _sample_to_detail(last_sample)
+        if sample_detail.storage_advisory:
+            context["storage_days"] = sample_detail.storage_advisory.get("recommended_storage_days", 90)
+        if sample_detail.commercial_settlement:
+            context["net_rate_inr"] = sample_detail.commercial_settlement.get("net_rate_inr", 2410)
+            context["avg_diameter_mm"] = sample_detail.commercial_settlement.get("mean_equatorial_diameter_mm", 52.0)
+
+    from services.groq_ai_service import ask_ai_agronomist
+    answer = ask_ai_agronomist(body.question, context)
+    return {
+        "answer": answer,
+        "inspection_id": inspection_id,
+        "powered_by": "Groq AI (qwen/qwen3.8-27b)",
+    }
+

@@ -15,7 +15,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { NewInspectionScreen } from './src/screens/NewInspectionScreen';
 import { QualityCheckScreen } from './src/screens/QualityCheckScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
-import { InspectionDetail, SampleDetail } from './src/types';
+import { InspectionDetail, SampleDetail, VideoScanResult } from './src/types';
 import { Colors } from './src/ui';
 
 type Screen =
@@ -30,8 +30,9 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('HOME');
   const [activeInspection, setActiveInspection] = useState<InspectionDetail | null>(null);
   const [activeSample, setActiveSample] = useState<SampleDetail | null>(null);
+  const [activeVideoResult, setActiveVideoResult] = useState<VideoScanResult | null>(null);
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
-  const [captureInitialTab, setCaptureInitialTab] = useState<'CAMERA' | 'UPLOAD'>('CAMERA');
+  const [captureInitialTab, setCaptureInitialTab] = useState<'CAMERA' | 'UPLOAD' | 'VIDEO'>('CAMERA');
 
   const [serverOnline, setServerOnline] = useState(true);
   const [policyVersion, setPolicyVersion] = useState('BIS_IS_17912_2022');
@@ -141,6 +142,16 @@ export default function App() {
                 setCapturedPhotoUri(uri);
                 navigateTo('QUALITY_CHECK');
               }}
+              onVideoCaptured={async (videoResult) => {
+                setActiveVideoResult(videoResult);
+                try {
+                  const s = await ApiClient.getSample(activeInspection.id, videoResult.sample_id);
+                  setActiveSample(s);
+                } catch (e) {
+                  console.warn('Failed to load sample for video:', e);
+                }
+                navigateTo('RESULTS');
+              }}
               onCancel={() => navigateTo('HOME')}
             />
           )}
@@ -161,6 +172,7 @@ export default function App() {
             <ResultsScreen
               inspection={activeInspection}
               sample={activeSample}
+              videoResult={activeVideoResult}
               onFinalize={(finalized) => {
                 setActiveInspection(finalized);
                 navigateTo('FINAL_REPORT');

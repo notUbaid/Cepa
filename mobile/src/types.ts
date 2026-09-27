@@ -112,6 +112,52 @@ export interface SampleDetail {
   onion_instances: OnionInstanceSummary[];
   storage_advisory?: any;
   commercial_settlement?: any;
+  ai_agronomist_verdict?: AiAgronomistVerdict | null;
+}
+
+export interface AiAgronomistVerdict {
+  quality_rating: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
+  summary_verdict: string;
+  defects_observed: string[];
+  storage_advice: string;
+  fair_market_note: string;
+  powered_by?: string;
+}
+
+export interface VideoDefectItem {
+  time: string;
+  seconds: number;
+  defect: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  frame_image?: string;
+}
+
+export interface VideoKeyframeItem {
+  time: string;
+  seconds: number;
+  image_url: string;
+  bulbs_count: number;
+  bad_count: number;
+  notes: string[];
+}
+
+export interface VideoScanResult {
+  inspection_id: string;
+  sample_id: string;
+  video_url: string;
+  duration_seconds: number;
+  total_frames: number;
+  keyframes_sampled: number;
+  total_bulbs_spotted: number;
+  healthy_bulbs_count: number;
+  bad_bulbs_count: number;
+  health_score: number;
+  overall_status: string;
+  status_label: string;
+  defect_timeline: VideoDefectItem[];
+  ai_agronomist_verdict: AiAgronomistVerdict;
+  keyframes: VideoKeyframeItem[];
 }
 
 export interface ReportDetail {

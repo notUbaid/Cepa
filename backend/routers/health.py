@@ -52,3 +52,18 @@ async def get_demo_sample_image():
             filename="demo_onion_spread.jpg",
         )
     raise HTTPException(status_code=404, detail="Demo sample image not found on disk")
+
+
+_DEMO_VIDEO_PATH = Path(__file__).resolve().parent.parent / "storage" / "demo_onion_sweep.mp4"
+
+@router.get("/demo/sample-video")
+async def get_demo_sample_video():
+    """Returns a verified demo onion sweep video."""
+    if _DEMO_VIDEO_PATH.exists():
+        return FileResponse(
+            _DEMO_VIDEO_PATH,
+            media_type="video/mp4",
+            filename="demo_onion_sweep.mp4",
+        )
+    raise HTTPException(status_code=404, detail="Demo sample video not found on disk")
+

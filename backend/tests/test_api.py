@@ -202,3 +202,51 @@ class TestFullInspectionWorkflow:
         assert pdf_resp.status_code == 200
         assert pdf_resp.headers["content-type"] == "application/pdf"
         assert len(pdf_resp.content) > 1000  # valid non-empty PDF
+
+        # 11. Interactive AI Agronomist Q&A
+        ask_resp = client.post(
+            f"/api/v1/inspections/{inspection_id}/ask-ai",
+            json={"question": "What is the best storage humidity to prevent neck rot?"},
+        )
+        assert ask_resp.status_code == 200
+        ask_data = ask_resp.json()
+        assert "answer" in ask_data
+        assert "storage" in ask_data["answer"].lower() or "humidity" in ask_data["answer"].lower() or "rot" in ask_data["answer"].lower()
+        assert "powered_by" in ask_data
+
+    def test_demo_sample_video(self, client: TestClient):
+        response = client.get("/api/v1/demo/sample-video")
+        assert response.status_code == 200
+        assert "video/mp4" in response.headers["content-type"]
+        assert len(response.content) > 10000
+
+    def test_video_inspection_workflow(self, client: TestClient):
+        # Create inspection for video sweep
+        resp = client.post(
+            "/api/v1/inspections",
+            json={
+                "lot_id": "LOT-VIDEO-TEST-001",
+                "procurement_centre": "Lasalgaon Mandi",
+                "officer_name": "Test Officer",
+            },
+        )
+        assert resp.status_code == 201
+        inspection_id = resp.json()["id"]
+
+        # Fetch demo video bytes
+        demo_vid = client.get("/api/v1/demo/sample-video")
+        assert demo_vid.status_code == 200
+
+        # Upload video
+        files = {"file": ("demo_sweep.mp4", demo_vid.content, "video/mp4")}
+        vid_resp = client.post(
+            f"/api/v1/inspections/{inspection_id}/video",
+            files=files,
+        )
+        assert vid_resp.status_code == 201
+        data = vid_resp.json()
+        assert data["keyframes_sampled"] > 0
+        assert data["total_bulbs_spotted"] > 0
+        assert "ai_agronomist_verdict" in data
+        assert "quality_rating" in data["ai_agronomist_verdict"]
+        assert len(data["keyframes"]) > 0

@@ -6,6 +6,7 @@ import {
   OnionInstanceDetail,
   ReportDetail,
   SampleDetail,
+  VideoScanResult,
 } from '../types';
 
 export class ApiClient {
@@ -81,6 +82,10 @@ export class ApiClient {
 
   static getDemoSampleUrl(): string {
     return `${getApiBaseUrl()}/api/v1/demo/sample-image`;
+  }
+
+  static getDemoSampleVideoUrl(): string {
+    return `${getApiBaseUrl()}/api/v1/demo/sample-video`;
   }
 
   static getPrintableBoardUrl(): string {
@@ -164,6 +169,93 @@ export class ApiClient {
 
     return (await response.json()) as SampleDetail;
   }
+
+  static async uploadVideo(
+    inspectionId: string,
+    fileUri: string
+  ): Promise<VideoScanResult> {
+    const baseUrl = getApiBaseUrl();
+    const url = `${baseUrl}/api/v1/inspections/${inspectionId}/video`;
+
+    const formData = new FormData();
+    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sweep.mp4';
+    const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.mp4`;
+    const match = /\.(\w+)$/.exec(filename);
+    const ext = match ? match[1].toLowerCase() : 'mp4';
+    const type = ext === 'mov' ? 'video/quicktime' : ext === 'webm' ? 'video/webm' : 'video/mp4';
+
+    if (Platform.OS === 'web') {
+      try {
+        const fileRes = await fetch(fileUri);
+        const blob = await fileRes.blob();
+        formData.append('file', blob, filename);
+      } catch (blobErr) {
+        console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
+        const base64Match = fileUri.match(/^data:([^;]+);base64,(.+)$/);
+        if (base64Match) {
+          const byteCharacters = atob(base64Match[2]);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: base64Match[1] });
+          formData.append('file', blob, filename);
+        } else {
+          formData.append('file', fileUri);
+        }
+      }
+    } else {
+      formData.append('file', {
+        uri: fileUri,
+        name: filename,
+        type,
+      } as any);
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      let humanMsg = `Video upload failed (${response.status})`;
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed.detail) {
+          if (typeof parsed.detail === 'string') {
+            humanMsg = parsed.detail;
+          } else if (Array.isArray(parsed.detail) && parsed.detail[0]?.msg) {
+            humanMsg = parsed.detail[0].msg;
+          }
+        }
+      } catch {
+        // use default
+      }
+      throw new Error(humanMsg);
+    }
+
+    return (await response.json()) as VideoScanResult;
+  }
+
+  static async askAiAgronomist(
+    inspectionId: string,
+    question: string
+  ): Promise<{ answer: string; inspection_id: string }> {
+    return this.request<{ answer: string; inspection_id: string }>(
+      `/api/v1/inspections/${inspectionId}/ask-ai`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      }
+    );
+  }
+
 
   static async getSample(inspectionId: string, sampleId: string): Promise<SampleDetail> {
     return this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);

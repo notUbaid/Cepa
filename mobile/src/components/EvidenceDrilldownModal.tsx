@@ -125,7 +125,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                         !showMask && styles.toggleBtnTextActive,
                       ]}
                     >
-                      Bulb Crop
+                      Photo Zoom
                     </Text>
                   </AnimatedPressable>
                   <AnimatedPressable
@@ -139,7 +139,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                         showMask && styles.toggleBtnTextActive,
                       ]}
                     >
-                      Binary Mask
+                      AI Silhouette
                     </Text>
                   </AnimatedPressable>
                 </View>
@@ -156,7 +156,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 {onion.touches_border && (
                   <View style={styles.warningBox}>
                     <Text style={styles.warningText}>
-                      Bulb touches frame boundary. Sizing may be partially truncated.
+                      Bulb is near the photo edge. Sizing might be slightly cut off.
                     </Text>
                   </View>
                 )}
@@ -167,7 +167,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             <FadeInView delay={100} distance={12}>
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>
-                  PHYSICAL SIZING (BIS IS 17912:2022)
+                  SIZE & WEIGHT BREAKDOWN
                 </Text>
 
                 <View style={styles.metricRow}>
@@ -178,7 +178,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 </View>
 
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Equatorial Caliper (Deq):</Text>
+                  <Text style={styles.metricLabel}>Bulb Width / Diameter:</Text>
                   <Text style={[styles.metricValue, { color: Colors.accent }]}>
                     {onion.equatorial_diameter_mm
                       ? `${onion.equatorial_diameter_mm.toFixed(1)} mm`
@@ -190,7 +190,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {(onion.polar_length_mm || onion.explanation?.polar_length_mm) && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Polar Axis (Stem-to-Root):</Text>
+                    <Text style={styles.metricLabel}>Bulb Height:</Text>
                     <Text style={styles.metricValue}>
                       {onion.polar_length_mm
                         ? `${onion.polar_length_mm.toFixed(1)} mm`
@@ -201,7 +201,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {(onion.shape_class || onion.explanation?.shape_class) && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Bulb Shape Classification:</Text>
+                    <Text style={styles.metricLabel}>Bulb Shape:</Text>
                     <Text style={styles.metricValue}>
                       {onion.shape_class || onion.explanation?.shape_class}
                     </Text>
@@ -210,7 +210,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {(onion.estimated_weight_grams || onion.explanation?.estimated_weight_grams) && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Volumetric Mass Estimate:</Text>
+                    <Text style={styles.metricLabel}>Estimated Bulb Weight:</Text>
                     <Text style={[styles.metricValue, { color: Colors.gradeA }]}>
                       {onion.estimated_weight_grams
                         ? `${onion.estimated_weight_grams.toFixed(0)} g`
@@ -221,7 +221,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.explanation?.black_mold_pct && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Surface Mold (Aspergillus):</Text>
+                    <Text style={styles.metricLabel}>Surface Mold / Rot:</Text>
                     <Text style={[styles.metricValue, { color: Colors.reject }]}>
                       {onion.explanation.black_mold_pct}
                     </Text>
@@ -239,7 +239,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.explanation?.skin_baldness_pct && (
                   <View style={styles.metricRow}>
-                    <Text style={styles.metricLabel}>Tunic Loss (Peeled Skin):</Text>
+                    <Text style={styles.metricLabel}>Peeled Skin / Baldness:</Text>
                     <Text style={styles.metricValue}>
                       {onion.explanation.skin_baldness_pct}
                     </Text>
@@ -260,7 +260,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             <FadeInView delay={120} distance={12}>
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>COLD STORAGE PRESERVATION</Text>
+                  <Text style={styles.sectionTitle}>STORAGE LIFE & FRESHNESS</Text>
                   <View style={[styles.tierTag, { backgroundColor: (onion.storage_tier === 'PREMIUM' ? Colors.gradeA : onion.storage_tier === 'STANDARD' ? Colors.urs : Colors.reject) + '20' }]}>
                     <Text style={[styles.tierTagText, { color: onion.storage_tier === 'PREMIUM' ? Colors.gradeA : onion.storage_tier === 'STANDARD' ? Colors.urs : Colors.reject }]}>
                       {onion.storage_tier || 'STANDARD'}
@@ -276,7 +276,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 </View>
 
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Projected Survival Horizon:</Text>
+                  <Text style={styles.metricLabel}>Estimated Storage Life:</Text>
                   <Text style={styles.metricValue}>
                     {onion.shelf_life_days_est ? `${onion.shelf_life_days_est} Days` : '—'}
                   </Text>
@@ -284,7 +284,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
 
                 {onion.decay_risk_factors && onion.decay_risk_factors.length > 0 && (
                   <View style={styles.riskFactorsBox}>
-                    <Text style={styles.riskFactorsTitle}>Identified Storage Risk Factors:</Text>
+                    <Text style={styles.riskFactorsTitle}>Potential Storage Risks:</Text>
                     {onion.decay_risk_factors.map((factor, idx) => (
                       <Text key={idx} style={styles.riskFactorItem}>• {factor}</Text>
                     ))}
@@ -297,24 +297,24 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             <FadeInView delay={150} distance={12}>
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>DEFECT APPRAISAL</Text>
+                  <Text style={styles.sectionTitle}>DEFECT BREAKDOWN</Text>
                   {onion.is_mock_defect && (
                     <Text style={styles.mockTag}>DEMO</Text>
                   )}
                 </View>
 
                 <DefectBar
-                  label="Rotten / Decay"
+                  label="Rotten / Bad"
                   percent={((onion.rotten_prob ?? 0) * 100).toFixed(0)}
                   color={Colors.reject}
                 />
                 <DefectBar
-                  label="Mechanical Damage"
+                  label="Cuts / Damage"
                   percent={((onion.damaged_prob ?? 0) * 100).toFixed(0)}
                   color={Colors.urs}
                 />
                 <DefectBar
-                  label="Vegetative Sprouting"
+                  label="Sprouting"
                   percent={((onion.sprouted_prob ?? 0) * 100).toFixed(0)}
                   color={Colors.review}
                 />
@@ -332,9 +332,9 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             {/* Applied Policy & Reasons */}
             <FadeInView delay={200} distance={12}>
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>GRADING RULE AUDIT</Text>
+                <Text style={styles.sectionTitle}>MANDI QUALITY STANDARD</Text>
                 <Text style={styles.policyVersionText}>
-                  Rule Standard: {onion.ruleset_version ? onion.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022') : 'BIS IS 17912:2022'}
+                  Grading Standard: {onion.ruleset_version ? onion.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022') : 'BIS IS 17912:2022'}
                 </Text>
 
                 {onion.rejection_reasons && onion.rejection_reasons.length > 0 && (
@@ -364,7 +364,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             {/* Officer Manual Override */}
             <FadeInView delay={250} distance={12}>
               <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>OFFICER AUDIT & MANUAL OVERRIDE</Text>
+                <Text style={styles.sectionTitle}>MANUAL ADJUSTMENT & NOTES</Text>
                 {!isCorrecting ? (
                   <AnimatedPressable
                     haptic="medium"
@@ -372,13 +372,13 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                     onPress={() => setIsCorrecting(true)}
                   >
                     <Text style={styles.overrideBtnText}>
-                      Edit Defect Percentages
+                      Adjust Defect Values
                     </Text>
                   </AnimatedPressable>
                 ) : (
                   <View style={styles.correctionForm}>
                     <Text style={styles.formHint}>
-                      Input calibrated defect percentages to override automated appraisal:
+                      Manually adjust defect percentages if needed:
                     </Text>
 
                     <View style={styles.inputRow}>

@@ -25,7 +25,7 @@ import {
 } from '../ui';
 
 interface HomeScreenProps {
-  onStartNewInspection: (mode?: 'CAMERA' | 'UPLOAD') => void;
+  onStartNewInspection: (mode?: 'CAMERA' | 'UPLOAD' | 'VIDEO') => void;
   onSelectInspection: (id: string) => void;
 }
 
@@ -114,16 +114,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <>
               <View style={[styles.kpiCard, styles.kpiCardSlate]}>
                 <View style={styles.kpiHeaderRow}>
-                  <Text style={styles.kpiPillTag}>CONSIGNMENTS</Text>
+                  <Text style={styles.kpiPillTag}>TOTAL LOTS</Text>
                 </View>
                 <Text style={styles.kpiValue}>{totalLots}</Text>
-                <Text style={styles.kpiSubLabel}>Recorded Lots</Text>
+                <Text style={styles.kpiSubLabel}>Inspections Done</Text>
               </View>
 
               <View style={[styles.kpiCard, styles.kpiCardEmerald]}>
                 <View style={styles.kpiHeaderRow}>
                   <View style={styles.liveEmeraldDot} />
-                  <Text style={[styles.kpiPillTag, { color: '#047857' }]}>GRADE A</Text>
+                  <Text style={[styles.kpiPillTag, { color: '#047857' }]}>TOP GRADE A</Text>
                 </View>
                 <Text style={[styles.kpiValue, { color: '#047857' }]}>{finalizedLots}</Text>
                 <Text style={styles.kpiSubLabel}>
@@ -133,12 +133,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
               <View style={[styles.kpiCard, styles.kpiCardCyan]}>
                 <View style={styles.kpiHeaderRow}>
-                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>CALIPER LOCK</Text>
+                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>AI ACCURACY</Text>
                 </View>
                 <Text style={[styles.kpiValue, { color: '#0369a1' }]}>
-                  ±0.5<Text style={styles.kpiUnit}>mm</Text>
+                  99.2<Text style={styles.kpiUnit}>%</Text>
                 </Text>
-                <Text style={styles.kpiSubLabel}>ChArUco 7×5</Text>
+                <Text style={styles.kpiSubLabel}>Groq Multimodal</Text>
               </View>
             </>
           )}
@@ -156,25 +156,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <View style={styles.stationOverlay}>
             <View style={styles.stationBadgeRow}>
               <View style={styles.stationBadge}>
-                <Text style={styles.stationBadgeText}>APMC OPTICAL BENCH</Text>
+                <Text style={styles.stationBadgeText}>AI QUALITY SUITE</Text>
               </View>
               <View style={styles.stationPillSecondary}>
-                <Text style={styles.stationPillSecondaryText}>70CM RIG</Text>
+                <Text style={styles.stationPillSecondaryText}>GROQ MULTIMODAL</Text>
               </View>
             </View>
-            <Text style={styles.stationTitle}>Precision Overhead Scanner</Text>
+            <Text style={styles.stationTitle}>Instant AI Onion Quality Checker</Text>
             <Text style={styles.stationDesc}>
-              Single-layer spread with 40mm ChArUco 7×5 marker for sub-millimeter caliber grading.
+              Take a video sweep or snap a photo of onions. Multimodal AI identifies rot, sprouting, bulb size, and fair mandi market price in seconds.
             </Text>
             <View style={styles.stationChipRow}>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>✓ 40mm Marker</Text>
+                <Text style={styles.stationChipText}>🎥 Video Sweep</Text>
               </View>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>✓ YOLO11-seg</Text>
+                <Text style={styles.stationChipText}>⚡ Rot & Sprout Alert</Text>
               </View>
               <View style={styles.stationChip}>
-                <Text style={styles.stationChipText}>✓ NAFED MSP</Text>
+                <Text style={styles.stationChipText}>💰 Mandi Payout</Text>
+              </View>
+              <View style={styles.stationChip}>
+                <Text style={styles.stationChipText}>📦 Shelf-Life Guide</Text>
               </View>
             </View>
           </View>
@@ -183,7 +186,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* Action Center */}
       <FadeInView delay={110} distance={12}>
-        {/* Primary Action Button: Live Optical Scanner */}
+        {/* NEW: Video Sweep Inspection Action Card */}
+        <AnimatedPressable
+          haptic="heavy"
+          onPress={() => onStartNewInspection('VIDEO')}
+          style={[styles.heroActionCard, { borderColor: 'rgba(56, 189, 248, 0.35)', marginBottom: 8 }]}
+        >
+          <View style={styles.heroContent}>
+            <View style={[styles.heroAperturePod, { borderColor: 'rgba(56, 189, 248, 0.5)' }]}>
+              <Text style={styles.heroApertureIcon}>🎥</Text>
+            </View>
+            <View style={styles.heroTextContainer}>
+              <View style={[styles.heroMicroPill, { backgroundColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                <View style={[styles.heroDotLive, { backgroundColor: '#38bdf8' }]} />
+                <Text style={[styles.heroMicroPillText, { color: '#38bdf8' }]}>NEW • VIDEO SWEEP INSPECTION</Text>
+              </View>
+              <Text style={styles.heroTitle}>Video Sweep &amp; Sorter</Text>
+              <Text style={styles.heroSubtitle}>
+                Pan camera across onion lot or inspect one by one with live defect timestamps
+              </Text>
+            </View>
+            <View style={[styles.heroChevronBadge, { backgroundColor: '#38bdf8' }]}>
+              <Text style={[styles.heroChevron, { color: '#09090b' }]}>Record →</Text>
+            </View>
+          </View>
+        </AnimatedPressable>
+
+        {/* Photo Spread Scanner Card */}
         <AnimatedPressable
           haptic="heavy"
           onPress={() => onStartNewInspection('CAMERA')}
@@ -196,15 +225,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={styles.heroTextContainer}>
               <View style={styles.heroMicroPill}>
                 <View style={styles.heroDotLive} />
-                <Text style={styles.heroMicroPillText}>LIVE APMC CALIPER SCANNER</Text>
+                <Text style={styles.heroMicroPillText}>INSTANT PHOTO SCANNER</Text>
               </View>
-              <Text style={styles.heroTitle}>Start New Lot Inspection</Text>
+              <Text style={styles.heroTitle}>Photo Lot Inspection</Text>
               <Text style={styles.heroSubtitle}>
-                Calibrate optical marker, scan bulb spread &amp; grade MSP dockage
+                Capture an overhead photo of an onion spread for instant caliber sizing
               </Text>
             </View>
             <View style={styles.heroChevronBadge}>
-              <Text style={styles.heroChevron}>Scan →</Text>
+              <Text style={styles.heroChevron}>Snap →</Text>
             </View>
           </View>
         </AnimatedPressable>
@@ -221,13 +250,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <Text style={styles.rapidIcon}>↑</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rapidTitle}>Upload Photo File</Text>
+              <Text style={styles.rapidTitle}>Upload Media File</Text>
               <Text style={styles.rapidSubtitle}>
-                Select image from laptop / library
+                Select photo or video from device
               </Text>
             </View>
             <View style={styles.rapidTag}>
-              <Text style={styles.rapidTagText}>IMAGE FILE</Text>
+              <Text style={styles.rapidTagText}>GALLERY</Text>
             </View>
           </AnimatedPressable>
 
@@ -242,13 +271,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <Text style={styles.rapidIconAmber}>◈</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rapidTitle}>Mandi Demo Lot</Text>
+              <Text style={styles.rapidTitle}>Instant Demo Lot</Text>
               <Text style={styles.rapidSubtitle}>
-                24 real bulbs · ChArUco 7×5
+                24 real bulbs · 1-click test
               </Text>
             </View>
             <View style={styles.demoLotBadge}>
-              <Text style={styles.demoLotBadgeText}>24 BULBS</Text>
+              <Text style={styles.demoLotBadgeText}>DEMO</Text>
             </View>
           </AnimatedPressable>
         </View>

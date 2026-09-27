@@ -14,7 +14,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { ApiClient } from '../api/client';
-import { InspectionDetail } from '../types';
+import { InspectionDetail, VideoScanResult } from '../types';
 import {
   AnimatedPressable,
   Colors,
@@ -28,8 +28,9 @@ import {
 
 interface CaptureScreenProps {
   inspection: InspectionDetail;
-  initialTab?: 'CAMERA' | 'UPLOAD';
+  initialTab?: 'CAMERA' | 'UPLOAD' | 'VIDEO';
   onPhotoCaptured: (photoUri: string) => void;
+  onVideoCaptured?: (videoResult: VideoScanResult) => void;
   onCancel: () => void;
 }
 
@@ -37,6 +38,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   inspection,
   initialTab = 'CAMERA',
   onPhotoCaptured,
+  onVideoCaptured,
   onCancel,
 }) => {
   const [permission, requestPermission] = useCameraPermissions();
@@ -46,7 +48,9 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [torchOn, setTorchOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
-  const [activeTab, setActiveTab] = useState<'CAMERA' | 'UPLOAD'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'CAMERA' | 'UPLOAD' | 'VIDEO'>(initialTab);
+  const [videoProcessing, setVideoProcessing] = useState(false);
+  const [videoStepText, setVideoStepText] = useState('Uploading video sweep...');
   const cameraRef = useRef<CameraView>(null);
 
   const toggleFacing = () => {
@@ -89,6 +93,124 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       }
     } else {
       pickFromGallery();
+    }
+  };
+
+  const triggerVideoUpload = () => {
+    Haptics.light();
+    if (Platform.OS === 'web') {
+      try {
+        let input = document.getElementById('cepa-web-video-input') as HTMLInputElement | null;
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'file';
+          input.id = 'cepa-web-video-input';
+          input.accept = 'video/*';
+          input.style.display = 'none';
+          document.body.appendChild(input);
+        }
+        input.value = '';
+        input.onchange = async (e: any) => {
+          const file = e.target?.files?.[0];
+          if (file) {
+            await handleProcessVideoBlob(file);
+          }
+        };
+        input.click();
+      } catch (err: any) {
+        console.warn('Web video input failed, falling back to ImagePicker:', err);
+        pickVideoFromGallery();
+      }
+    } else {
+      pickVideoFromGallery();
+    }
+  };
+
+  const pickVideoFromGallery = async () => {
+    Haptics.light();
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        await handleProcessVideoUri(res.assets[0].uri);
+      }
+    } catch (err: any) {
+      alert(`Video selection error: ${err.message}`);
+    }
+  };
+
+  const handleProcessVideoBlob = async (fileOrBlob: any) => {
+    setVideoProcessing(true);
+    setVideoStepText('Uploading video sweep to AI engine...');
+    Haptics.heavy();
+    try {
+      const reader = new FileReader();
+      const readPromise = new Promise<string>((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(fileOrBlob);
+      const dataUri = await readPromise;
+
+      setVideoStepText('Sampling keyframes & filtering blur...');
+      const timeout1 = setTimeout(() => {
+        setVideoStepText('Tracking sprout & rot defects across timeline...');
+      }, 1000);
+      const timeout2 = setTimeout(() => {
+        setVideoStepText('Consulting Groq Multimodal Vision AI...');
+      }, 2000);
+
+      const result = await ApiClient.uploadVideo(inspection.id, dataUri);
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
+      Haptics.success();
+      if (onVideoCaptured) {
+        onVideoCaptured(result);
+      }
+    } catch (err: any) {
+      Haptics.error();
+      alert(`Video analysis failed: ${err.message}`);
+    } finally {
+      setVideoProcessing(false);
+    }
+  };
+
+  const handleProcessVideoUri = async (uri: string) => {
+    setVideoProcessing(true);
+    setVideoStepText('Uploading video sweep...');
+    Haptics.heavy();
+    try {
+      setVideoStepText('Sampling keyframes & tracking onion defects...');
+      const result = await ApiClient.uploadVideo(inspection.id, uri);
+      Haptics.success();
+      if (onVideoCaptured) {
+        onVideoCaptured(result);
+      }
+    } catch (err: any) {
+      Haptics.error();
+      alert(`Video analysis failed: ${err.message}`);
+    } finally {
+      setVideoProcessing(false);
+    }
+  };
+
+  const handleLoadDemoVideoSweep = async () => {
+    setVideoProcessing(true);
+    setVideoStepText('Loading verified demo onion video sweep...');
+    Haptics.heavy();
+    try {
+      const demoVideoUrl = ApiClient.getDemoSampleVideoUrl();
+      setVideoStepText('Sampling keyframes & tracking onion defects...');
+      const res = await fetch(demoVideoUrl);
+      const blob = await res.blob();
+      await handleProcessVideoBlob(blob);
+    } catch (err: any) {
+      Haptics.error();
+      alert(`Demo video sweep failed: ${err.message}`);
+      setVideoProcessing(false);
     }
   };
 
@@ -330,7 +452,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           </View>
         </View>
 
-        {/* Viewfinder / Upload Mode Switcher */}
+        {/* 3-Way Mode Switcher */}
         <View style={styles.modeSwitcherWrap}>
           <View style={styles.modeSwitcherTrack}>
             <AnimatedPressable
@@ -339,7 +461,16 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               style={[styles.modeSwitcherBtn, activeTab === 'CAMERA' && styles.modeSwitcherBtnActive]}
             >
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'CAMERA' && styles.modeSwitcherBtnTextActive]}>
-                Camera Viewfinder
+                Camera
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('VIDEO')}
+              style={[styles.modeSwitcherBtn, activeTab === 'VIDEO' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'VIDEO' && styles.modeSwitcherBtnTextActive]}>
+                Video Sweep
               </Text>
             </AnimatedPressable>
             <AnimatedPressable
@@ -348,7 +479,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               style={[styles.modeSwitcherBtn, activeTab === 'UPLOAD' && styles.modeSwitcherBtnActive]}
             >
               <Text style={[styles.modeSwitcherBtnText, activeTab === 'UPLOAD' && styles.modeSwitcherBtnTextActive]}>
-                Upload Photo File
+                Upload
               </Text>
             </AnimatedPressable>
           </View>
@@ -450,10 +581,190 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     );
   };
 
+  const renderVideoSurface = () => {
+    return (
+      <View style={styles.uploadSurfaceContainer}>
+        {/* Top Floating HUD Bar */}
+        <View style={styles.topHudBar}>
+          <AnimatedPressable
+            haptic="light"
+            onPress={onCancel}
+            style={styles.hudCircleBtn}
+          >
+            <Text style={styles.hudCircleBtnText}>✕</Text>
+          </AnimatedPressable>
+
+          <View style={styles.hudCenterBadge}>
+            <View style={[styles.hudDotLive, { backgroundColor: '#38bdf8' }]} />
+            <View>
+              <Text style={styles.hudLotId}>
+                {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA PACKHOUSE INTAKE'}
+              </Text>
+              <Text style={styles.hudCentreText}>
+                Video Sweep &amp; Defect Sorter
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.hudRightActions}>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setGuideVisible(true)}
+              style={styles.hudCircleBtn}
+            >
+              <Text style={styles.hudGuideText}>?</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+
+        {/* 3-Way Mode Switcher */}
+        <View style={styles.modeSwitcherWrap}>
+          <View style={styles.modeSwitcherTrack}>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('CAMERA')}
+              style={[styles.modeSwitcherBtn, activeTab === 'CAMERA' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'CAMERA' && styles.modeSwitcherBtnTextActive]}>
+                Camera
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('VIDEO')}
+              style={[styles.modeSwitcherBtn, activeTab === 'VIDEO' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'VIDEO' && styles.modeSwitcherBtnTextActive]}>
+                Video Sweep
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              haptic="selection"
+              onPress={() => setActiveTab('UPLOAD')}
+              style={[styles.modeSwitcherBtn, activeTab === 'UPLOAD' && styles.modeSwitcherBtnActive]}
+            >
+              <Text style={[styles.modeSwitcherBtnText, activeTab === 'UPLOAD' && styles.modeSwitcherBtnTextActive]}>
+                Upload
+              </Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.uploadScrollView}
+          contentContainerStyle={styles.uploadScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {videoProcessing ? (
+            <FadeInView delay={30} distance={15}>
+              <View style={styles.videoProcessingCard}>
+                <ActivityIndicator size="large" color="#38bdf8" style={{ marginBottom: 16 }} />
+                <Text style={styles.videoProcessingTitle}>Processing Video Inspection</Text>
+                <Text style={styles.videoProcessingStep}>{videoStepText}</Text>
+                <View style={styles.videoProgressPillRow}>
+                  <View style={styles.videoProgressStepBadge}>
+                    <Text style={styles.videoProgressStepBadgeText}>1. Keyframe Sampling</Text>
+                  </View>
+                  <View style={styles.videoProgressStepBadge}>
+                    <Text style={styles.videoProgressStepBadgeText}>2. Sprout &amp; Rot Tracking</Text>
+                  </View>
+                  <View style={styles.videoProgressStepBadge}>
+                    <Text style={styles.videoProgressStepBadgeText}>3. Groq Multimodal AI</Text>
+                  </View>
+                </View>
+                <Text style={styles.videoProcessingHint}>
+                  Extracting sharp frames, filtering camera motion blur, analyzing bulb health, and calling Groq Multimodal Vision AI.
+                </Text>
+              </View>
+            </FadeInView>
+          ) : (
+            <>
+              {/* Primary Video Sweep Action Card */}
+              <FadeInView delay={50} distance={12}>
+                <AnimatedPressable
+                  haptic="heavy"
+                  style={[styles.uploadDropzoneCard, { borderColor: 'rgba(56, 189, 248, 0.4)' }]}
+                  onPress={triggerVideoUpload}
+                >
+                  <View style={[styles.dropzoneIconCircle, { borderColor: 'rgba(56, 189, 248, 0.5)', backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                    <Text style={[styles.dropzoneArrow, { color: '#38bdf8' }]}>🎥</Text>
+                  </View>
+                  <Text style={styles.dropzoneTitle}>Record or Select Video Sweep</Text>
+                  <Text style={styles.dropzoneSubtitle}>
+                    Pan camera slowly across an onion lot, or hold onions one by one. The AI tracks every bulb and timestamps rotten or sprouted ones (.mp4, .mov, .webm)
+                  </Text>
+                  <View style={[styles.browsePillBtn, { backgroundColor: '#38bdf8' }]}>
+                    <Text style={[styles.browsePillBtnText, { color: '#09090b' }]}>Choose Video File</Text>
+                  </View>
+                </AnimatedPressable>
+              </FadeInView>
+
+              {/* 1-Tap Real Mandi Demo Video Action */}
+              <FadeInView delay={100} distance={12}>
+                <View style={[styles.demoLotActionCard, { borderColor: 'rgba(56, 189, 248, 0.25)' }]}>
+                  <View style={styles.demoLotHeaderRow}>
+                    <Text style={[styles.demoLotActionTag, { color: '#38bdf8' }]}>VERIFIED 4-SECOND SWEEP</Text>
+                    <Text style={styles.demoLotBadgeText}>40+ BULBS</Text>
+                  </View>
+                  <Text style={styles.demoLotActionTitle}>Instant Demo Video Sweep</Text>
+                  <Text style={styles.demoLotActionDesc}>
+                    Pre-loaded smooth video sweep across red onion bulbs with multi-frame tracking, automated sprout detection, and Groq Multimodal Vision AI appraisal.
+                  </Text>
+                  <AnimatedPressable
+                    haptic="heavy"
+                    style={[styles.loadDemoActionBtn, { backgroundColor: 'rgba(56, 189, 248, 0.18)', borderColor: 'rgba(56, 189, 248, 0.4)' }]}
+                    onPress={handleLoadDemoVideoSweep}
+                  >
+                    <Text style={[styles.loadDemoActionBtnText, { color: '#38bdf8' }]}>
+                      Run Demo Video Sweep →
+                    </Text>
+                  </AnimatedPressable>
+                </View>
+              </FadeInView>
+
+              {/* Video Inspection Guidelines */}
+              <FadeInView delay={150} distance={12}>
+                <View style={styles.specsCard}>
+                  <Text style={styles.specsTitle}>Video Sweep Tips</Text>
+                  <View style={styles.specItem}>
+                    <View style={styles.specNumCircle}>
+                      <Text style={styles.specNumText}>1</Text>
+                    </View>
+                    <Text style={styles.specText}>
+                      <Text style={styles.specBold}>Smooth Camera Sweep:</Text> Move phone slowly across the lot. Our blur filter automatically picks the sharpest moments.
+                    </Text>
+                  </View>
+                  <View style={styles.specItem}>
+                    <View style={styles.specNumCircle}>
+                      <Text style={styles.specNumText}>2</Text>
+                    </View>
+                    <Text style={styles.specText}>
+                      <Text style={styles.specBold}>One-by-One Sorting:</Text> If inspecting single bulbs, hold each bulb in frame for ~1 second so the AI can inspect skin and neck.
+                    </Text>
+                  </View>
+                  <View style={styles.specItem}>
+                    <View style={styles.specNumCircle}>
+                      <Text style={styles.specNumText}>3</Text>
+                    </View>
+                    <Text style={styles.specText}>
+                      <Text style={styles.specBold}>Defect Timeline:</Text> Rotten or sprouted bulbs are tagged with exact timestamps so you can easily cull them.
+                    </Text>
+                  </View>
+                </View>
+              </FadeInView>
+            </>
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {activeTab === 'UPLOAD' ? (
         renderUploadSurface()
+      ) : activeTab === 'VIDEO' ? (
+        renderVideoSurface()
       ) : (
         <CameraView
           ref={cameraRef}
@@ -520,7 +831,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </View>
             </FadeInView>
 
-            {/* Viewfinder / Upload Mode Switcher */}
+            {/* 3-Way Mode Switcher */}
             <View style={styles.modeSwitcherWrap}>
               <View style={styles.modeSwitcherTrack}>
                 <AnimatedPressable
@@ -529,7 +840,16 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   style={[styles.modeSwitcherBtn, styles.modeSwitcherBtnActive]}
                 >
                   <Text style={[styles.modeSwitcherBtnText, styles.modeSwitcherBtnTextActive]}>
-                    Camera Viewfinder
+                    Camera
+                  </Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  haptic="selection"
+                  onPress={() => setActiveTab('VIDEO')}
+                  style={styles.modeSwitcherBtn}
+                >
+                  <Text style={styles.modeSwitcherBtnText}>
+                    Video Sweep
                   </Text>
                 </AnimatedPressable>
                 <AnimatedPressable
@@ -538,20 +858,20 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   style={styles.modeSwitcherBtn}
                 >
                   <Text style={styles.modeSwitcherBtnText}>
-                    Upload Photo File
+                    Upload
                   </Text>
                 </AnimatedPressable>
               </View>
             </View>
 
-            {/* Level Guidance & Altitude Bar */}
+            {/* Level Guidance Bar */}
             <View style={styles.levelBannerWrap}>
               <View style={[styles.levelBanner, isLevel ? styles.levelBannerLocked : styles.levelBannerWarning]}>
                 <Animated.View style={[styles.levelDot, isLevel && { transform: [{ scale: pulseAnim }] }]} />
                 <Text style={styles.levelBannerText}>
                   {isLevel
-                    ? `HORIZON LOCKED · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`
-                    : `ADJUST OVERHEAD TILT · PITCH ${pitch > 0 ? '+' : ''}${pitch}° · ROLL ${roll > 0 ? '+' : ''}${roll}°`}
+                    ? 'PHONE LEVEL & READY · SINGLE LAYER SPREAD'
+                    : 'HOLD PHONE FLAT OVER SPREAD (~60CM HEIGHT)'}
                 </Text>
               </View>
             </View>
@@ -1677,5 +1997,53 @@ const styles = StyleSheet.create({
     color: '#71717a',
     fontSize: 11.5,
     fontWeight: '600',
+  },
+  videoProcessingCard: {
+    backgroundColor: '#0c0c0e',
+    borderRadius: Radius.lg,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+    marginVertical: 20,
+    ...Shadows.cardElevated,
+  },
+  videoProcessingTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 6,
+  },
+  videoProcessingStep: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#38bdf8',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  videoProgressPillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  videoProgressStepBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  videoProgressStepBadgeText: {
+    fontSize: 10,
+    color: '#e2e8f0',
+    fontWeight: '600',
+  },
+  videoProcessingHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 320,
   },
 });

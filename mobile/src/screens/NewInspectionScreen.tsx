@@ -25,7 +25,7 @@ import {
 } from '../ui';
 
 interface NewInspectionScreenProps {
-  onInspectionCreated: (inspection: InspectionDetail, mode?: 'CAMERA' | 'UPLOAD') => void;
+  onInspectionCreated: (inspection: InspectionDetail, mode?: 'CAMERA' | 'UPLOAD' | 'VIDEO') => void;
   onCancel: () => void;
 }
 

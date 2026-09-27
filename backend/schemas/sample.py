@@ -46,6 +46,7 @@ class SampleDetail(BaseModel):
     # Post-harvest storage advisory & Mandi commercial settlement
     storage_advisory: dict | None = None
     commercial_settlement: dict | None = None
+    ai_agronomist_verdict: dict | None = None
 
 
 # ── OnionInstance schemas ──────────────────────────────────────────────────────
@@ -147,3 +148,9 @@ class OnionCorrectionRequest(BaseModel):
     sprouted_prob: float = Field(ge=0.0, le=1.0)
     corrected_by: str = Field(min_length=1, max_length=100, description="Officer identifier")
     notes: str | None = None
+
+
+class AskAiRequest(BaseModel):
+    """Farmer or officer conversational question to the Groq AI Agronomist."""
+    question: str = Field(min_length=1, max_length=1000, description="Question about onion quality, storage, or market advice")
+

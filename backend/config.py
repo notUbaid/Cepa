@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     cv_inference_workers: int = 2
     cv_use_gpu: bool = False
 
+    # ── Groq Multimodal AI ───────────────────────────────────────────────────
+    groq_api_key: str = ""
+    groq_vision_model: str = "qwen/qwen3.8-27b"
+
     # ── Segmentation model ───────────────────────────────────────────────────
     seg_model_path: Path = Path("./weights/yolo11n-seg.pt")
     seg_confidence_threshold: float = 0.35
