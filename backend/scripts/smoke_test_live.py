@@ -10,7 +10,7 @@ import wave
 import struct
 import math
 
-BASE = "http://localhost:8000/api/v1"
+BASE = os.environ.get("CEPA_API_BASE", "http://localhost:8000/api/v1")
 
 def run_smoke_test():
     print("--- 1. Inspection Creation with AgriStack Farmer ---")
@@ -85,16 +85,22 @@ def run_smoke_test():
     print(f"PASSED: DominantFreq={reading['dominant_freq_hz']}Hz, RiskTier={reading['hollow_risk_tier']}, Conf={reading['confidence']}")
 
     print("\n--- 4. Flash Proxy Index (FPI) Differential Spectroscopy ---")
+    import cv2
+    import numpy as np
+    small_img = cv2.resize(cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR), (640, 480))
+    _, small_buf = cv2.imencode(".jpg", small_img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    fpi_test_bytes = small_buf.tobytes()
+
     fpi_boundary = "----WebKitFormBoundaryFpiLive"
     fpi_body = (
         f"--{fpi_boundary}\r\n"
         f'Content-Disposition: form-data; name="ambient_file"; filename="ambient.jpg"\r\n'
         f"Content-Type: image/jpeg\r\n\r\n"
-    ).encode("utf-8") + img_bytes + (
+    ).encode("utf-8") + fpi_test_bytes + (
         f"\r\n--{fpi_boundary}\r\n"
         f'Content-Disposition: form-data; name="flash_file"; filename="flash.jpg"\r\n'
         f"Content-Type: image/jpeg\r\n\r\n"
-    ).encode("utf-8") + img_bytes + f"\r\n--{fpi_boundary}--\r\n".encode("utf-8")
+    ).encode("utf-8") + fpi_test_bytes + f"\r\n--{fpi_boundary}--\r\n".encode("utf-8")
 
     req = urllib.request.Request(
         f"{BASE}/inspections/{insp_id}/fpi",

@@ -931,6 +931,14 @@ async def analyze_flash_proxy_endpoint(
         if amb_bgr is None or flash_bgr is None:
             raise HTTPException(status_code=400, detail="Invalid image bytes: could not decode JPEG/PNG")
 
+        # Downscale for memory efficiency on constrained cloud containers (512MB RAM)
+        max_dim = 800
+        h_a, w_a = amb_bgr.shape[:2]
+        if max(h_a, w_a) > max_dim:
+            scale = max_dim / float(max(h_a, w_a))
+            amb_bgr = cv2.resize(amb_bgr, (int(w_a * scale), int(h_a * scale)), interpolation=cv2.INTER_AREA)
+            flash_bgr = cv2.resize(flash_bgr, (int(w_a * scale), int(h_a * scale)), interpolation=cv2.INTER_AREA)
+
         fpi_map = compute_flash_proxy_map(amb_bgr, flash_bgr)
 
         # Whole field mask
@@ -938,6 +946,10 @@ async def analyze_flash_proxy_endpoint(
         analysis = analyze_bulb_fpi(fpi_map, full_mask)
         heatmap_bgr = generate_fpi_heatmap(fpi_map)
         heatmap_b64 = encode_heatmap_to_base64(heatmap_bgr)
+
+        import gc
+        del amb_bytes, flash_bytes, amb_np, flash_np, amb_bgr, flash_bgr, fpi_map, full_mask, heatmap_bgr
+        gc.collect()
 
         return {
             "status": "success",
