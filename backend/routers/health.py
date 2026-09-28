@@ -66,3 +66,52 @@ async def get_demo_sample_video():
         )
     raise HTTPException(status_code=404, detail="Demo sample video not found on disk")
 
+
+@router.post("/demo/seed-inspection")
+async def seed_demo_inspection():
+    """
+    Creates or retrieves a verified authentic demo inspection processed through the real
+    YOLO11 instance segmentation + Defect Classifier + NAFED grading engine pipeline.
+    """
+    from fastapi import Depends
+    from database import get_db, SessionLocal
+    from models import Inspection
+    from schemas import InspectionCreate
+    from services import inspection_service
+    from routers.inspections import _inspection_to_detail
+
+    db = SessionLocal()
+    try:
+        existing = db.query(Inspection).filter(Inspection.lot_id == "LOT-NASHIK-RED-DEMO").first()
+        if existing and existing.samples:
+            return _inspection_to_detail(existing, db)
+
+        inspection = existing
+        if not inspection:
+            body = InspectionCreate(
+                lot_id="LOT-NASHIK-RED-DEMO",
+                procurement_centre="Lasalgaon APMC Mandi, Nashik",
+                officer_name="Inspector Patil",
+                officer_id="MH-NSK-104",
+                notes="Verified authentic Nashik Red cultivar spread with ChArUco scale reference",
+            )
+            inspection = inspection_service.create_inspection(db, body)
+            inspection.farmer_name = "Kisan Ramesh Shinde"
+            inspection.farmer_id = "AGRI-MH-2026-8812"
+            db.commit()
+
+        if _DEMO_SAMPLE_PATH.exists() and not inspection.samples:
+            with open(_DEMO_SAMPLE_PATH, "rb") as f:
+                image_bytes = f.read()
+            await inspection_service.process_sample_image(
+                db=db,
+                inspection_id=inspection.id,
+                image_bytes=image_bytes,
+            )
+
+        db.refresh(inspection)
+        return _inspection_to_detail(inspection, db)
+    finally:
+        db.close()
+
+

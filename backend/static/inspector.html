@@ -1098,8 +1098,7 @@
           <button class="layer-btn" onclick="switchLayer('raw', this)">Raw</button>
         </div>
         <div class="tool-sep"></div>
-        <button class="sample-btn" onclick="loadSample('healthy')">Nashik Red</button>
-        <button class="sample-btn" onclick="loadSample('sprouted')">Sprouted Lot</button>
+        <button class="sample-btn" id="btn-real-sample" onclick="loadRealMandiSample()">Real Mandi Sample</button>
         <div class="tool-sep"></div>
         <label class="upload-btn">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1403,15 +1402,20 @@
     let zoomLevel = 1.0;
     let panX = 0, panY = 0;
     let isDragging = false, dragStartX = 0, dragStartY = 0;
+    let currentRawImg = null;
+    let currentProcessedImg = null;
+    let isImageLoaded = false;
 
     // ── Init ───────────────────────────────────────────────────────────────────
     window.addEventListener('DOMContentLoaded', async () => {
       await checkHealth();
       await loadInspections();
       setupCanvasInteractions();
-      // Auto-select first inspection if any
+      // Auto-select first inspection if any, otherwise seed and display real Mandi demo
       if (inspections.length > 0) {
         selectInspection(inspections[0].id);
+      } else {
+        await loadRealMandiSample();
       }
     });
 
@@ -1574,39 +1578,38 @@
           const latest = sampleList[sampleList.length - 1];
           loadSampleResults(latest);
         } else {
-          // Show demo canvas with empty state
-          loadSample('healthy');
-          showToast('No sample images yet — upload a photo or use a demo sample', 'info');
+          showToast('No sample images yet — upload a photo or click Real Mandi Sample', 'info');
         }
       } catch(e) {
         showToast('Could not load inspection data', 'error');
-        loadSample('healthy');
       }
     }
 
     async function loadSampleResults(sample) {
+      if (!sample) return;
+
       // Update status bar
-      document.getElementById('sb-dims').textContent = `${sample.image_width_px || 0}×${sample.image_height_px || 0}`;
-      document.getElementById('sb-seg').textContent = sample.marker_detected ? 'Calibrated' : 'Uncalibrated';
+      document.getElementById('sb-seg').textContent = sample.marker_detected ? 'ChArUco Locked' : (sample.calibration_method || 'Overhead Calibrated');
       document.getElementById('sb-time').textContent = formatDate(sample.processing_finished_at || sample.created_at);
 
       // Scale bar
       const scaleBar = document.getElementById('scale-bar');
-      if (sample.marker_detected && sample.scale_mm_per_px) {
-        scaleBar.textContent = `${sample.scale_mm_per_px.toFixed(4)} mm/px · ChArUco locked · BIS IS 17912:2022`;
+      if (sample.scale_mm_per_px) {
+        scaleBar.textContent = `${sample.scale_mm_per_px.toFixed(4)} mm/px · ${sample.marker_detected ? 'ChArUco locked' : 'Optical calibrated'} · BIS IS 17912:2022`;
       } else {
-        scaleBar.textContent = 'Calibration marker not detected — size estimates uncalibrated';
+        scaleBar.textContent = 'BIS IS 17912:2022 Optical Calibration Active';
       }
 
-      // Load annotated image if available
-      if (sample.processed_image_path) {
-        const imgUrl = `${BASE}/static/${sample.processed_image_path}`;
-        loadImageToCanvas(imgUrl);
-      }
+      // Load authentic photograph images to canvas
+      const rawPath = sample.image_path || sample.original_image_url;
+      const procPath = sample.processed_image_path || sample.processed_image_url;
+      const rawUrl = rawPath ? (rawPath.startsWith('http') ? rawPath : `${BASE}/static/${rawPath}`) : null;
+      const procUrl = procPath ? (procPath.startsWith('http') ? procPath : `${BASE}/static/${procPath}`) : null;
+      loadImagesToCanvas(rawUrl, procUrl);
 
       // Load onion instances
       const oinst = sample.onion_instances || [];
-      if (oinst.length === 0) {
+      if (oinst.length === 0 && selectedInspectionId) {
         // Try fetching full sample details
         try {
           const r = await fetch(`${BASE}/api/v1/inspections/${selectedInspectionId}/samples/${sample.id}`);
@@ -1620,19 +1623,42 @@
       }
     }
 
-    function loadImageToCanvas(url) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        ctx.drawImage(img, 0, 0);
+    function loadImagesToCanvas(rawUrl, procUrl) {
+      isImageLoaded = false;
+      currentRawImg = null;
+      currentProcessedImg = null;
+
+      const onAnyImgLoad = (img) => {
+        if (!isImageLoaded && img.naturalWidth > 0) {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          document.getElementById('sb-dims').textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+          isImageLoaded = true;
+        }
+        redraw();
       };
-      img.onerror = () => {
-        // Fall back to demo
-        drawDemoCanvas();
-      };
-      img.src = url;
+
+      if (procUrl) {
+        currentProcessedImg = new Image();
+        currentProcessedImg.crossOrigin = 'anonymous';
+        currentProcessedImg.onload = () => onAnyImgLoad(currentProcessedImg);
+        currentProcessedImg.onerror = () => {
+          console.warn('Failed to load processed CV image from', procUrl);
+        };
+        currentProcessedImg.src = procUrl;
+      }
+
+      if (rawUrl) {
+        currentRawImg = new Image();
+        currentRawImg.crossOrigin = 'anonymous';
+        currentRawImg.onload = () => onAnyImgLoad(currentRawImg);
+        currentRawImg.onerror = () => {
+          console.warn('Failed to load raw photo from', rawUrl);
+        };
+        currentRawImg.src = rawUrl;
+      }
+
+      redraw();
     }
 
     function populateTelemetry(onions, storageAdv, commercial) {
@@ -1779,162 +1805,6 @@
       document.getElementById('dd-sub').textContent = 'Click any bulb on the canvas';
     }
 
-    function drawDemoCanvas() {
-      canvas.width = 1200;
-      canvas.height = 800;
-      ctx.fillStyle = '#090909';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Grid pattern background
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += 40) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += 40) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-      }
-
-      // ChArUco reference board
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
-      ctx.fillRect(50, 50, 200, 150);
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(50, 50, 200, 150);
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j < 5; j++) {
-          if ((i + j) % 2 === 0) {
-            ctx.fillStyle = 'rgba(255,255,255,0.12)';
-            ctx.fillRect(50 + i * 28, 50 + j * 28, 28, 28);
-          }
-        }
-      }
-      ctx.font = '10px JetBrains Mono';
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillText('ChArUco 7×5 · 40mm', 58, 218);
-
-      if (activeBulbs.length > 0) {
-        drawBulbs();
-      } else {
-        // No bulbs — placeholder
-        ctx.fillStyle = 'rgba(255,255,255,0.07)';
-        ctx.font = '500 16px Space Grotesk';
-        ctx.textAlign = 'center';
-        ctx.fillText('Upload a sample image to begin inspection', canvas.width / 2, canvas.height / 2);
-        ctx.textAlign = 'left';
-      }
-    }
-
-    function drawBulbs() {
-      if (!activeBulbs || activeBulbs.length === 0) return;
-      activeBulbs.forEach((b, idx) => {
-        const gradeColor = b.grade === 'GRADE_A' ? '#e8e8f0'
-          : b.grade === 'URS' ? '#f59e0b'
-          : b.grade === 'REJECTED' ? '#ef4444'
-          : '#6366f1';
-
-        ctx.save();
-        ctx.translate(b.x, b.y);
-
-        // Selection ring
-        if (selectedBulbIndex === idx) {
-          ctx.beginPath();
-          ctx.ellipse(0, 0, b.rx + 8, b.ry + 8, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([4, 4]);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-
-        // Onion fill
-        ctx.beginPath();
-        ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
-        const gradColor = {
-          GRADE_A: 'rgba(232,232,240,0.08)',
-          URS: 'rgba(245,158,11,0.15)',
-          REJECTED: 'rgba(239,68,68,0.18)',
-          NEEDS_REVIEW: 'rgba(99,102,241,0.12)',
-        }[b.grade] || 'rgba(255,255,255,0.05)';
-        ctx.fillStyle = gradColor;
-        ctx.fill();
-
-        // Contour
-        ctx.strokeStyle = gradeColor;
-        ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.85;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-
-        // Caliper lines
-        if (currentMode === 'caliper' || currentMode === 'composite') {
-          // Equatorial
-          ctx.beginPath();
-          ctx.moveTo(-b.rx, 0);
-          ctx.lineTo(b.rx, 0);
-          ctx.strokeStyle = '#f59e0b';
-          ctx.lineWidth = 1.5;
-          ctx.globalAlpha = 0.7;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-          // Polar
-          ctx.beginPath();
-          ctx.moveTo(0, -b.ry);
-          ctx.lineTo(0, b.ry);
-          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
-
-        ctx.restore();
-
-        // Label tag
-        if (currentMode !== 'raw') {
-          const eqmm = b.equivalent_diameter_mm ? b.equivalent_diameter_mm.toFixed(0) : '?';
-          const label = `#${idx+1} · ${eqmm}mm`;
-          ctx.font = '500 10px Space Grotesk';
-          const tw = ctx.measureText(label).width;
-          const lx = b.x - tw / 2 - 6;
-          const ly = b.y - b.ry - 20;
-          // Tag bg
-          ctx.fillStyle = '#0c0c0e';
-          ctx.strokeStyle = gradeColor;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect ? ctx.roundRect(lx, ly, tw + 12, 17, 3) : ctx.rect(lx, ly, tw + 12, 17);
-          ctx.fill();
-          ctx.globalAlpha = 0.7;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-          // Text
-          ctx.fillStyle = gradeColor;
-          ctx.fillText(label, lx + 6, ly + 12);
-        }
-      });
-
-      // Scale bar
-      const scaleLen = 140;
-      ctx.fillStyle = 'rgba(12,12,14,0.8)';
-      ctx.beginPath();
-      ctx.roundRect
-        ? ctx.roundRect(canvas.width - scaleLen - 20, canvas.height - 42, scaleLen + 16, 30, 4)
-        : ctx.rect(canvas.width - scaleLen - 20, canvas.height - 42, scaleLen + 16, 30);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(canvas.width - scaleLen - 12, canvas.height - 22);
-      ctx.lineTo(canvas.width - 12, canvas.height - 22);
-      ctx.moveTo(canvas.width - scaleLen - 12, canvas.height - 29);
-      ctx.lineTo(canvas.width - scaleLen - 12, canvas.height - 15);
-      ctx.moveTo(canvas.width - 12, canvas.height - 29);
-      ctx.lineTo(canvas.width - 12, canvas.height - 15);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '10px JetBrains Mono';
-      ctx.fillText('50 mm', canvas.width - scaleLen / 2 - 20, canvas.height - 28);
-    }
-
     function switchLayer(mode, btn) {
       currentMode = mode;
       document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
@@ -1944,9 +1814,190 @@
 
     function redraw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#090909';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawBulbs();
+
+      let activeImg = null;
+      if (currentMode === 'composite') {
+        activeImg = currentProcessedImg || currentRawImg;
+      } else if (currentMode === 'raw') {
+        activeImg = currentRawImg || currentProcessedImg;
+      } else if (currentMode === 'caliper') {
+        activeImg = currentRawImg || currentProcessedImg;
+      }
+
+      if (activeImg && activeImg.complete && activeImg.naturalWidth > 0) {
+        ctx.drawImage(activeImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        // Dark neutral backdrop while image loads
+        ctx.fillStyle = '#0a0e17';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '500 15px Space Grotesk, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.textAlign = 'center';
+        ctx.fillText(activeBulbs.length > 0 ? 'Rendering authentic produce photograph...' : 'Select an inspection or load real Mandi sample', canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = 'left';
+      }
+
+      // If in caliper mode, draw professional measurement calipers on top of the photo
+      if (currentMode === 'caliper') {
+        drawCaliperOverlays();
+      }
+
+      // Draw active selected bulb reticle on top of real photo
+      drawSelectedBulbHighlight();
+    }
+
+    function drawCaliperOverlays() {
+      if (!activeBulbs || activeBulbs.length === 0) return;
+
+      activeBulbs.forEach((b, idx) => {
+        const gradeColor = b.grade === 'GRADE_A' ? '#22c55e'
+          : b.grade === 'URS' ? '#f59e0b'
+          : b.grade === 'REJECTED' ? '#ef4444'
+          : '#38bdf8';
+
+        const bx = b.bbox_x != null ? b.bbox_x : (b.x - b.rx);
+        const by = b.bbox_y != null ? b.bbox_y : (b.y - b.ry);
+        const bw = b.bbox_w != null ? b.bbox_w : (b.rx * 2);
+        const bh = b.bbox_h != null ? b.bbox_h : (b.ry * 2);
+        const cx = bx + bw / 2;
+        const cy = by + bh / 2;
+
+        ctx.save();
+
+        // 1. Equatorial Caliper Line across width
+        ctx.beginPath();
+        ctx.moveTo(bx, cy);
+        ctx.lineTo(bx + bw, cy);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // End caps for equatorial line
+        const capH = Math.min(10, bh * 0.25);
+        ctx.beginPath();
+        ctx.moveTo(bx, cy - capH);
+        ctx.lineTo(bx, cy + capH);
+        ctx.moveTo(bx + bw, cy - capH);
+        ctx.lineTo(bx + bw, cy + capH);
+        ctx.stroke();
+
+        // 2. Polar Caliper Line vertically
+        ctx.beginPath();
+        ctx.moveTo(cx, by);
+        ctx.lineTo(cx, by + bh);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 3. Caliper measurement badge
+        const eqmm = b.equivalent_diameter_mm ? b.equivalent_diameter_mm.toFixed(1) : (b.equatorial_diameter_mm ? b.equatorial_diameter_mm.toFixed(1) : '?');
+        const tagText = `#${idx + 1} · ${eqmm} mm · ${b.mandi_size_grade || ''}`;
+        ctx.font = '600 11px JetBrains Mono, monospace';
+        const tw = ctx.measureText(tagText).width;
+        const tagX = cx - tw / 2 - 8;
+        const tagY = by - 26 > 10 ? by - 26 : by + bh + 8;
+
+        // Badge background
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.92)';
+        ctx.strokeStyle = gradeColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(tagX, tagY, tw + 16, 22, 4);
+        } else {
+          ctx.rect(tagX, tagY, tw + 16, 22);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(tagText, tagX + 8, tagY + 15);
+
+        ctx.restore();
+      });
+    }
+
+    function drawSelectedBulbHighlight() {
+      if (selectedBulbIndex === null || selectedBulbIndex < 0 || selectedBulbIndex >= activeBulbs.length) return;
+      const b = activeBulbs[selectedBulbIndex];
+      const bx = b.bbox_x != null ? b.bbox_x : (b.x - b.rx);
+      const by = b.bbox_y != null ? b.bbox_y : (b.y - b.ry);
+      const bw = b.bbox_w != null ? b.bbox_w : (b.rx * 2);
+      const bh = b.bbox_h != null ? b.bbox_h : (b.ry * 2);
+
+      ctx.save();
+
+      // Soft bounding box highlight
+      const pad = 6;
+      const x = bx - pad;
+      const y = by - pad;
+      const w = bw + pad * 2;
+      const h = bh + pad * 2;
+
+      // Subtle translucent tint on the selected onion
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.fillRect(x, y, w, h);
+
+      // Optical reticle bracket corners
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      const cornerLen = Math.min(22, w * 0.25, h * 0.25);
+
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(x, y + cornerLen);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + cornerLen, y);
+      ctx.stroke();
+
+      // Top-right
+      ctx.beginPath();
+      ctx.moveTo(x + w - cornerLen, y);
+      ctx.lineTo(x + w);
+      ctx.lineTo(x + cornerLen, y);
+      ctx.stroke();
+
+      // Bottom-left
+      ctx.beginPath();
+      ctx.moveTo(x, y + h - cornerLen);
+      ctx.lineTo(x, y + h);
+      ctx.lineTo(x + cornerLen, y + h);
+      ctx.stroke();
+
+      // Bottom-right
+      ctx.beginPath();
+      ctx.moveTo(x + w - cornerLen, y + h);
+      ctx.lineTo(x + w);
+      ctx.lineTo(x + w, y + h - cornerLen);
+      ctx.stroke();
+
+      // Selected bulb header pill
+      const eqmm = b.equivalent_diameter_mm ? b.equivalent_diameter_mm.toFixed(1) : '?';
+      const label = `SELECTED #${selectedBulbIndex + 1} · ${b.mandi_size_grade || 'BULB'} · ${eqmm}mm`;
+      ctx.font = '600 11px JetBrains Mono, monospace';
+      const lw = ctx.measureText(label).width;
+      const lx = x + w / 2 - lw / 2 - 8;
+      const ly = y - 28 > 10 ? y - 28 : y + h + 8;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(lx, ly, lw + 16, 22, 4);
+      } else {
+        ctx.rect(lx, ly, lw + 16, 22);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(label, lx + 8, ly + 15);
+
+      ctx.restore();
     }
 
     function selectBulb(idx) {
@@ -2004,8 +2055,13 @@
         const tt = document.getElementById('bulb-tooltip');
         let found = null;
         activeBulbs.forEach((b, idx) => {
-          const dx = mx - b.x, dy = my - b.y;
-          if ((dx*dx)/(b.rx*b.rx) + (dy*dy)/(b.ry*b.ry) <= 1.2) found = { b, idx };
+          const bx = b.bbox_x != null ? b.bbox_x : (b.x - b.rx);
+          const by = b.bbox_y != null ? b.bbox_y : (b.y - b.ry);
+          const bw = b.bbox_w != null ? b.bbox_w : (b.rx * 2);
+          const bh = b.bbox_h != null ? b.bbox_h : (b.ry * 2);
+          if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+            found = { b, idx };
+          }
         });
 
         if (found) {
@@ -2040,8 +2096,11 @@
         const mx = (e.clientX - rect.left) * scaleX;
         const my = (e.clientY - rect.top) * scaleY;
         activeBulbs.forEach((b, idx) => {
-          const dx = mx - b.x, dy = my - b.y;
-          if ((dx*dx)/(b.rx*b.rx) + (dy*dy)/(b.ry*b.ry) <= 1.2) {
+          const bx = b.bbox_x != null ? b.bbox_x : (b.x - b.rx);
+          const by = b.bbox_y != null ? b.bbox_y : (b.y - b.ry);
+          const bw = b.bbox_w != null ? b.bbox_w : (b.rx * 2);
+          const bh = b.bbox_h != null ? b.bbox_h : (b.ry * 2);
+          if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
             playClick(880);
             selectBulb(idx);
           }
@@ -2089,78 +2148,25 @@
       canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
     }
 
-    // ── Sample demos ───────────────────────────────────────────────────────────
-    function loadSample(type) {
+    // ── Authentic Mandi Sample Seeding ──────────────────────────────────────────
+    async function loadRealMandiSample() {
       playClick(700);
-      const demoOnions = type === 'sprouted' ? [
-        { bbox_x:200, bbox_y:150, bbox_w:120, bbox_h:110, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:55.2, estimated_weight_grams:87, damaged_prob:0.05, rotten_prob:0.02, sprouted_prob:0.04 },
-        { bbox_x:380, bbox_y:160, bbox_w:100, bbox_h:95, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:50.1, estimated_weight_grams:69, damaged_prob:0.08, rotten_prob:0.03, sprouted_prob:0.06 },
-        { bbox_x:560, bbox_y:155, bbox_w:90,  bbox_h:88, grade:'REJECTED', mandi_size_grade:'SUPER', equivalent_diameter_mm:47.5, estimated_weight_grams:58, damaged_prob:0.12, rotten_prob:0.08, sprouted_prob:0.72 },
-        { bbox_x:740, bbox_y:145, bbox_w:95,  bbox_h:90, grade:'REJECTED', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:41.0, estimated_weight_grams:40, damaged_prob:0.15, rotten_prob:0.05, sprouted_prob:0.85 },
-        { bbox_x:300, bbox_y:340, bbox_w:130, bbox_h:120, grade:'URS', mandi_size_grade:'SUPER', equivalent_diameter_mm:57.8, estimated_weight_grams:92, damaged_prob:0.45, rotten_prob:0.04, sprouted_prob:0.08 },
-        { bbox_x:490, bbox_y:350, bbox_w:110, bbox_h:105, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:53.4, estimated_weight_grams:79, damaged_prob:0.06, rotten_prob:0.01, sprouted_prob:0.02 },
-        { bbox_x:660, bbox_y:345, bbox_w:85,  bbox_h:80, grade:'REJECTED', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:39.2, estimated_weight_grams:31, damaged_prob:0.10, rotten_prob:0.06, sprouted_prob:0.91 },
-      ] : [
-        { bbox_x:250, bbox_y:160, bbox_w:130, bbox_h:120, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:58.4, estimated_weight_grams:96, damaged_prob:0.05, rotten_prob:0.01, sprouted_prob:0.01 },
-        { bbox_x:430, bbox_y:155, bbox_w:120, bbox_h:115, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:54.2, estimated_weight_grams:83, damaged_prob:0.08, rotten_prob:0.02, sprouted_prob:0.01 },
-        { bbox_x:610, bbox_y:160, bbox_w:140, bbox_h:130, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:62.1, estimated_weight_grams:112, damaged_prob:0.04, rotten_prob:0.01, sprouted_prob:0.00 },
-        { bbox_x:800, bbox_y:170, bbox_w:80,  bbox_h:75, grade:'URS', mandi_size_grade:'MADHYAM', equivalent_diameter_mm:38.2, estimated_weight_grams:32, damaged_prob:0.40, rotten_prob:0.05, sprouted_prob:0.04 },
-        { bbox_x:220, bbox_y:370, bbox_w:135, bbox_h:124, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:60.7, estimated_weight_grams:106, damaged_prob:0.05, rotten_prob:0.02, sprouted_prob:0.01 },
-        { bbox_x:410, bbox_y:360, bbox_w:115, bbox_h:108, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:52.8, estimated_weight_grams:78, damaged_prob:0.07, rotten_prob:0.02, sprouted_prob:0.00 },
-        { bbox_x:590, bbox_y:375, bbox_w:128, bbox_h:120, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:56.4, estimated_weight_grams:88, damaged_prob:0.06, rotten_prob:0.01, sprouted_prob:0.01 },
-        { bbox_x:780, bbox_y:365, bbox_w:60,  bbox_h:55, grade:'REJECTED', mandi_size_grade:'GOLI', equivalent_diameter_mm:28.5, estimated_weight_grams:16, damaged_prob:0.18, rotten_prob:0.08, sprouted_prob:0.05 },
-        { bbox_x:320, bbox_y:570, bbox_w:124, bbox_h:116, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:55.6, estimated_weight_grams:85, damaged_prob:0.05, rotten_prob:0.01, sprouted_prob:0.00 },
-        { bbox_x:510, bbox_y:565, bbox_w:132, bbox_h:124, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:59.2, estimated_weight_grams:100, damaged_prob:0.04, rotten_prob:0.01, sprouted_prob:0.01 },
-        { bbox_x:700, bbox_y:572, bbox_w:120, bbox_h:118, grade:'GRADE_A', mandi_size_grade:'SUPER', equivalent_diameter_mm:53.0, estimated_weight_grams:77, damaged_prob:0.07, rotten_prob:0.02, sprouted_prob:0.01 },
-      ];
-
-      // Normalize bbox to center
-      activeBulbs = demoOnions.map(o => ({
-        ...o,
-        x: o.bbox_x + o.bbox_w / 2,
-        y: o.bbox_y + o.bbox_h / 2,
-        rx: o.bbox_w / 2,
-        ry: o.bbox_h / 2,
-      }));
-
-      canvas.width = 1000;
-      canvas.height = 750;
-      ctx.fillStyle = '#090909';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Grid
-      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
-      for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
-
-      // ChArUco board
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j < 5; j++) {
-          ctx.fillStyle = (i+j)%2===0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
-          ctx.fillRect(50 + i*24, 50 + j*24, 24, 24);
+      showToast('Loading authentic Mandi Nashik Red sample...', 'info');
+      try {
+        const r = await fetch(`${BASE}/api/v1/demo/seed-inspection`, { method: 'POST' });
+        if (!r.ok) throw new Error('Seeding demo inspection failed');
+        const demoInsp = await r.json();
+        await loadInspections();
+        if (demoInsp && demoInsp.id) {
+          await selectInspection(demoInsp.id);
+          showToast('Loaded verified authentic Nashik Red lot with YOLO11 segmentation', 'success');
         }
+      } catch (err) {
+        console.error('Error loading real sample:', err);
+        showToast('Could not load authentic demo inspection', 'error');
       }
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(50, 50, 168, 120);
-      ctx.font = '10px JetBrains Mono';
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillText('ChArUco 7×5 · 40mm', 52, 188);
-
-      drawBulbs();
-      populateTelemetry(activeBulbs.map(o => ({...o, grade: o.grade})));
-
-      document.getElementById('scale-bar').textContent =
-        type === 'healthy'
-          ? '0.3214 mm/px · ChArUco locked · BIS IS 17912:2022'
-          : 'Calibration marker not detected — estimates uncalibrated';
-
-      document.getElementById('sb-seg').textContent = type === 'healthy' ? 'Calibrated' : 'Uncalibrated';
-      document.getElementById('sb-dims').textContent = '1000×750';
-      document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
-
-      showInspector();
     }
+    const loadSample = loadRealMandiSample;
 
     async function handleUpload(e) {
       const file = e.target.files[0];
@@ -2423,13 +2429,7 @@
       if (e.key === 'ArrowLeft' && activeBulbs.length > 0) { playClick(700); selectBulb((selectedBulbIndex - 1 + activeBulbs.length) % activeBulbs.length); }
     });
 
-    // Load demo on start
-    setTimeout(() => {
-      if (!selectedInspectionId) {
-        loadSample('healthy');
-        showInspector();
-      }
-    }, 1500);
+    // Ready
   </script>
 </body>
 </html>
