@@ -4,12 +4,14 @@ import { Colors, Radius, Spacing } from './Theme';
 
 interface GradeBadgeProps {
   grade?: string | null;
+  rejectionReasons?: string[];
   size?: 'sm' | 'md' | 'lg';
   style?: ViewStyle;
 }
 
 export const GradeBadge: React.FC<GradeBadgeProps> = ({
   grade,
+  rejectionReasons,
   size = 'md',
   style,
 }) => {
@@ -31,8 +33,48 @@ export const GradeBadge: React.FC<GradeBadgeProps> = ({
         };
       case 'REJECTED':
       case 'REJECT':
+        if (rejectionReasons?.includes('OVERSIZED')) {
+          return {
+            label: 'Oversized (>70mm)',
+            color: '#7c3aed',
+            bg: '#f5f3ff',
+            borderColor: '#ddd6fe',
+          };
+        }
+        if (rejectionReasons?.includes('UNDERSIZED')) {
+          return {
+            label: 'Undersized (<35mm)',
+            color: '#d97706',
+            bg: '#fffbeb',
+            borderColor: '#fde68a',
+          };
+        }
+        if (rejectionReasons?.includes('DOUBLE_BULB')) {
+          return {
+            label: 'Double Bulb',
+            color: '#ea580c',
+            bg: '#fff7ed',
+            borderColor: '#fed7aa',
+          };
+        }
+        if (rejectionReasons?.includes('ROTTEN')) {
+          return {
+            label: 'Rotten',
+            color: Colors.reject,
+            bg: Colors.rejectBg,
+            borderColor: Colors.rejectBorder,
+          };
+        }
+        if (rejectionReasons?.includes('SPROUTED')) {
+          return {
+            label: 'Sprouted',
+            color: Colors.reject,
+            bg: Colors.rejectBg,
+            borderColor: Colors.rejectBorder,
+          };
+        }
         return {
-          label: 'Rejected',
+          label: 'Non-Procurement',
           color: Colors.reject,
           bg: Colors.rejectBg,
           borderColor: Colors.rejectBorder,

@@ -58,6 +58,8 @@ export interface OnionInstanceSummary {
   confidence_tier: ConfidenceTier | null;
   storageability_score?: number | null;
   storage_tier?: string | null;
+  rejection_reasons?: string[];
+  explanation?: Record<string, string>;
   crop_url: string | null;
   mask_url: string | null;
 }

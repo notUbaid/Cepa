@@ -160,6 +160,9 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   const urs = onionsList.filter((o) => o.grade === 'URS').length;
   const rejected = onionsList.filter((o) => o.grade === 'REJECTED').length;
   const review = onionsList.filter((o) => o.grade === 'NEEDS_REVIEW' || !o.grade).length;
+  const rejectedBulbs = onionsList.filter((o) => o.grade === 'REJECTED');
+  const rottenCount = rejectedBulbs.filter((o) => (o.rotten_prob ?? 0) >= 0.50 || o.rejection_reasons?.includes('ROTTEN')).length;
+  const isOnlyOversized = rejected > 0 && rottenCount === 0 && rejectedBulbs.every((o) => o.rejection_reasons?.includes('OVERSIZED') || (o.mandi_size_grade === 'JUMBO'));
 
   const filteredOnions = onionsList.filter((o) => {
     if (gradeFilter === 'GRADE_A') return o.grade === 'GRADE_A';
@@ -260,7 +263,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                 {total ? `${((rejected / total) * 100).toFixed(0)}%` : '0%'}
               </Text>
             </View>
-            <Text style={styles.kpiLabel}>Reject</Text>
+            <Text style={styles.kpiLabel}>{isOnlyOversized ? 'Oversize' : 'Reject'}</Text>
           </AnimatedPressable>
 
           <View style={styles.kpiCard}>
@@ -1133,7 +1136,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                       resizeMode="contain"
                     />
                     <View style={styles.badgeTagContainer}>
-                      <GradeBadge grade={item.grade} size="sm" />
+                      <GradeBadge grade={item.grade} rejectionReasons={item.rejection_reasons} size="sm" />
                     </View>
                   </View>
 
@@ -1171,6 +1174,19 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                         </Text>
                       )}
                     </View>
+
+                    {/* Informative size buffer chip for oversized / undersized non-defective bulbs */}
+                    {item.grade === 'REJECTED' && item.rejection_reasons?.includes('OVERSIZED') && (item.rotten_prob ?? 0) <= 0.35 && (item.sprouted_prob ?? 0) <= 0.35 ? (
+                      <View style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderWidth: 1, borderRadius: Radius.xs, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Feather name="info" size={9.5} color="#7c3aed" />
+                        <Text style={{ fontSize: 9.5, color: '#6d28d9', fontWeight: '600' }}>Oversized for Buffer (&gt;70mm)</Text>
+                      </View>
+                    ) : item.grade === 'REJECTED' && item.rejection_reasons?.includes('UNDERSIZED') && (item.rotten_prob ?? 0) <= 0.35 && (item.sprouted_prob ?? 0) <= 0.35 ? (
+                      <View style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: Radius.xs, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Feather name="info" size={9.5} color="#d97706" />
+                        <Text style={{ fontSize: 9.5, color: '#b45309', fontWeight: '600' }}>Undersized for Buffer (&lt;35mm)</Text>
+                      </View>
+                    ) : null}
 
                     {/* Defect Warning or Storage Score Pill */}
                     {(item.sprouted_prob ?? 0) > 0.35 ||

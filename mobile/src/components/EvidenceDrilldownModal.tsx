@@ -99,7 +99,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
             </View>
 
             <View style={styles.headerRight}>
-              <GradeBadge grade={onion.grade} size="md" />
+              <GradeBadge grade={onion.grade} rejectionReasons={onion.rejection_reasons} size="md" />
               <AnimatedPressable
                 haptic="light"
                 onPress={onClose}
@@ -251,6 +251,28 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                   <View style={styles.doubleBulbWarning}>
                     <Text style={styles.doubleBulbText}>
                       Twin / Double Bulb: Deep contour concavity detected. Disqualified from Grade A.
+                    </Text>
+                  </View>
+                )}
+
+                {onion.rejection_reasons && onion.rejection_reasons.includes('OVERSIZED') && (
+                  <View style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', borderWidth: 1, borderRadius: Radius.sm, padding: 10, marginTop: 8 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#6d28d9', marginBottom: 2 }}>
+                      COMMERCIAL APMC JUMBO BULB
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#4b5563', lineHeight: 15 }}>
+                      This bulb is completely healthy (0% rot). It exceeds the NAFED / NCCF buffer stock procurement specification (&gt;70mm), making it ideal for the open retail, catering, and restaurant mandi markets.
+                    </Text>
+                  </View>
+                )}
+
+                {onion.rejection_reasons && onion.rejection_reasons.includes('UNDERSIZED') && (
+                  <View style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: Radius.sm, padding: 10, marginTop: 8 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#b45309', marginBottom: 2 }}>
+                      GOLI / BABY ONION BULB
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#4b5563', lineHeight: 15 }}>
+                      This bulb is healthy but below the 35mm minimum standard procurement threshold. Typically sold in domestic retail or pickle/processing streams.
                     </Text>
                   </View>
                 )}

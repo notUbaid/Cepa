@@ -78,6 +78,7 @@ class OnionInstanceSummary(BaseModel):
     is_mock_defect: bool = True
     grade: str | None = None              # GRADE_A | URS | REJECTED | NEEDS_REVIEW
     confidence_tier: str | None = None    # HIGH | NEEDS_REVIEW | UNUSABLE
+    rejection_reasons: list[str] = Field(default_factory=list)
     storageability_score: float | None = None
     storage_tier: str | None = None
 

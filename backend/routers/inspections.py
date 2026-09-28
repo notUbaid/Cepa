@@ -169,6 +169,13 @@ def _onion_to_summary(inst) -> OnionInstanceSummary:
     clf = inst.classification_result
     damaged_p, rotten_p, sprouted_p = _extract_defect_probs(defect)
     storage_prof = _get_bulb_storage_profile(inst)
+    rejection_reasons = []
+    if clf and clf.rejection_reasons:
+        try:
+            rejection_reasons = json.loads(clf.rejection_reasons)
+        except Exception:
+            pass
+
     return OnionInstanceSummary(
         id=inst.id,
         instance_index=inst.instance_index,
@@ -191,6 +198,7 @@ def _onion_to_summary(inst) -> OnionInstanceSummary:
         is_mock_defect=defect.is_mock if defect else True,
         grade=clf.grade if clf else None,
         confidence_tier=clf.confidence_tier if clf else None,
+        rejection_reasons=rejection_reasons,
         storageability_score=storage_prof.storageability_score,
         storage_tier=storage_prof.storage_tier,
         crop_url=path_to_url(inst.crop_path),
