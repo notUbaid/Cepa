@@ -84,9 +84,17 @@ static_ui_dir = Path(__file__).parent / "static"
 if static_ui_dir.exists():
     app.mount("/ui", StaticFiles(directory=str(static_ui_dir)), name="ui")
 
-@app.get("/", include_in_schema=False)
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 async def root_redirect():
     return RedirectResponse(url="/inspector")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    fav_path = static_ui_dir / "logo.png"
+    if fav_path.exists():
+        return FileResponse(fav_path, media_type="image/png")
+    from fastapi import Response
+    return Response(status_code=204)
 
 @app.get("/inspector", include_in_schema=False)
 async def serve_inspector():
