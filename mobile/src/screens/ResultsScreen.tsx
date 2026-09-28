@@ -336,158 +336,161 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
 
       {/* Multi-Tab View Switcher */}
       <FadeInView delay={100} distance={10}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-          <View style={styles.viewModeToggleRow}>
-            <AnimatedPressable
-              haptic="selection"
-              style={[styles.viewModeBtn, viewMode === 'grid' && styles.viewModeBtnActive]}
-              onPress={() => setViewMode('grid')}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.viewModeScrollView}
+          contentContainerStyle={styles.viewModeScrollContent}
+        >
+          <AnimatedPressable
+            haptic="selection"
+            style={[
+              styles.viewModeBtn,
+              viewMode === 'grid' && styles.viewModeBtnActive,
+            ]}
+            onPress={() => setViewMode('grid')}
+          >
+            <Feather
+              name="grid"
+              size={13}
+              color={viewMode === 'grid' ? '#ffffff' : '#64748b'}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'grid' && styles.viewModeTextActive,
+              ]}
+              numberOfLines={1}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Feather
-                  name="grid"
-                  size={12}
-                  color={viewMode === 'grid' ? '#ffffff' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'grid' && styles.viewModeTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  Bulbs ({filteredOnions.length})
-                </Text>
-              </View>
-            </AnimatedPressable>
+              Bulbs ({filteredOnions.length})
+            </Text>
+          </AnimatedPressable>
 
+          <AnimatedPressable
+            haptic="selection"
+            style={[
+              styles.viewModeBtn,
+              styles.viewModeBtnAi,
+              viewMode === 'ai_agronomist' && styles.viewModeBtnAiActive,
+            ]}
+            onPress={() => setViewMode('ai_agronomist')}
+          >
+            <Feather
+              name="cpu"
+              size={13}
+              color={viewMode === 'ai_agronomist' ? '#ffffff' : '#0284c7'}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                styles.viewModeTextAi,
+                viewMode === 'ai_agronomist' && styles.viewModeTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              AI Agronomist
+            </Text>
+          </AnimatedPressable>
+
+          {(videoResult || currentSample.calibration_method === 'AUTONOMOUS_VIDEO_SWEEP') && (
             <AnimatedPressable
               haptic="selection"
               style={[
                 styles.viewModeBtn,
-                viewMode === 'ai_agronomist' && styles.viewModeBtnActive,
-                { borderColor: 'rgba(56, 189, 248, 0.4)' },
+                styles.viewModeBtnVideo,
+                viewMode === 'video_sweep' && styles.viewModeBtnVideoActive,
               ]}
-              onPress={() => setViewMode('ai_agronomist')}
+              onPress={() => setViewMode('video_sweep')}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Feather
-                  name="cpu"
-                  size={12}
-                  color={viewMode === 'ai_agronomist' ? '#ffffff' : '#38bdf8'}
-                />
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'ai_agronomist' && styles.viewModeTextActive,
-                    { color: viewMode === 'ai_agronomist' ? '#ffffff' : '#38bdf8' },
-                  ]}
-                  numberOfLines={1}
-                >
-                  AI Agronomist
-                </Text>
-              </View>
-            </AnimatedPressable>
-
-            {(videoResult || currentSample.calibration_method === 'AUTONOMOUS_VIDEO_SWEEP') && (
-              <AnimatedPressable
-                haptic="selection"
+              <Feather
+                name="video"
+                size={13}
+                color={viewMode === 'video_sweep' ? '#ffffff' : '#e11d48'}
+              />
+              <Text
                 style={[
-                  styles.viewModeBtn,
-                  viewMode === 'video_sweep' && styles.viewModeBtnActive,
-                  { borderColor: 'rgba(239, 68, 68, 0.4)' },
+                  styles.viewModeText,
+                  styles.viewModeTextVideo,
+                  viewMode === 'video_sweep' && styles.viewModeTextActive,
                 ]}
-                onPress={() => setViewMode('video_sweep')}
+                numberOfLines={1}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <Feather
-                    name="video"
-                    size={12}
-                    color={viewMode === 'video_sweep' ? '#ffffff' : '#f87171'}
-                  />
-                  <Text
-                    style={[
-                      styles.viewModeText,
-                      viewMode === 'video_sweep' && styles.viewModeTextActive,
-                      { color: viewMode === 'video_sweep' ? '#ffffff' : '#f87171' },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Video Sweep
-                  </Text>
-                </View>
-              </AnimatedPressable>
-            )}
-
-            <AnimatedPressable
-              haptic="selection"
-              style={[styles.viewModeBtn, viewMode === 'storage' && styles.viewModeBtnActive]}
-              onPress={() => setViewMode('storage')}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Feather
-                  name="archive"
-                  size={12}
-                  color={viewMode === 'storage' ? '#ffffff' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'storage' && styles.viewModeTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  Storage
-                </Text>
-              </View>
+                Video Sweep
+              </Text>
             </AnimatedPressable>
+          )}
 
-            <AnimatedPressable
-              haptic="selection"
-              style={[styles.viewModeBtn, viewMode === 'settlement' && styles.viewModeBtnActive]}
-              onPress={() => setViewMode('settlement')}
+          <AnimatedPressable
+            haptic="selection"
+            style={[
+              styles.viewModeBtn,
+              viewMode === 'storage' && styles.viewModeBtnActive,
+            ]}
+            onPress={() => setViewMode('storage')}
+          >
+            <Feather
+              name="archive"
+              size={13}
+              color={viewMode === 'storage' ? '#ffffff' : '#64748b'}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'storage' && styles.viewModeTextActive,
+              ]}
+              numberOfLines={1}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Feather
-                  name="trending-up"
-                  size={12}
-                  color={viewMode === 'settlement' ? '#ffffff' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'settlement' && styles.viewModeTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  Mandi Price
-                </Text>
-              </View>
-            </AnimatedPressable>
+              Storage
+            </Text>
+          </AnimatedPressable>
 
-            <AnimatedPressable
-              haptic="selection"
-              style={[styles.viewModeBtn, viewMode === 'overlay' && styles.viewModeBtnActive]}
-              onPress={() => setViewMode('overlay')}
+          <AnimatedPressable
+            haptic="selection"
+            style={[
+              styles.viewModeBtn,
+              viewMode === 'settlement' && styles.viewModeBtnActive,
+            ]}
+            onPress={() => setViewMode('settlement')}
+          >
+            <Feather
+              name="trending-up"
+              size={13}
+              color={viewMode === 'settlement' ? '#ffffff' : '#64748b'}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'settlement' && styles.viewModeTextActive,
+              ]}
+              numberOfLines={1}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Feather
-                  name="layers"
-                  size={12}
-                  color={viewMode === 'overlay' ? '#ffffff' : '#64748b'}
-                />
-                <Text
-                  style={[
-                    styles.viewModeText,
-                    viewMode === 'overlay' && styles.viewModeTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  HUD
-                </Text>
-              </View>
-            </AnimatedPressable>
-          </View>
+              Mandi Price
+            </Text>
+          </AnimatedPressable>
+
+          <AnimatedPressable
+            haptic="selection"
+            style={[
+              styles.viewModeBtn,
+              viewMode === 'overlay' && styles.viewModeBtnActive,
+            ]}
+            onPress={() => setViewMode('overlay')}
+          >
+            <Feather
+              name="layers"
+              size={13}
+              color={viewMode === 'overlay' ? '#ffffff' : '#64748b'}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === 'overlay' && styles.viewModeTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              HUD
+            </Text>
+          </AnimatedPressable>
         </ScrollView>
       </FadeInView>
 
@@ -1277,6 +1280,7 @@ const styles = StyleSheet.create({
   },
   kpiCard: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: Colors.cardBg,
     borderRadius: Radius.md,
     paddingTop: Spacing.sm + 2,
@@ -1506,32 +1510,71 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  viewModeToggleRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.cardBgElevated,
-    borderRadius: Radius.md,
-    padding: 3,
+  viewModeScrollView: {
     marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    flexGrow: 0,
+  },
+  viewModeScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
   },
   viewModeBtn: {
-    flex: 1,
-    paddingVertical: 7,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.sm,
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.cardBg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexShrink: 0,
+    ...Shadows.sm,
   },
   viewModeBtnActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: '#0c0c0e',
+    borderColor: '#0c0c0e',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  viewModeBtnAi: {
+    borderColor: 'rgba(2, 132, 199, 0.35)',
+    backgroundColor: 'rgba(2, 132, 199, 0.05)',
+  },
+  viewModeBtnAiActive: {
+    backgroundColor: '#0284c7',
+    borderColor: '#0284c7',
+  },
+  viewModeBtnVideo: {
+    borderColor: 'rgba(225, 29, 72, 0.35)',
+    backgroundColor: 'rgba(225, 29, 72, 0.05)',
+  },
+  viewModeBtnVideoActive: {
+    backgroundColor: '#e11d48',
+    borderColor: '#e11d48',
   },
   viewModeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: Colors.textSecondary,
+    flexShrink: 0,
   },
   viewModeTextActive: {
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  viewModeTextAi: {
+    color: '#0284c7',
+  },
+  viewModeTextVideo: {
+    color: '#e11d48',
   },
   gridContainer: {
     flex: 1,
