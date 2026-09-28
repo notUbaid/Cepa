@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     qg_dark_threshold: int = 40
     qg_bright_threshold: int = 215
     qg_glare_fraction: float = 0.05
-    qg_min_resolution_px: int = 640
+    qg_min_resolution_px: int = 400
 
     # ── Derived paths ─────────────────────────────────────────────────────────
     @property

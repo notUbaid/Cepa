@@ -31,7 +31,11 @@ def test_video_scan():
 
     # Upload video
     boundary = "----WebKitFormBoundaryVideo123"
-    with open("storage/demo_onion_sweep.mp4", "rb") as f:
+    from pathlib import Path
+    video_path = Path(__file__).parent.parent / "storage" / "demo_onion_sweep.mp4"
+    if not video_path.exists():
+        video_path = Path("storage") / "demo_onion_sweep.mp4"
+    with open(video_path, "rb") as f:
         video_data = f.read()
 
     body = (

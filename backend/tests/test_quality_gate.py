@@ -39,8 +39,8 @@ class TestQualityGate:
         assert len(result.failures) == 0
 
     def test_insufficient_resolution_fails(self):
-        # 600x600 < 1000 threshold
-        img = np.full((600, 600, 3), 128, dtype=np.uint8)
+        # 300x300 < 400 threshold
+        img = np.full((300, 300, 3), 128, dtype=np.uint8)
         result = check_image_quality(img)
         assert result.passed is False
         assert FAIL_INSUFFICIENT_RESOLUTION in result.failures

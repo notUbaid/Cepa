@@ -6,6 +6,7 @@ import {
   Linking,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -215,42 +216,44 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     }
   };
 
-  // Artificial Gyroscopic Horizon (Simulated / Reactive)
-  const [pitch, setPitch] = useState(-0.4);
-  const [roll, setRoll] = useState(0.2);
-  const isLevel = Math.abs(pitch) < 1.5 && Math.abs(roll) < 1.5;
+  // Optical / Digital Zoom Presets
+  const [zoom, setZoom] = useState(0);
+  const ZOOM_PRESETS = [
+    { label: '0.5x', value: 0 },
+    { label: '1x', value: 0.15 },
+    { label: '2x', value: 0.35 },
+  ];
 
-  // Pulse animation for locked level
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (isLevel) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isLevel]);
+  // Animated Tap-to-Focus Reticle
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const focusAnim = useRef(new Animated.Value(0)).current;
 
-  // Gentle gyro simulation on web / tilt variation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPitch((prev) => {
-        const delta = (Math.random() - 0.48) * 0.4;
-        const next = Math.max(-2.5, Math.min(2.5, prev + delta));
-        return parseFloat(next.toFixed(1));
-      });
-      setRoll((prev) => {
-        const delta = (Math.random() - 0.5) * 0.4;
-        const next = Math.max(-2.5, Math.min(2.5, prev + delta));
-        return parseFloat(next.toFixed(1));
-      });
-    }, 1500);
-    return () => clearInterval(interval);
-  }, []);
+  const handleTapToFocus = (e: any) => {
+    const { locationX, locationY } = e.nativeEvent;
+    if (locationX === undefined || locationY === undefined) return;
+    Haptics.light();
+    setFocusPoint({ x: locationX, y: locationY });
+
+    focusAnim.setValue(0);
+    Animated.sequence([
+      Animated.spring(focusAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1200),
+      Animated.timing(focusAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setFocusPoint(null);
+      }
+    });
+  };
 
   const takePhoto = async () => {
     if (!cameraRef.current || capturing) return;
@@ -814,16 +817,19 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           style={StyleSheet.absoluteFill}
           facing={facing}
           enableTorch={torchOn}
+          zoom={zoom}
+          autofocus="on"
           onMountError={(e) => setCameraError(e?.message || 'Camera stream failed to mount')}
         >
           <View style={styles.overlayContainer}>
-            {/* Top Floating Aerospace HUD */}
+            {/* Top Floating Clean HUD */}
             <FadeInView delay={50} distance={-10}>
               <View style={styles.topHudBar}>
                 <AnimatedPressable
                   haptic="light"
                   onPress={onCancel}
                   style={styles.hudCircleBtn}
+                  accessibilityLabel="Close Camera"
                 >
                   <Feather name="x" size={18} color="#ffffff" />
                 </AnimatedPressable>
@@ -841,12 +847,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 </View>
 
                 <View style={styles.hudRightActions}>
-                  {/* Flip Camera */}
+                  {/* Switch Camera Lens (Front/Back) */}
                   <AnimatedPressable
                     haptic="selection"
                     onPress={toggleFacing}
                     style={styles.hudCircleBtn}
-                    accessibilityLabel="Flip Camera"
+                    accessibilityLabel="Switch Camera Lens"
                   >
                     <Feather name="refresh-cw" size={16} color="#ffffff" />
                   </AnimatedPressable>
@@ -856,6 +862,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     haptic="selection"
                     onPress={() => setGuideVisible(true)}
                     style={styles.hudCircleBtn}
+                    accessibilityLabel="Calibration Guide"
                   >
                     <Feather name="help-circle" size={16} color="#ffffff" />
                   </AnimatedPressable>
@@ -865,6 +872,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     haptic="selection"
                     onPress={() => setTorchOn(!torchOn)}
                     style={[styles.hudCircleBtn, torchOn && styles.hudTorchActive]}
+                    accessibilityLabel="Toggle Torch"
                   >
                     <Feather name="zap" size={16} color={torchOn ? '#0f172a' : '#ffffff'} />
                   </AnimatedPressable>
@@ -905,90 +913,96 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </View>
             </View>
 
-            {/* Level Guidance Bar */}
-            <View style={styles.levelBannerWrap}>
-              <View style={[styles.levelBanner, isLevel ? styles.levelBannerLocked : styles.levelBannerWarning]}>
-                <Animated.View style={[styles.levelDot, isLevel && { transform: [{ scale: pulseAnim }] }]} />
-                <Text style={styles.levelBannerText}>
-                  {isLevel
-                    ? 'PHONE LEVEL & READY · SINGLE LAYER SPREAD'
-                    : 'HOLD PHONE FLAT OVER SPREAD (~60CM HEIGHT)'}
+            {/* Viewport: Interactive Tap-to-Focus Surface */}
+            <Pressable
+              style={styles.targetViewport}
+              onPress={handleTapToFocus}
+              accessibilityLabel="Tap to focus camera"
+            >
+              {/* Subtle Rule-of-Thirds Grid */}
+              <View style={styles.gridOverlay} pointerEvents="none">
+                <View style={styles.gridLineH1} />
+                <View style={styles.gridLineH2} />
+                <View style={styles.gridLineV1} />
+                <View style={styles.gridLineV2} />
+              </View>
+
+              {/* Viewport Framing Brackets */}
+              <View style={styles.framingFrame} pointerEvents="none">
+                <View style={[styles.cleanCorner, styles.cTopLeft]} />
+                <View style={[styles.cleanCorner, styles.cTopRight]} />
+                <View style={[styles.cleanCorner, styles.cBottomLeft]} />
+                <View style={[styles.cleanCorner, styles.cBottomRight]} />
+              </View>
+
+              {/* Animated Tap-to-Focus Reticle */}
+              {focusPoint && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.focusReticle,
+                    {
+                      left: focusPoint.x - 36,
+                      top: focusPoint.y - 36,
+                      opacity: focusAnim,
+                      transform: [
+                        {
+                          scale: focusAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1.3, 1],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <View style={[styles.focusReticleCorner, styles.fCornerTL]} />
+                  <View style={[styles.focusReticleCorner, styles.fCornerTR]} />
+                  <View style={[styles.focusReticleCorner, styles.fCornerBL]} />
+                  <View style={[styles.focusReticleCorner, styles.fCornerBR]} />
+                  <View style={styles.focusReticlePip} />
+                </Animated.View>
+              )}
+
+              {/* Minimal Guidance Pill */}
+              <View style={styles.guidancePill} pointerEvents="none">
+                <Feather name="maximize" size={12} color="#fbbf24" style={{ marginRight: 6 }} />
+                <Text style={styles.guidancePillText}>
+                  Keep onions flat & spread · Tap screen to focus
                 </Text>
               </View>
-            </View>
+            </Pressable>
 
-            {/* Center Target Viewport with Aerospace Reticles */}
-            <View style={styles.targetViewport}>
-              {/* ChArUco Calibration Card Dock */}
-              <View style={styles.charucoReticle}>
-                <View style={[styles.cornerMini, styles.tlMini]} />
-                <View style={[styles.cornerMini, styles.trMini]} />
-                <View style={[styles.cornerMini, styles.blMini]} />
-                <View style={[styles.cornerMini, styles.brMini]} />
-                <View style={styles.charucoInnerPattern}>
-                  <View style={styles.checkerBox} />
-                  <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
-                  <View style={[styles.checkerBox, { backgroundColor: 'transparent' }]} />
-                  <View style={styles.checkerBox} />
-                </View>
-                <Text style={styles.charucoLabel}>ChArUco 7×5 BOARD DOCK</Text>
-                <Text style={styles.charucoSubLabel}>40mm Scale Reference</Text>
-              </View>
-
-              {/* Left Edge Altitude Gauge */}
-              <View style={styles.altitudeGauge}>
-                <Text style={styles.altitudeText}>70cm</Text>
-                <View style={styles.altitudeBarWrap}>
-                  <View style={styles.altitudeBarOptimal} />
-                  <View style={styles.altitudeCurrentMarker} />
-                </View>
-                <Text style={styles.altitudeSub}>ELEVATION</Text>
-              </View>
-
-              {/* Main Onion Spread Frame with Precision Corner Calipers */}
-              <View style={styles.spreadFrame}>
-                {/* Top-Left Corner Caliper */}
-                <View style={[styles.caliperCorner, styles.cTopLeft]}>
-                  <View style={styles.tickH} />
-                  <View style={styles.tickV} />
-                </View>
-                {/* Top-Right Corner Caliper */}
-                <View style={[styles.caliperCorner, styles.cTopRight]}>
-                  <View style={styles.tickH} />
-                  <View style={styles.tickV} />
-                </View>
-                {/* Bottom-Left Corner Caliper */}
-                <View style={[styles.caliperCorner, styles.cBottomLeft]}>
-                  <View style={styles.tickH} />
-                  <View style={styles.tickV} />
-                </View>
-                {/* Bottom-Right Corner Caliper */}
-                <View style={[styles.caliperCorner, styles.cBottomRight]}>
-                  <View style={styles.tickH} />
-                  <View style={styles.tickV} />
-                </View>
-
-                {/* Optical Center Crosshair with Concentric Aiming Rings */}
-                <View style={styles.centerReticle}>
-                  <View style={styles.reticleRingOuter} />
-                  <View style={styles.reticleRingInner} />
-                  <View style={styles.reticleCrossH} />
-                  <View style={styles.reticleCrossV} />
-                  {isLevel && <View style={styles.reticleLockCenter} />}
-                </View>
-
-                {/* Dynamic Guidance Pill */}
-                <View style={styles.guidancePill}>
-                  <Text style={styles.guidancePillText}>
-                    Spread 15–30 bulbs in single layer · Avoid bulb overlap
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Bottom Industrial Shutter Deck */}
+            {/* Bottom Industrial Controls Deck */}
             <FadeInView delay={100} distance={15}>
               <View style={styles.bottomDeck}>
+                {/* Lens / Zoom Selector Pills */}
+                <View style={styles.zoomPillsRow}>
+                  {ZOOM_PRESETS.map((preset) => {
+                    const isSelected = zoom === preset.value;
+                    return (
+                      <AnimatedPressable
+                        key={preset.label}
+                        haptic="selection"
+                        onPress={() => setZoom(preset.value)}
+                        style={[
+                          styles.zoomPill,
+                          isSelected && styles.zoomPillActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.zoomPillText,
+                            isSelected && styles.zoomPillTextActive,
+                          ]}
+                        >
+                          {preset.label}
+                        </Text>
+                      </AnimatedPressable>
+                    );
+                  })}
+                </View>
+
                 {/* Mode Selector Tabs */}
                 <View style={styles.modeTabsRow}>
                   {(['SINGLE', 'BATCH', 'CALIBRATE'] as const).map((mode) => {
@@ -1029,34 +1043,33 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     <Text style={styles.sideBtnLabel}>Upload</Text>
                   </AnimatedPressable>
 
-                  {/* Tactile Shutter Button with Rotating Reticle */}
+                  {/* Tactile Shutter Button */}
                   <AnimatedPressable
                     haptic="heavy"
                     scaleTo={0.90}
-                    style={[
-                      styles.shutterOuterRing,
-                      isLevel && styles.shutterOuterRingLevel,
-                    ]}
+                    style={styles.shutterOuterRing}
                     onPress={takePhoto}
                     disabled={capturing}
+                    accessibilityLabel="Capture Photo"
                   >
-                    <View style={[styles.shutterMiddleHalo, isLevel && styles.shutterMiddleHaloLevel]}>
+                    <View style={styles.shutterMiddleHalo}>
                       <View style={styles.shutterCoreButton}>
                         {capturing ? (
                           <ActivityIndicator color="#0c0c0e" size="small" />
                         ) : (
-                          <View style={[styles.shutterCenterPip, isLevel && styles.shutterCenterPipLevel]} />
+                          <View style={styles.shutterCenterPip} />
                         )}
                       </View>
                     </View>
                   </AnimatedPressable>
 
-                  {/* Instant Mandi Demo Sample */}
+                  {/* Instant Mandi Demo Sample (Natural Produce) */}
                   <AnimatedPressable
                     haptic="medium"
                     style={styles.deckSideBtn}
                     onPress={loadDemoSample}
                     disabled={capturing}
+                    accessibilityLabel="Load Natural Test Lot"
                   >
                     <View style={[styles.sideBtnIconBox, styles.demoIconBox]}>
                       <Text style={styles.demoBadge}>DEMO</Text>
@@ -1321,244 +1334,175 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  /* Level Banner */
-  levelBannerWrap: {
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  levelBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  levelBannerLocked: {
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-  },
-  levelBannerWarning: {
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-  },
-  levelDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#ffffff',
-  },
-  levelBannerText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.3,
-  },
-
-  /* Viewport Target */
+  /* Viewport & Interactive Focus Surface */
   targetViewport: {
     flex: 1,
     marginVertical: 10,
     justifyContent: 'center',
-    position: 'relative',
-  },
-
-  /* ChArUco Reticle Corner */
-  charucoReticle: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    width: 130,
-    height: 90,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    borderWidth: 1.5,
-    borderColor: '#38bdf8',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-  },
-  charucoInnerPattern: {
-    width: 24,
-    height: 24,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 4,
-  },
-  checkerBox: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#ffffff',
-  },
-  charucoLabel: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#38bdf8',
-    letterSpacing: 0.4,
-  },
-  charucoSubLabel: {
-    fontSize: 8,
-    color: '#e0f2fe',
-    marginTop: 1,
-  },
-  cornerMini: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderColor: '#38bdf8',
-  },
-  tlMini: { top: -2, left: -2, borderTopWidth: 2, borderLeftWidth: 2 },
-  trMini: { top: -2, right: -2, borderTopWidth: 2, borderRightWidth: 2 },
-  blMini: { bottom: -2, left: -2, borderBottomWidth: 2, borderLeftWidth: 2 },
-  brMini: { bottom: -2, right: -2, borderBottomWidth: 2, borderRightWidth: 2 },
-
-  /* Altitude Gauge */
-  altitudeGauge: {
-    position: 'absolute',
-    left: 6,
-    top: 110,
-    alignItems: 'center',
-    backgroundColor: 'rgba(12, 12, 14, 0.75)',
-    paddingVertical: 8,
-    paddingHorizontal: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  altitudeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#10b981',
-  },
-  altitudeBarWrap: {
-    width: 4,
-    height: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 2,
-    marginVertical: 4,
     position: 'relative',
     overflow: 'hidden',
   },
-  altitudeBarOptimal: {
+  gridOverlay: {
     position: 'absolute',
-    top: 20,
-    bottom: 20,
-    width: '100%',
-    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-  },
-  altitudeCurrentMarker: {
-    position: 'absolute',
-    top: 28,
-    width: 6,
-    height: 4,
-    left: -1,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-  },
-  altitudeSub: {
-    fontSize: 7,
-    fontWeight: '700',
-    color: '#71717a',
-    letterSpacing: 0.3,
-  },
-
-  /* Spread Frame */
-  spreadFrame: {
-    flex: 1,
-    marginHorizontal: 12,
-    marginVertical: 16,
-    justifyContent: 'center',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    position: 'relative',
   },
-  caliperCorner: {
+  gridLineH1: {
     position: 'absolute',
-    width: 32,
-    height: 32,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
-  },
-  cTopLeft: { top: 0, left: 0, borderTopWidth: 2.5, borderLeftWidth: 2.5 },
-  cTopRight: { top: 0, right: 0, borderTopWidth: 2.5, borderRightWidth: 2.5 },
-  cBottomLeft: { bottom: 0, left: 0, borderBottomWidth: 2.5, borderLeftWidth: 2.5 },
-  cBottomRight: { bottom: 0, right: 0, borderBottomWidth: 2.5, borderRightWidth: 2.5 },
-  tickH: {
-    position: 'absolute',
-    top: -6,
-    left: 12,
-    width: 1,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  tickV: {
-    position: 'absolute',
-    left: -6,
-    top: 12,
-    width: 4,
+    top: '33.33%',
+    left: 16,
+    right: 16,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-
-  /* Optical Center Reticle */
-  centerReticle: {
-    width: 64,
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  reticleRingOuter: {
+  gridLineH2: {
     position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    top: '66.66%',
+    left: 16,
+    right: 16,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-  reticleRingInner: {
+  gridLineV1: {
     position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
+    left: '33.33%',
+    top: 16,
+    bottom: 16,
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-  reticleCrossH: {
+  gridLineV2: {
+    position: 'absolute',
+    left: '66.66%',
+    top: 16,
+    bottom: 16,
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  framingFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    margin: 16,
+  },
+  cleanCorner: {
     position: 'absolute',
     width: 24,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  reticleCrossV: {
-    position: 'absolute',
     height: 24,
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.55)',
   },
-  reticleLockCenter: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
+  cTopLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 6,
+  },
+  cTopRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 6,
+  },
+  cBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 6,
+  },
+  cBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 6,
+  },
+
+  /* Animated Tap-to-Focus Reticle */
+  focusReticle: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  focusReticleCorner: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderColor: '#fbbf24',
+  },
+  fCornerTL: { top: 0, left: 0, borderTopWidth: 2, borderLeftWidth: 2 },
+  fCornerTR: { top: 0, right: 0, borderTopWidth: 2, borderRightWidth: 2 },
+  fCornerBL: { bottom: 0, left: 0, borderBottomWidth: 2, borderLeftWidth: 2 },
+  fCornerBR: { bottom: 0, right: 0, borderBottomWidth: 2, borderRightWidth: 2 },
+  focusReticlePip: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#fbbf24',
   },
 
   /* Guidance Pill */
   guidancePill: {
     position: 'absolute',
-    bottom: 8,
-    backgroundColor: 'rgba(12, 12, 14, 0.82)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(12, 12, 14, 0.75)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  guidancePillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#e4e4e7',
+    letterSpacing: 0.2,
+  },
+
+  /* Lens / Zoom Pills */
+  zoomPillsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  zoomPill: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  guidancePillText: {
+  zoomPillActive: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff',
+    transform: [{ scale: 1.05 }],
+  },
+  zoomPillText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#f4f4f5',
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    color: '#d4d4d8',
+  },
+  zoomPillTextActive: {
+    color: '#0f172a',
+    fontWeight: '800',
   },
 
   /* Bottom Industrial Shutter Deck */
@@ -1645,10 +1589,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  shutterOuterRingLevel: {
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-  },
   shutterMiddleHalo: {
     width: 62,
     height: 62,
@@ -1656,9 +1596,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  shutterMiddleHaloLevel: {
-    backgroundColor: '#10b981',
   },
   shutterCoreButton: {
     width: 54,
@@ -1673,9 +1610,6 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: '#0c0c0e',
-  },
-  shutterCenterPipLevel: {
-    backgroundColor: '#047857',
   },
 
   /* Calibration Guide Modal */
