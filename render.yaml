@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: cepa-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: BACKEND_ENV
+        value: production
+      - key: ACTIVE_GRADING_POLICY
+        value: DEMO_ASSUMPTION_v1
+      - key: CORS_ORIGINS
+        value: "http://localhost:8081,https://*.vercel.app,http://localhost:3000"
+      - key: GROQ_API_KEY
+        sync: false

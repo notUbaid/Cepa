@@ -26,14 +26,15 @@ backend/*.db
 backend/cepa.db
 backend/test.db
 
-# Model weights (too large for git — use DVC or manual download)
+# Model weights (allow production trained model weights < 10MB)
 *.pt
-backend/weights/*.pt
 backend/weights/*.onnx
 backend/weights/*.tflite
 cv_tools/weights/
 runs/
 backend/runs/
+!backend/weights/defect_classifier.pt
+!backend/weights/yolo11n-seg.pt
 
 # Alembic
 backend/alembic/versions/*.pyc
