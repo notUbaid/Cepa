@@ -216,6 +216,7 @@ def run_pipeline(
 
     # Debris & Peel filtering: exclude papery skin slivers, peel cutoffs, and foreign material
     raw_detections = seg_result.detections
+    img_h, img_w = working_image.shape[:2]
     valid_detections: list[OnionDetection] = []
     for d in raw_detections:
         cnts, _ = cv2.findContours(d.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -225,6 +226,31 @@ def run_pipeline(
         c_area = cv2.contourArea(c)
         if c_area < 1200:
             continue
+
+        # ── Pile/background blob guard ─────────────────────────────────────────
+        # A single onion bulb cannot span more than 70% of the image dimension.
+        # When YOLO segments the entire background pile as one region, its
+        # bounding box is nearly as large as the full image.  Reject these early,
+        # before the solidity test (which a convex pile easily passes).
+        bbox_w_frac = d.bbox_w / max(1, img_w)
+        bbox_h_frac = d.bbox_h / max(1, img_h)
+        if bbox_w_frac > 0.70 or bbox_h_frac > 0.70:
+            logger.info(
+                "Pipeline: rejected over-sized detection (bbox %.0f×%.0f = %.0f%%×%.0f%% of image) — likely pile/background blob.",
+                d.bbox_w, d.bbox_h, bbox_w_frac * 100, bbox_h_frac * 100,
+            )
+            continue
+
+        # ── Mask area guard ────────────────────────────────────────────────────
+        # No single onion can occupy more than 50% of the image pixel area.
+        mask_frac = float(np.count_nonzero(d.mask)) / max(1, img_w * img_h)
+        if mask_frac > 0.50:
+            logger.info(
+                "Pipeline: rejected detection with mask coverage %.1f%% — likely pile/background blob.",
+                mask_frac * 100,
+            )
+            continue
+
         hull = cv2.convexHull(c)
         hull_area = max(1.0, float(cv2.contourArea(hull)))
         solidity = float(c_area) / hull_area
@@ -261,22 +287,32 @@ def run_pipeline(
         for i, vd in enumerate(valid_detections)
     ]
 
-    # Refine autonomous scale with empirical bulb population prior
+    # Refine autonomous scale with empirical bulb population prior.
+    # Pile/background blobs have already been filtered above, so the remaining
+    # detections are valid candidate bulbs.  We estimate the physical mm/px scale
+    # by assuming the median detected bulb diameter in pixels corresponds to the
+    # Indian APMC typical adult onion median diameter of 52.5mm.
+    #
+    # Weight: 75% empirical bulb-size prior + 25% FOV geometric prior.
+    # The 700mm FOV geometric prior is calibrated for a ~65cm overhead bench shot
+    # and is wildly wrong for close-up phone photos.  The empirical prior dominates.
     if calibration.is_estimated and len(detections) >= 1:
         bulb_diameters_px = []
         for d in detections:
             area_px = float(np.count_nonzero(d.mask))
             if area_px > 0:
                 diam_px = 2.0 * np.sqrt(area_px / np.pi)
-                bulb_diameters_px.append(diam_px)
+                # Only include plausible single-bulb pixel diameters (20px–2000px)
+                if 20.0 < diam_px < 2000.0:
+                    bulb_diameters_px.append(diam_px)
 
         if bulb_diameters_px:
             med_diam_px = float(np.median(bulb_diameters_px))
-            # Indian APMC typical adult onion median diameter is 52.5mm
+            # Indian APMC typical adult onion median equatorial diameter is 52.5mm
             if med_diam_px > 25.0:
                 empirical_scale = 52.5 / med_diam_px
-                # Blend 50% FOV prior + 50% bulb prior
-                blended_scale = 0.50 * (calibration.scale_mm_per_px or 0.36) + 0.50 * empirical_scale
+                # 75% bulb prior + 25% FOV geometric prior
+                blended_scale = 0.25 * (calibration.scale_mm_per_px or 0.36) + 0.75 * empirical_scale
                 blended_scale = float(np.clip(
                     blended_scale,
                     settings.scale_min_mm_per_px,
@@ -285,7 +321,7 @@ def run_pipeline(
                 calibration.scale_mm_per_px = blended_scale
                 result.scale_mm_per_px = blended_scale
                 logger.info(
-                    "Refined autonomous scale with bulb prior: med_px=%.1f -> scale=%.4f mm/px",
+                    "Refined autonomous scale with bulb prior (75%%/25%%): med_px=%.1f -> scale=%.4f mm/px",
                     med_diam_px, blended_scale,
                 )
 
@@ -334,6 +370,23 @@ def run_pipeline(
             )
         except Exception:
             logger.exception("Size estimation failed for instance %d", idx)
+
+        # ── Physical Size Sanity Gate ─────────────────────────────────────────
+        # No real Indian onion bulb has an equatorial diameter > 200mm or
+        # estimated weight > 5000g (the world record is ~4.9kg at ~175mm).
+        # If these limits are exceeded the detection is a background pile segment
+        # that slipped through the bbox guard (e.g. an irregular shape).
+        # Null out size_est so grading assigns NEEDS_REVIEW rather than REJECTED.
+        if size_est is not None:
+            eq_diam = size_est.equatorial_diameter_mm or size_est.equivalent_diameter_mm
+            wt = size_est.estimated_weight_grams or 0.0
+            if eq_diam > 200.0 or wt > 5000.0:
+                logger.warning(
+                    "Instance %d: physically impossible size (D=%.1fmm, W=%.0fg) — "
+                    "likely background pile segment.  Nulling size_est.",
+                    idx, eq_diam, wt,
+                )
+                size_est = None
 
         # ── Stage 8: Confidence Assessment ──────────────────────────────────
         confidence = assess_confidence(
