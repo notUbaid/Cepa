@@ -79,6 +79,14 @@ def create_all_tables() -> None:
                 conn.execute(text("ALTER TABLE samples ADD COLUMN is_estimated_scale BOOLEAN DEFAULT 0"))
             if "calibration_method" not in existing_cols:
                 conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
+
+            res_insp = conn.execute(text("PRAGMA table_info(inspections)")).fetchall()
+            existing_insp_cols = {row[1] for row in res_insp}
+            if "farmer_id" not in existing_insp_cols:
+                conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_id VARCHAR(50)"))
+            if "farmer_name" not in existing_insp_cols:
+                conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_name VARCHAR(150)"))
+
             conn.commit()
         except Exception:
             pass

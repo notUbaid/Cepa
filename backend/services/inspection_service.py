@@ -123,6 +123,8 @@ def create_inspection(db: Session, data: InspectionCreate) -> Inspection:
     """Create a new inspection record."""
     inspection = Inspection(
         lot_id=data.lot_id,
+        farmer_id=data.farmer_id,
+        farmer_name=data.farmer_name,
         procurement_centre=data.procurement_centre,
         officer_name=data.officer_name,
         officer_id=data.officer_id,
@@ -172,19 +174,24 @@ async def process_sample_image(
     db: Session,
     inspection_id: str,
     image_bytes: bytes,
-    geo_lat: float | None,
-    geo_lon: float | None,
-    location_accuracy: float | None,
+    geo_lat: float | None = None,
+    geo_lon: float | None = None,
+    location_accuracy: float | None = None,
+    acoustic_bytes: bytes | None = None,
+    bulb_mass_g: float | None = None,
 ) -> Sample:
     """
     Async entry point: creates a Sample record, runs the CV pipeline in
-    a thread pool, and persists all results to the database.
+    a thread pool, processes optional acoustic impulse data, and persists
+    all results to the database.
 
     Args:
         db: Database session.
         inspection_id: Parent inspection UUID.
         image_bytes: Raw image file bytes from the mobile upload.
         geo_lat/lon/location_accuracy: GPS from the device at capture time.
+        acoustic_bytes: Optional raw audio bytes from acoustic tap recording.
+        bulb_mass_g: Optional mass in grams for acoustic elasticity index.
 
     Returns:
         Sample record (with processing_status='DONE' or 'FAILED').
@@ -242,6 +249,27 @@ async def process_sample_image(
 
     # Persist results to database
     _persist_pipeline_results(db, sample_id, pipeline_result)
+
+    # Process optional acoustic impulse tap recording
+    if acoustic_bytes and len(acoustic_bytes) > 0:
+        try:
+            from services.acoustic_service import get_analyzer
+            analyzer = get_analyzer(use_mock=False)
+            reading = analyzer.analyze_wav_bytes(acoustic_bytes, mass_g=bulb_mass_g)
+            timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            f0_val = f"{reading.dominant_freq_hz:.1f}Hz" if reading.dominant_freq_hz is not None else "N/A"
+            q_val = f"{reading.quality_factor_q:.1f}" if reading.quality_factor_q is not None else "N/A"
+            acoustic_note = (
+                f"\n[Acoustic Tap {timestamp_str}] f0={f0_val}, "
+                f"Q={q_val}, risk={reading.hollow_risk_tier} ({reading.hollow_risk_score:.2f})"
+            )
+            insp = get_inspection(db, inspection_id)
+            if insp:
+                insp.notes = (insp.notes or "") + acoustic_note
+                db.commit()
+        except Exception as e:
+            logger.warning("Optional acoustic tap processing failed: %s", e)
+
     return db.query(Sample).filter(Sample.id == sample_id).first()
 
 

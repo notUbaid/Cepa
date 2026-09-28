@@ -18,6 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class InspectionCreate(BaseModel):
     """Request body for creating a new inspection."""
     lot_id: str | None = Field(None, max_length=100, description="Farmer's lot identifier")
+    farmer_id: str | None = Field(None, max_length=50, description="12-digit AgriStack Indian Farmer ID")
+    farmer_name: str | None = Field(None, max_length=150, description="Farmer name")
     procurement_centre: str | None = Field(None, max_length=200)
     officer_name: str | None = Field(None, max_length=100)
     officer_id: str | None = Field(None, max_length=50)
@@ -33,6 +35,8 @@ class InspectionCreate(BaseModel):
 class InspectionUpdate(BaseModel):
     """Partial update — all fields optional."""
     lot_id: str | None = Field(None, max_length=100)
+    farmer_id: str | None = Field(None, max_length=50)
+    farmer_name: str | None = Field(None, max_length=150)
     procurement_centre: str | None = Field(None, max_length=200)
     officer_name: str | None = Field(None, max_length=100)
     officer_id: str | None = Field(None, max_length=50)
@@ -47,6 +51,8 @@ class InspectionSummary(BaseModel):
 
     id: str
     lot_id: str | None
+    farmer_id: str | None = None
+    farmer_name: str | None = None
     procurement_centre: str | None
     officer_name: str | None
     status: str
@@ -61,6 +67,8 @@ class InspectionDetail(BaseModel):
 
     id: str
     lot_id: str | None
+    farmer_id: str | None = None
+    farmer_name: str | None = None
     procurement_centre: str | None
     officer_name: str | None
     officer_id: str | None

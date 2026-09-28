@@ -38,6 +38,8 @@ class Inspection(Base):
 
     # ── Lot / officer metadata (all optional — filled by officer in app) ──────
     lot_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    farmer_id: Mapped[str | None] = mapped_column(String(50), nullable=True)     # 12-digit AgriStack Farmer ID
+    farmer_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     procurement_centre: Mapped[str | None] = mapped_column(String(200), nullable=True)
     officer_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     officer_id: Mapped[str | None] = mapped_column(String(50), nullable=True)

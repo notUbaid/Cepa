@@ -3,11 +3,14 @@ Inspections router — all inspection and sample endpoints.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+import cv2
+import numpy as np
 from sqlalchemy.orm import Session
 
 from config import settings
@@ -59,6 +62,8 @@ def _inspection_to_detail(inspection, db: Session) -> InspectionDetail:
     return InspectionDetail(
         id=inspection.id,
         lot_id=inspection.lot_id,
+        farmer_id=getattr(inspection, "farmer_id", None),
+        farmer_name=getattr(inspection, "farmer_name", None),
         procurement_centre=inspection.procurement_centre,
         officer_name=inspection.officer_name,
         officer_id=inspection.officer_id,
@@ -291,6 +296,8 @@ async def list_inspections(
         InspectionSummary(
             id=i.id,
             lot_id=i.lot_id,
+            farmer_id=getattr(i, "farmer_id", None),
+            farmer_name=getattr(i, "farmer_name", None),
             procurement_centre=i.procurement_centre,
             officer_name=i.officer_name,
             status=i.status,
@@ -343,6 +350,8 @@ async def update_inspection(
 async def add_sample(
     inspection_id: str,
     file: UploadFile = File(..., description="Captured onion spread image (JPEG/PNG)"),
+    acoustic_file: UploadFile | None = File(None, description="Optional acoustic tap WAV recording"),
+    bulb_mass_g: float | None = Form(None, description="Optional bulb mass in grams for Elasticity Index"),
     geo_lat: float | None = Form(None),
     geo_lon: float | None = Form(None),
     location_accuracy: float | None = Form(None),
@@ -359,6 +368,13 @@ async def add_sample(
     if len(image_bytes) == 0:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
+    # Read optional acoustic audio bytes
+    acoustic_bytes: bytes | None = None
+    if acoustic_file is not None:
+        raw_audio = await acoustic_file.read()
+        if len(raw_audio) > 0:
+            acoustic_bytes = raw_audio
+
     # Run pipeline (async — blocks in thread pool internally)
     sample = await inspection_service.process_sample_image(
         db=db,
@@ -367,6 +383,8 @@ async def add_sample(
         geo_lat=geo_lat,
         geo_lon=geo_lon,
         location_accuracy=location_accuracy,
+        acoustic_bytes=acoustic_bytes,
+        bulb_mass_g=bulb_mass_g,
     )
 
     return _sample_to_detail(sample)
@@ -600,6 +618,70 @@ async def process_video_endpoint(
         raise HTTPException(status_code=500, detail=f"Failed to process video: {str(e)}")
 
 
+# ── Acoustic Tap Impulse Analysis ─────────────────────────────────────────────
+
+@router.post("/inspections/{inspection_id}/acoustic", status_code=status.HTTP_200_OK)
+async def analyze_acoustic_endpoint(
+    inspection_id: str,
+    file: UploadFile = File(..., description="Acoustic tap audio recording (WAV format)"),
+    bulb_mass_g: float | None = Form(None, description="Optional bulb mass in grams for Elasticity Index"),
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze acoustic tap impulse response of an onion bulb for hollow-body/internal decay detection.
+
+    Computes:
+    - Dominant resonant frequency f0 (Hz)
+    - Quality factor Q (-3dB bandwidth)
+    - Elasticity Index EI = f0^2 * m^(2/3) (if mass provided)
+    - Hollow-body risk score (0.0=healthy to 1.0=hollow/suspect)
+    - Risk tier (LOW / MEDIUM / HIGH / INVALID)
+    - Honest limitation statement ([Taniwaki-2023], [Kim-2024])
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    wav_bytes = await file.read()
+    if len(wav_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded audio file is empty")
+
+    from services.acoustic_service import get_analyzer, ACOUSTIC_LIMITATION_STATEMENT
+    try:
+        analyzer = get_analyzer(use_mock=False)
+        reading = analyzer.analyze_wav_bytes(wav_bytes, mass_g=bulb_mass_g)
+
+        timestamp_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        f0_val = f"{reading.dominant_freq_hz:.1f}Hz" if reading.dominant_freq_hz is not None else "N/A"
+        q_val = f"{reading.quality_factor_q:.1f}" if reading.quality_factor_q is not None else "N/A"
+        acoustic_note = (
+            f"\n[Acoustic Tap {timestamp_str}] f0={f0_val}, "
+            f"Q={q_val}, risk={reading.hollow_risk_tier} ({reading.hollow_risk_score:.2f})"
+        )
+        inspection.notes = (inspection.notes or "") + acoustic_note
+        db.commit()
+
+        recommendation = (
+            "High hollow-body risk detected — perform destructive cross-section check on 2 sample bulbs."
+            if reading.hollow_risk_tier == "HIGH"
+            else "Intermediate acoustic resonance — monitor lot during storage."
+            if reading.hollow_risk_tier == "MEDIUM"
+            else "Acoustic resonance normal — turgid sound flesh structure."
+            if reading.hollow_risk_tier == "LOW"
+            else "Invalid acoustic recording — please recapture tap audio in quiet environment."
+        )
+
+        return {
+            "inspection_id": inspection_id,
+            "reading": reading.as_dict(),
+            "recommendation": recommendation,
+            "limitation_statement": ACOUSTIC_LIMITATION_STATEMENT,
+        }
+    except Exception as e:
+        logger.exception("Acoustic analysis failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Acoustic analysis failed: {str(e)}")
+
+
 # ── Groq AI Agronomist Interactive Q&A ────────────────────────────────────────
 
 @router.post("/inspections/{inspection_id}/ask-ai")
@@ -641,4 +723,229 @@ async def ask_ai_endpoint(
         "inspection_id": inspection_id,
         "powered_by": "Groq AI (qwen/qwen3.8-27b)",
     }
+
+
+# ── Bhashini Multilingual Grade Announcement ──────────────────────────────────
+
+@router.post("/inspections/{inspection_id}/announce")
+async def announce_grade_endpoint(
+    inspection_id: str,
+    language: str | None = None,
+    state_or_city: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a multilingual spoken grade announcement via Bhashini TTS.
+
+    Produces a complete grade announcement in the officer's regional language
+    (automatically inferred from state_or_city, or explicitly set with language).
+
+    Supports: hi (Hindi), mr (Marathi), kn (Kannada), te (Telugu), ta (Tamil),
+              gu (Gujarati), en (English).
+
+    Returns:
+        JSON with announcement_text always populated.
+        If Bhashini API key is configured: also includes base64-encoded WAV audio.
+        Falls back gracefully when BHASHINI_API_KEY is absent.
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    detail = _inspection_to_detail(inspection, db)
+
+    # Determine lot recommendation from grade distribution
+    grade_a_pct = detail.grade_a_pct
+    urs_pct = detail.urs_pct
+    rejected_pct = detail.rejected_pct
+    total = detail.total_bulbs
+
+    if total < 5:
+        lot_recommendation = "ADDITIONAL_SAMPLE_REQUIRED"
+    elif grade_a_pct >= 70.0:
+        lot_recommendation = "ACCEPT_GRADE_A"
+    elif (grade_a_pct + urs_pct) >= 70.0:
+        lot_recommendation = "ACCEPT_URS"
+    else:
+        lot_recommendation = "REJECT_LOT"
+
+    from services.bhashini_service import (
+        SupportedLanguage,
+        build_announcement_from_inspection,
+        synthesize_grade_announcement,
+        get_language_from_state,
+    )
+
+    # Resolve language
+    resolved_language: SupportedLanguage | None = None
+    if language:
+        try:
+            resolved_language = SupportedLanguage(language.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported language '{language}'. Use: hi, mr, kn, te, ta, gu, en",
+            )
+    elif state_or_city:
+        resolved_language = get_language_from_state(state_or_city)
+    else:
+        # Infer from procurement_centre name
+        resolved_language = get_language_from_state(inspection.procurement_centre or "")
+
+    announcement = build_announcement_from_inspection(
+        grade_a_pct=grade_a_pct,
+        urs_pct=urs_pct,
+        rejected_pct=rejected_pct,
+        lot_recommendation=lot_recommendation,
+        suspect_count=detail.rejected_count,
+        centre_name=inspection.procurement_centre or "",
+        lot_id=inspection.lot_id or inspection_id[:8].upper(),
+        total_bulbs=total,
+        language=resolved_language,
+    )
+
+    # Get Bhashini API key from settings
+    bhashini_key = getattr(settings, "bhashini_api_key", "") or ""
+
+    result = synthesize_grade_announcement(announcement, bhashini_api_key=bhashini_key)
+
+    import base64 as _b64
+    response: dict = {
+        "inspection_id": inspection_id,
+        "language": result.language.value,
+        "announcement_text": result.announcement_text,
+        "lot_recommendation": lot_recommendation,
+        "grade_a_pct": grade_a_pct,
+        "urs_pct": urs_pct,
+        "rejected_pct": rejected_pct,
+        "audio_available": result.success and result.audio_bytes is not None,
+        "is_mock": result.is_mock,
+        "latency_ms": result.latency_ms,
+    }
+    if result.success and result.audio_bytes:
+        response["audio_base64"] = _b64.b64encode(result.audio_bytes).decode("ascii")
+        response["audio_content_type"] = result.content_type
+    elif result.error_message:
+        response["tts_status"] = result.error_message
+
+    return response
+
+
+# ── eNAM & AgriStack Digital Assaying Export ─────────────────────────────────
+
+@router.get("/inspections/{inspection_id}/enam")
+async def export_enam_endpoint(
+    inspection_id: str,
+    format: str = Query("json", pattern="^(json|xml)$", description="Export format: json or xml"),
+    lot_weight_kg: float = Query(1000.0, ge=1.0, le=100000.0, description="Consignment declared weight in kg"),
+    db: Session = Depends(get_db),
+):
+    """
+    Export standardized eNAM (National Agriculture Market) Assaying Certificate
+    linked to the farmer's 12-digit AgriStack Farmer ID.
+
+    Conforms to:
+    - Ministry of Agriculture eNAM Assaying Specification v2.1
+    - AGMARK Schedule XIX (Fruits and Vegetables Grading and Marking Rules)
+    - AgriStack Farmer Registry Data Exchange Standard
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    detail = _inspection_to_detail(inspection, db)
+    from services.enam_export_service import export_enam_certificate
+    try:
+        res = export_enam_certificate(detail, lot_weight_kg=lot_weight_kg)
+        if format == "xml":
+            filename = f"eNAM_Assaying_{res.lot_id}.xml"
+            return Response(
+                content=res.payload_xml,
+                media_type="application/xml",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+        return {
+            "status": "success",
+            "inspection_id": inspection_id,
+            "lot_id": res.lot_id,
+            "farmer_id": res.farmer_id,
+            "farmer_name": res.farmer_name,
+            "procurement_centre": res.procurement_centre,
+            "assigned_grade": res.grade,
+            "msp_procurement_eligible": res.msp_eligible,
+            "generated_at": res.generated_at,
+            "payload_json": res.payload_json,
+            "payload_xml": res.payload_xml,
+            "download_xml_url": f"/api/v1/inspections/{inspection_id}/enam?format=xml&lot_weight_kg={lot_weight_kg}",
+        }
+    except Exception as e:
+        logger.exception("Failed to export eNAM certificate: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to generate eNAM certificate: {str(e)}")
+
+
+# ── Flash Proxy Index (FPI) Differential Reflectance Endpoint ───────────────
+
+@router.post("/inspections/{inspection_id}/fpi")
+async def analyze_flash_proxy_endpoint(
+    inspection_id: str,
+    ambient_file: UploadFile = File(..., description="Image captured under ambient mandi illumination"),
+    flash_file: UploadFile = File(..., description="Image captured under smartphone LED flash illumination"),
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze dual-exposure (ambient vs flash) differential reflectance using
+    Flash Proxy Index (FPI) to detect sub-surface cuticular water congestion and early soft rot.
+
+    Theoretical basis: [Nicolaï-2007], [Taniwaki-2023].
+    """
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    from cv.flash_proxy import (
+        FLASH_PROXY_LIMITATION_STATEMENT,
+        analyze_bulb_fpi,
+        compute_flash_proxy_map,
+        encode_heatmap_to_base64,
+        generate_fpi_heatmap,
+    )
+
+    try:
+        amb_bytes = await ambient_file.read()
+        flash_bytes = await flash_file.read()
+
+        amb_np = np.frombuffer(amb_bytes, np.uint8)
+        flash_np = np.frombuffer(flash_bytes, np.uint8)
+
+        amb_bgr = cv2.imdecode(amb_np, cv2.IMREAD_COLOR)
+        flash_bgr = cv2.imdecode(flash_np, cv2.IMREAD_COLOR)
+
+        if amb_bgr is None or flash_bgr is None:
+            raise HTTPException(status_code=400, detail="Invalid image bytes: could not decode JPEG/PNG")
+
+        fpi_map = compute_flash_proxy_map(amb_bgr, flash_bgr)
+
+        # Whole field mask
+        full_mask = np.full(fpi_map.shape, 255, dtype=np.uint8)
+        analysis = analyze_bulb_fpi(fpi_map, full_mask)
+        heatmap_bgr = generate_fpi_heatmap(fpi_map)
+        heatmap_b64 = encode_heatmap_to_base64(heatmap_bgr)
+
+        return {
+            "status": "success",
+            "inspection_id": inspection_id,
+            "mean_fpi": analysis.mean_fpi,
+            "spatial_heterogeneity": analysis.spatial_heterogeneity,
+            "lesion_area_ratio": analysis.lesion_area_ratio,
+            "surface_state": analysis.surface_state,
+            "confidence": analysis.confidence,
+            "notes": analysis.notes,
+            "heatmap_base64": heatmap_b64,
+            "limitation_statement": FLASH_PROXY_LIMITATION_STATEMENT,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("FPI analysis failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"FPI differential reflectance analysis failed: {str(e)}")
 
