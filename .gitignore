@@ -27,6 +27,7 @@ backend/cepa.db
 backend/test.db
 
 # Model weights (too large for git — use DVC or manual download)
+*.pt
 backend/weights/*.pt
 backend/weights/*.onnx
 backend/weights/*.tflite

@@ -58,6 +58,8 @@ def analyze_bulb_morphology(
     """
     if len(mask.shape) == 3:
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    if mask.shape[:2] != crop_bgr.shape[:2]:
+        mask = cv2.resize(mask, (crop_bgr.shape[1], crop_bgr.shape[0]), interpolation=cv2.INTER_NEAREST)
     mask_binary = (mask > 127).astype(np.uint8) * 255
 
     area_px = int(np.count_nonzero(mask_binary))
@@ -151,8 +153,10 @@ def analyze_bulb_morphology(
     v_channel = crop_hsv[:, :, 2]
 
     # (A) Aspergillus niger (Black Mold)
-    # Characterized by low L* (< 42), low Value (< 45), low Red/Green reflection
-    black_mold_mask = (l_channel < 42) & (v_channel < 45) & bulb_mask_bool
+    # Characterized by low L* (< 32), low Value (< 38), and low A* chromatic component (< 134 in CIELAB)
+    # to strictly exclude natural red/purple anthocyanin pigments of Nashik/Bellary red onions.
+    a_channel = crop_lab[:, :, 1]
+    black_mold_mask = (l_channel < 32) & (v_channel < 38) & (a_channel < 134) & bulb_mask_bool
     black_mold_pixels = int(np.count_nonzero(black_mold_mask))
     black_mold_pct = float(round((black_mold_pixels / area_px) * 100.0, 1))
 

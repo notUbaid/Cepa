@@ -13,10 +13,9 @@ from services.inspection_service import get_cv_status
 router = APIRouter(prefix="/api/v1", tags=["health"])
 
 _DEMO_SAMPLE_PATH = (
-    Path(__file__).resolve().parent.parent.parent
-    / "cv_tools"
-    / "test_data"
-    / "synthetic_onion_spread_sample.jpg"
+    Path(__file__).resolve().parent.parent
+    / "static"
+    / "demo_onion_spread.jpg"
 )
 
 

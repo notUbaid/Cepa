@@ -354,7 +354,8 @@ def run_pipeline(
         if crop_image is not None:
             try:
                 from cv.advanced_features import analyze_bulb_morphology
-                morph = analyze_bulb_morphology(crop_image, det.mask)
+                crop_mask = det.mask[det.bbox_y : det.bbox_y + det.bbox_h, det.bbox_x : det.bbox_x + det.bbox_w]
+                morph = analyze_bulb_morphology(crop_image, crop_mask)
                 if morph.is_double_bulb:
                     if "DOUBLE_BULB" not in grading.rejection_reasons:
                         grading.rejection_reasons.append("DOUBLE_BULB")
@@ -365,15 +366,9 @@ def run_pipeline(
                         )
 
                 # ── Chromatic Black Mold (Aspergillus niger) Override ────────
-                # The neural defect classifier mislabels Aspergillus black soot as
-                # 'damaged' rather than 'rotten'. The CIELAB L* < 42 + HSV V < 45
-                # chromatic threshold in advanced_features is more reliable for
-                # identifying low-luminance soot patches (Aspergillus niger).
-                # When significant black mold is detected (>10% surface area),
+                # When significant black mold soot is verified (>15% surface area with L*<32, V<38, A<134),
                 # we elevate rotten_prob to 0.90, triggering ROTTEN hard rejection.
-                # Agronomically correct: Aspergillus renders onions unmarketable
-                # in all NAFED/NCCF procurement categories.
-                if morph.black_mold_pct >= 10.0 and defect_pred is not None:
+                if morph.black_mold_pct >= 15.0 and defect_pred is not None:
                     boosted_rotten = max(defect_pred.rotten_prob, 0.90)
                     from cv.defect_classifier import DefectPrediction as _DP
                     defect_pred = _DP(

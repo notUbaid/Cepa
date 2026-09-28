@@ -184,56 +184,39 @@ def load_real_onion_crops() -> list[tuple[np.ndarray, list[float]]]:
     return real_samples
 
 
-def build_training_dataset(target_total: int = 400) -> tuple[list, list]:
-    """Combine real crops with procedural varieties into train/val splits."""
+def build_training_dataset(target_total: int = 360) -> tuple[list, list]:
+    """Combine authentic real onion crops into balanced train/val splits."""
     real_crops = load_real_onion_crops()
+    if not real_crops:
+        raise RuntimeError("No authentic real onion crops found in cv_tools/dataset/real_onions/crops")
 
-    # Replicate real crops to give them substantial weight in the training set
+    # Replicate real crops to provide diverse sample pool for geometric/color augmentations
     samples: list[tuple[np.ndarray, list[float]]] = []
-    if real_crops:
-        for _ in range(4):  # 4x oversampling of authentic real crops
-            samples.extend(real_crops)
-
-    # Fill remainder with realistic procedural multi-label varieties
-    defect_combinations = [
-        (False, False, False),  # healthy
-        (True, False, False),   # damaged only
-        (False, True, False),   # rotten only
-        (False, False, True),   # sprouted only
-        (True, True, False),    # damaged + rotten
-        (True, False, True),    # damaged + sprouted
-        (False, True, True),    # rotten + sprouted
-        (True, True, True),     # all three
-    ]
-
-    needed = max(50, target_total - len(samples))
-    for i in range(needed):
-        dmg, rot, spr = random.choice(defect_combinations)
-        img = generate_procedural_onion_crop(dmg, rot, spr)
-        lbl = [float(dmg), float(rot), float(spr)]
-        samples.append((img, lbl))
+    repeat_factor = max(1, target_total // len(real_crops))
+    for _ in range(repeat_factor):
+        samples.extend(real_crops)
 
     random.shuffle(samples)
-    val_size = int(len(samples) * 0.20)
+    val_size = max(20, int(len(samples) * 0.20))
     val_samples = samples[:val_size]
     train_samples = samples[val_size:]
 
-    logger.info("Total dataset size: %d (Train: %d, Val: %d)", len(samples), len(train_samples), len(val_samples))
+    logger.info("Total real dataset size: %d (Train: %d, Val: %d)", len(samples), len(train_samples), len(val_samples))
     return train_samples, val_samples
 
 
-def train_defect_classifier(epochs: int = 15) -> Path:
-    """Train MobileNetV3 multi-label model and save state_dict."""
-    train_samples, val_samples = build_training_dataset(target_total=400)
+def train_defect_classifier(epochs: int = 20) -> Path:
+    """Train MobileNetV3 multi-label model on real onion crops and save state_dict."""
+    train_samples, val_samples = build_training_dataset(target_total=360)
 
-    # Advanced agricultural data augmentations
+    # Advanced agricultural data augmentations tailored for real Indian onion varieties
     train_transform = T.Compose([
         T.ToPILImage(),
-        T.RandomResizedCrop(224, scale=(0.82, 1.0)),
+        T.RandomResizedCrop(224, scale=(0.85, 1.0)),
         T.RandomRotation(degrees=180),
         T.RandomHorizontalFlip(p=0.5),
         T.RandomVerticalFlip(p=0.5),
-        T.ColorJitter(brightness=0.22, contrast=0.22, saturation=0.22, hue=0.04),
+        T.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15, hue=0.03),
         T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -252,13 +235,13 @@ def train_defect_classifier(epochs: int = 15) -> Path:
     logger.info("Training defect classifier on device: %s", device)
 
     model = OnionDefectClassifierNet().to(device)
-    # Balanced BCEWithLogitsLoss
-    pos_weight = torch.tensor([1.8, 2.0, 2.0], device=device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # Balanced loss for calibrated probabilities
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
 
     best_val_loss = float("inf")
+    best_state_dict = None
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -297,20 +280,26 @@ def train_defect_classifier(epochs: int = 15) -> Path:
         pred_binary = (all_preds >= 0.5).astype(int)
         accuracy = float(np.mean(pred_binary == all_targets))
 
-        if epoch % 3 == 0 or epoch == epochs:
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            import copy
+            best_state_dict = copy.deepcopy(model.state_dict())
+
+        if epoch % 4 == 0 or epoch == epochs:
             logger.info(
                 "Epoch [%02d/%02d] — Train Loss: %.4f | Val Loss: %.4f | Exact Label Accuracy: %.1f%%",
                 epoch, epochs, train_loss, val_loss, accuracy * 100.0,
             )
 
     # Save state_dict with weights_only=True compatibility
-    torch.save(model.state_dict(), str(CHECKPOINT_PATH))
+    save_state = best_state_dict if best_state_dict is not None else model.state_dict()
+    torch.save(save_state, str(CHECKPOINT_PATH))
     logger.info(
-        "Successfully saved defect classifier checkpoint to: %s (%.2f MB)",
-        CHECKPOINT_PATH, CHECKPOINT_PATH.stat().st_size / (1024 * 1024),
+        "Successfully saved defect classifier checkpoint to: %s (%.2f MB, Best Val Loss: %.4f)",
+        CHECKPOINT_PATH, CHECKPOINT_PATH.stat().st_size / (1024 * 1024), best_val_loss,
     )
     return CHECKPOINT_PATH
 
 
 if __name__ == "__main__":
-    train_defect_classifier(epochs=15)
+    train_defect_classifier(epochs=20)
