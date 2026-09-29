@@ -23,6 +23,8 @@
 | Dimension | Specification |
 |:---|:---|
 | **Problem Statement** | **SIH26031**: AI-Powered Automated Quality Inspection and Grading of Agricultural Commodities |
+| **Team Name** | **Better Call Coders** |
+| **Team Leader** | Ubaid Khan |
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
@@ -75,7 +77,8 @@
 - [9. Forensic Mandi Inspector Studio (Web Workstation)](#9-forensic-mandi-inspector-studio-web-workstation)
 - [10. Field Officer Mobile Client (React Native / Expo)](#10-field-officer-mobile-client-react-native--expo)
 - [11. Active Engineering Bottlenecks and Under-Development Modules](#11-active-engineering-bottlenecks-and-under-development-modules)
-- [12. Technical Reference Appendices (Expandable Deep Dives)](#12-technical-reference-appendices-expandable-deep-dives)
+- [12. Engineering Team: Better Call Coders](#12-engineering-team-better-call-coders)
+- [13. Technical Reference Appendices (Expandable Deep Dives)](#13-technical-reference-appendices-expandable-deep-dives)
   - [Appendix A: Database Entity-Relationship Model](#appendix-a-database-entity-relationship-model)
   - [Appendix B: Complete 27-Endpoint REST API Specification](#appendix-b-complete-27-endpoint-rest-api-specification)
   - [Appendix C: Complete Test Suite Verification Trace (124 Passed)](#appendix-c-complete-test-suite-verification-trace-124-passed)
@@ -641,7 +644,22 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 
 ---
 
-## 12. Technical Reference Appendices (Expandable Deep Dives)
+## 12. Engineering Team: Better Call Coders
+
+**Smart India Hackathon 2026 Engineering Submission | Problem Statement ID: SIH26031**
+
+| Team Member | Role / Specialization | Core Engineering Responsibilities |
+|:---|:---|:---|
+| **Ubaid Khan** | **Team Leader** | End-to-end system architecture, metrology pipeline orchestration, planar homography calibration, and project delivery |
+| **Kush Maurya** | **AI / ML** | YOLO11 instance segmentation, MobileNetV3 multi-label defect classification, CIELAB chromaticity barriers, and Groq Vision LLM |
+| **Hemang Mistry** | **Frontend** | React Native / Expo mobile field application, viewfinder ChArUco HUD, and Forensic Mandi Inspector Studio web interface |
+| **Harshil Bhatt** | **Backend** | Asynchronous FastAPI gateway, ThreadPoolExecutor metrology workers, 27 REST endpoints, and SQLite WAL database architecture |
+| **Hetvi Makwana** | **Infra / DevOps** | Multi-stage Docker containerization, cloud edge deployment workflows (Render / Vercel), and CI/CD testing pipelines |
+| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 125-test automated verification suite, and mandi field validation |
+
+---
+
+## 13. Technical Reference Appendices (Expandable Deep Dives)
 
 <details>
 <summary><b>Appendix A: Database Entity-Relationship Model (Click to expand)</b></summary>
@@ -995,7 +1013,7 @@ STORAGE_DIR=./storage
 
 <div align="center">
 
-**Smart India Hackathon (SIH 2026) | Problem Statement: SIH26031**  
+**Team Better Call Coders | Smart India Hackathon (SIH 2026) | Problem Statement: SIH26031**  
 *Built for APMC Mandis, NAFED, NCCF, and Indian Agricultural Producers*  
 MIT License
 
