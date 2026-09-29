@@ -1,0 +1,68 @@
+# Cepa Grading Policy — BIS IS 17912:2022
+# Official Bureau of Indian Standards & NAFED Procurement Standard
+# Guidelines for Supply Chain of Fresh Onions (Allium cepa L.)
+
+version: "BIS_IS_17912_2022"
+label: "BIS IS 17912:2022 / NAFED Commercial Grade Standard"
+source_note: >
+  Bureau of Indian Standards IS 17912:2022 Supply Chain Guidelines for Onions
+  combined with NAFED/NCCF Market Intervention Scheme quality specifications.
+verified: true
+created: "2026-09-28"
+
+# Whether URS / Grade B specifications are active for commercial lots
+urs_active: true
+
+# ── Size thresholds (equatorial diameter in mm) ───────────────────────────────
+size:
+  # Grade A (Prime Mandi Lot): Standard commercial range
+  grade_a_min_mm: 45.0
+  grade_a_max_mm: 75.0
+  # URS / Grade B: Permissible market range
+  urs_min_mm: 35.0
+  urs_max_mm: 85.0
+
+# ── Defect probability thresholds ────────────────────────────────────────────
+defect_thresholds:
+  damaged_threshold: 0.70
+  rotten_threshold: 0.45
+  sprouted_threshold: 0.45
+
+# ── Hard rejection rules (apply unconditionally) ──────────────────────────────
+hard_rejection:
+  rotten_always_rejected: true
+  sprouted_always_rejected: true
+  below_urs_min_always_rejected: true   # < 35mm pinhead/waste rejected
+  above_urs_max_always_rejected: true   # > 85mm bolter/coarse rejected
+
+# ── Grade A qualification criteria ───────────────────────────────────────────
+grade_a_rules:
+  size_range: grade_a      # 45mm – 75mm
+  rotten: false
+  sprouted: false
+  damaged: false
+
+# ── URS qualification criteria ────────────────────────────────────────────────
+urs_rules:
+  size_range: urs          # 35mm – 85mm
+  rotten: false
+  sprouted: false
+  damaged: true            # superficial dry peeling / abrasions accepted
+
+# ── Confidence tier boundary values ──────────────────────────────────────────
+review_thresholds:
+  size_tolerance_mm: 2.5
+  defect_prob_range: [0.35, 0.60]
+
+# ── Rejection reason codes ────────────────────────────────────────────────────
+rejection_reason_codes:
+  - ROTTEN
+  - SPROUTED
+  - UNDERSIZED
+  - OVERSIZED
+  - DAMAGED_GRADE_A
+  - URS_INACTIVE
+  - FAILED_ALL_GRADES
+  - SIZE_UNKNOWN
+  - CONFIDENCE_UNUSABLE
+  - INTERNAL_ROT_SUSPECT
