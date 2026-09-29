@@ -357,12 +357,15 @@ flowchart TD
 ### Stage 1: Automated Image Quality Gate (`quality_gate.py`)
 Before passing an ingested frame to machine learning models, five deterministic optical quality checks are executed:
 
-- **Resolution Floor Verification:**  
-  $$\min(W, H) \ge 360\text{ pixels}$$  
+- **Resolution Floor Verification:**
+
+  $$\min(W, H) \ge 360\text{ pixels}$$
+
   Images below this floor contain insufficient pixel density to resolve small cuticular lesions ($< 3\text{ mm}$). Nominal operational targets exceed 1000 pixels.
-- **Laplacian Focus Measure (Blur Detection):**  
-  Computes spatial variance over the discrete Laplacian convolution:
+- **Laplacian Focus Measure (Blur Detection):** Computes spatial variance over the discrete Laplacian convolution:
+
   $$\text{Var}(\nabla^2 I) = \frac{1}{W \cdot H} \sum_{x=1}^{W} \sum_{y=1}^{H} \left( (I * K_{\text{Laplacian}})(x,y) - \bar{L} \right)^2$$
+
   Where $K_{\text{Laplacian}} = \begin{bmatrix} 0 & 1 & 0 \\ 1 & -4 & 1 \\ 0 & 1 & 0 \end{bmatrix}$. If $\text{Var}(\nabla^2 I) < 25.0$, the frame is rejected with code `image_too_blurry`.
 - **Luminance Bounds Check:** Mean grayscale intensity $\bar{I} \in [25, 240]$. Frames with $\bar{I} < 25$ are rejected as `too_dark`; frames with $\bar{I} > 240$ are rejected as `too_bright`.
 - **Specular Glare Fraction:** Saturated pixels where $R, G, B \ge 250$ must not exceed 15.0% of the total frame area.
@@ -374,12 +377,18 @@ CEPA utilizes a standardized ChArUco 7x5 calibration board (`DICT_4X4_250`, 40 m
 - **Partial Occlusion Resilience:** Homography computation requires a minimum of 6 detected corners. If fewer than 6 corners are visible, the system flags `FAIL_MARKER_PARTIALLY_OCCLUDED` and switches to the autonomous overhead packhouse model.
 
 ### Stage 3: Perspective Rectification and Scale Derivation (`calibration.py`)
-1. **World Coordinate Mapping:** Board corner coordinates are defined in physical millimeters:  
+1. **World Coordinate Mapping:** Board corner coordinates are defined in physical millimeters:
+
    $$P_{\text{board}, i} = (x_i \cdot 40.0, \, y_i \cdot 40.0, \, 0)$$
-2. **Homography Matrix Estimation:** The $3 \times 3$ planar homography matrix $H$ mapping image coordinates to physical metric space is solved using Random Sample Consensus (RANSAC) with a reprojection error threshold of $5.0\text{ pixels}$:  
+
+2. **Homography Matrix Estimation:** The $3 \times 3$ planar homography matrix $H$ mapping image coordinates to physical metric space is solved using Random Sample Consensus (RANSAC) with a reprojection error threshold of $5.0\text{ pixels}$:
+
    $$s \begin{bmatrix} X_{\text{metric}} \\ Y_{\text{metric}} \\ 1 \end{bmatrix} = H \begin{bmatrix} u_{\text{pixel}} \\ v_{\text{pixel}} \\ 1 \end{bmatrix}$$
-3. **Planar Rectification:** The raw photograph is warped into an orthographic top-down metric plane with sub-millimeter precision ($\le 0.4\text{ mm}$):  
+
+3. **Planar Rectification:** The raw photograph is warped into an orthographic top-down metric plane with sub-millimeter precision ($\le 0.4\text{ mm}$):
+
    $$I_{\text{rectified}} = \text{warpPerspective}(I_{\text{raw}}, \, T \cdot H, \, (W_{\text{metric}}, H_{\text{metric}}))$$
+
 4. **Scale Sanity Verification:** The extracted scale factor must satisfy $0.01 \le \text{scale} \le 5.0\text{ mm/pixel}$.
 
 ### Stage 4: Instance Segmentation (`yolo11_provider.py`)
@@ -395,8 +404,10 @@ Instance segmentation is executed using Ultralytics YOLO11 (YOLO11s-seg with YOL
 
 ### Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
 Defects in agricultural produce are not mutually exclusive. A bulb may simultaneously suffer from mechanical handling cuts, black mold colonization, and premature sprouting. CEPA rejects single-class Softmax architectures in favor of independent Sigmoid binary probabilities:
-- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:  
+- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
+
   $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.25) \longrightarrow \text{Linear}(128, 3)$$
+
 - **Output Vector:**
   - $P(\text{damaged}) \in [0.0, 1.0]$: Surface cuts, mechanical abrasions, shovel gouges, tunic ruptures.
   - $P(\text{rotten}) \in [0.0, 1.0]$: *Aspergillus niger* black mold, wet bacterial soft rot (*Pectobacterium carotovorum*), neck rot.
@@ -405,12 +416,17 @@ Defects in agricultural produce are not mutually exclusive. A bulb may simultane
 - **CIELAB Chromaticity Guard:** Nashik Red and Bellary Pink onions possess high anthocyanin concentrations in the dry outer scales. Naive RGB intensity thresholding misclassifies deep red skins as rot. CEPA enforces a CIELAB chromaticity barrier: pixels with $A^* \ge 136$ are protected from rot classification, isolating true *Aspergillus* soot ($L^* < 34, V < 38$).
 
 ### Stage 7: Geometric Morphometry and Size Estimation (`size_estimator.py`)
-- **Equivalent Circular Diameter ($D_{\text{eq}}$):**  
-  $$D_{\text{eq}} = 2 \cdot \sqrt{\frac{\text{Area}_{\text{mask}}}{\pi}} \cdot s_{\text{metric}}$$
-  Where $\text{Area}_{\text{mask}}$ is the segmented polygon pixel area and $s_{\text{metric}}$ is the calibrated scale factor in millimeters per pixel ($s_{\text{metric}} \in [0.01, 5.0]\text{ mm/px}$).
+- **Equivalent Circular Diameter ($D_{\text{eq}}$):** Computed from segmented polygon pixel area and calibrated metric scale factor:
+
+  $$D_{\text{eq}} = 2 \cdot \sqrt{\frac{A_{\text{mask}}}{\pi}} \cdot s_{\text{metric}}$$
+
+  - $A_{\text{mask}}$: Segmented polygon pixel area.
+  - Scale factor: $s_{\text{metric}} \in [0.01, 5.0]\text{ mm/px}$.
 - **Polar and Equatorial Caliper Separation:** Curvature analysis extracts the stem apex and root basal plate poles. The transverse axis orthogonal to the polar vector yields the true equatorial caliper diameter ($D_{\text{caliper}}$) using Fitzgibbon Direct Least Squares (DLS) algebraic ellipse fitting.
-- **Volumetric Mass Estimation:** Assuming a prolate/oblate spheroid geometry, Indian rabi onion bulk density ($\rho = 0.985\text{ g/cm}^3$, ICAR-DOGR 2019), and Grevsen neck compensation factor ($K_{\text{comp}} = 0.93$):  
+- **Volumetric Mass Estimation:** Assuming a prolate/oblate spheroid geometry, Indian rabi onion bulk density ($\rho = 0.985\text{ g/cm}^3$, ICAR-DOGR 2019), and Grevsen neck compensation factor ($K_{\text{comp}} = 0.93$):
+
   $$V = \frac{\pi}{6} \cdot (D_{\text{eq}})^2 \cdot L_{\text{polar}} \cdot K_{\text{comp}}, \quad \text{Mass} = V \cdot \rho$$
+
 - **APMC Commercial Size Classification:**
   - **Goli (Small):** $< 35\text{ mm}$
   - **Madhyam (Medium):** $35\text{ mm} - 45\text{ mm}$
@@ -469,12 +485,16 @@ Internal rot, hollow hearts, and spongy scales often develop within internal bul
          Tier: LOW Risk (0.05)                    Tier: HIGH Risk (0.85)
 ```
 
-- **Physical Resonance Formulation:** Modeled as an elastic spherical resonator (Cooke and Rand, 1973):  
-  $$f_0 = \frac{\alpha}{2\pi R} \sqrt{\frac{E}{\rho}}$$  
+- **Physical Resonance Formulation:** Modeled as an elastic spherical resonator (Cooke and Rand, 1973):
+
+  $$f_0 = \frac{\alpha}{2\pi R} \sqrt{\frac{E}{\rho}}$$
+
   Where $E$ is bulk Young's modulus of turgid cellular scales ($5.5 - 8.2\text{ MPa}$), $\rho$ is bulk tissue density ($0.985\text{ g/cm}^3$), and $R$ is mean equatorial radius.
 - **Digital Signal Processing:** Captures 16-bit uncompressed mono PCM audio at $44.1\text{ kHz}$ over 250 ms, applies a symmetric Hanning window, and computes a Real Fast Fourier Transform restricted to $100\text{ Hz} - 2000\text{ Hz}$.
-- **Quality Factor and Elasticity Index:**  
+- **Quality Factor and Elasticity Index:**
+
   $$Q = \frac{f_0}{\Delta f}, \quad \text{EI} = (f_0)^2 \cdot m^{2/3}$$
+
 - **Diagnostic Tiers:**
   - **Healthy Solid Bulb (`LOW` Risk, $\le 0.15$):** $f_0 \ge 700\text{ Hz}, Q \ge 18.0$. High acoustic stiffness, tight ring adhesion.
   - **Suspect / Intermediate (`MEDIUM` Risk, $\approx 0.40$):** $450\text{ Hz} \le f_0 < 700\text{ Hz}$ or $10.0 \le Q < 18.0$.
@@ -482,10 +502,14 @@ Internal rot, hollow hearts, and spongy scales often develop within internal bul
 
 ### 6.2 Dual-Exposure Flash Proxy Index (FPI) Differential Reflectance (`flash_proxy.py`)
 Bacterial soft rot (*Pectobacterium carotovorum*) causes cellular membrane leakage and fluid accumulation prior to exterior skin discoloration:
-- **Reflectance Differential Formulation:**  
+- **Reflectance Differential Formulation:**
+
   $$\text{FPI}(x,y) = \frac{I_{\text{flash}}(x,y) - I_{\text{ambient}}(x,y)}{I_{\text{flash}}(x,y) + I_{\text{ambient}}(x,y) + \epsilon}$$
-- **Red-Edge Spectral Weighting:** Emphasizes near-infrared red-edge sensitivity ($680 - 720\text{ nm}$):  
+
+- **Red-Edge Spectral Weighting:** Emphasizes near-infrared red-edge sensitivity ($680 - 720\text{ nm}$):
+
   $$I_{\text{weighted}} = 0.15 \cdot I_{\text{Blue}} + 0.25 \cdot I_{\text{Green}} + 0.60 \cdot I_{\text{Red}}$$
+
 - **Pathology Indicator:** Spatial variance of FPI values across the mask manifold $\text{Var}(\text{FPI}) > 0.08$ flags cuticular fluid congestion and sub-surface lesion development.
 
 ### 6.3 Continuous Video Sweep Keyframe Tracker (`video_service.py`)
@@ -552,8 +576,10 @@ Where $z = 1.95996$ at 95% confidence level. If the upper defect bound $w^{+}$ c
 ### 7.4 ICAR-DOGR Post-Harvest Storage Survival Engine
 Buffer stock longevity is evaluated using empirical physiological decay models developed by the ICAR-Directorate of Onion and Garlic Research (ICAR-DOGR, Pune):
 
-- **Storageability Score ($S \in [0, 100]$):**  
+- **Storageability Score ($S \in [0, 100]$):**
+
   $$S = 100 - [45.0 \cdot \bar{P}(\text{rot}) + 30.0 \cdot \bar{P}(\text{sprout}) + 15.0 \cdot \bar{P}(\text{damage}) + 10.0 \cdot \text{Ratio}_{\text{undersize}}]$$
+
 - **Storage Horizons ($0 - 2^\circ\text{C}, 65 - 70\%\text{ RH}$):**
   - **Score $\ge 80$ (`PREMIUM`):** $90 - 120$ days safe preservation horizon. Qualified for central strategic buffer stock.
   - **Score $65 - 79$ (`COMMERCIAL`):** $45 - 60$ days safe horizon. Targeted for direct inter-state rail transit.
@@ -632,7 +658,11 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 ### 11.5 Disconnect Between Weight-Based Regulations and Optical Area Sampling
 - **Physical Reality:** Official circulars define tolerances strictly by weight percentage (e.g., max 1.0% rotten onions by weight per 100 kg lot).
 - **Operational Challenge:** Computer vision cameras evaluate planar spreads and count discrete bulbs, which can diverge in lots with high size variance.
-- **Active Development Mitigation:** Spheroid volumetric mass modeling ($V = \frac{\pi}{6} D_{\text{eq}}^2 L_{\text{polar}} K_{\text{comp}}, \rho = 0.985\text{ g/cm}^3$) reporting both count ratios and estimated mass-weighted percentages.
+- **Active Development Mitigation:** Spheroid volumetric mass modeling:
+
+  $$V = \frac{\pi}{6} \cdot (D_{\text{eq}})^2 \cdot L_{\text{polar}} \cdot K_{\text{comp}}, \quad \rho = 0.985\text{ g/cm}^3$$
+
+  Reporting both count ratios and estimated mass-weighted percentages.
 
 ### 11.6 Low-Power Edge Hardware Acceleration (ARM SoC Targets)
 - **Physical Reality:** Remote mandi procurement centers often lack wired broadband and operate on unstable grids.
