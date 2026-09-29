@@ -190,51 +190,51 @@ The system comprises three coordinated tiers designed for operational resilience
 
 ```mermaid
 graph TB
-  subgraph Field Tier [Officer Field Mobile & Inspection Studio]
-    CAM[Camera Viewfinder with ChArUco Guide]
-    MIC[Smartphone MEMS Audio Recorder]
-    VID[Continuous Video Sweep Keyframe Tracker]
-    UI[Web Mandi Inspector Studio]
+  subgraph FieldTier ["Officer Field Mobile & Inspection Studio"]
+    CAM["Camera Viewfinder with ChArUco Guide"]
+    MIC["Smartphone MEMS Audio Recorder"]
+    VID["Continuous Video Sweep Keyframe Tracker"]
+    UI["Web Mandi Inspector Studio"]
   end
 
-  subgraph Engine Tier [FastAPI Asynchronous Backend Engine]
-    API[REST API Gateway /api/v1]
-    TPE[Managed ThreadPoolExecutor]
+  subgraph EngineTier ["FastAPI Asynchronous Backend Engine"]
+    API["REST API Gateway /api/v1"]
+    TPE["Managed ThreadPoolExecutor"]
     
-    subgraph CV Pipeline [8-Stage Computer Vision & Metrology Pipeline]
-      QG[1. Image Quality Gate]
-      MD[2. ChArUco Marker Detection]
-      PR[3. Planar RANSAC Homography]
-      IS[4. YOLO11s-seg Instance Masking]
-      CE[5. Crop & Mask Alpha Extraction]
-      DC[6. MobileNetV3 Defect Classifier]
-      ME[7. Geometric Morphometry & Mass Sizing]
-      CT[8. Confidence & Border Assessment]
+    subgraph CVPipeline ["8-Stage Computer Vision & Metrology Pipeline"]
+      QG["1. Image Quality Gate"]
+      MD["2. ChArUco Marker Detection"]
+      PR["3. Planar RANSAC Homography"]
+      IS["4. YOLO11s-seg Instance Masking"]
+      CE["5. Crop & Mask Alpha Extraction"]
+      DC["6. MobileNetV3 Defect Classifier"]
+      ME["7. Geometric Morphometry & Mass Sizing"]
+      CT["8. Confidence & Border Assessment"]
       
       QG --> MD --> PR --> IS --> CE --> DC --> ME --> CT
     end
     
-    subgraph NDT Tier [Multi-Sensor Non-Destructive Subsystems]
-      AC[Acoustic Tap Impulse Resonance Analyzer]
-      FP[Dual-Exposure Flash Proxy Index FPI]
-      GQ[Multimodal Groq Vision AI Agronomist]
-      BH[NLTM Bhashini Multilingual Speech Synthesis]
+    subgraph NDTTier ["Multi-Sensor Non-Destructive Subsystems"]
+      AC["Acoustic Tap Impulse Resonance Analyzer"]
+      FP["Dual-Exposure Flash Proxy Index FPI"]
+      GQ["Multimodal Groq Vision AI Agronomist"]
+      BH["NLTM Bhashini Multilingual Speech Synthesis"]
     end
 
-    subgraph Policy Tier [Decoupled Policy & Economics Engine]
-      POL[Active YAML Specifications]
-      ENG[Decision Cascade State Machine]
-      DOGR[ICAR-DOGR Cold Storage Survival Model]
-      COMM[Mandi Commercial FAQ Settlement Slip]
+    subgraph PolicyTier ["Decoupled Policy & Economics Engine"]
+      POL["Active YAML Specifications"]
+      ENG["Decision Cascade State Machine"]
+      DOGR["ICAR-DOGR Cold Storage Survival Model"]
+      COMM["Mandi Commercial FAQ Settlement Slip"]
       
       POL --> ENG --> DOGR --> COMM
     end
   end
 
-  subgraph DPI Tier [Government Digital Public Infrastructure]
-    ENAM[eNAM Assaying Schema v2.1 XML]
-    AGRI[AgriStack 12-Digit Farmer ID Binding]
-    CERT[Vector QR Code & SHA-256 Seal]
+  subgraph DPITier ["Government Digital Public Infrastructure"]
+    ENAM["eNAM Assaying Schema v2.1 XML"]
+    AGRI["AgriStack 12-Digit Farmer ID Binding"]
+    CERT["Vector QR Code & SHA-256 Seal"]
   end
 
   CAM --> API
@@ -242,11 +242,15 @@ graph TB
   VID --> API
   UI --> API
   API --> TPE
-  TPE --> CV Pipeline
-  TPE --> NDT Tier
-  CV Pipeline --> Policy Tier
-  NDT Tier --> Policy Tier
-  Policy Tier --> DPI Tier
+  TPE --> QG
+  TPE --> AC
+  TPE --> FP
+  CT --> ENG
+  AC --> ENG
+  FP --> ENG
+  COMM --> ENAM
+  COMM --> AGRI
+  COMM --> CERT
 ```
 
 ### 4.2 Edge Execution Latency and Telemetry Trace
@@ -337,17 +341,17 @@ The core metrology pipeline resides in `backend/cv/` and executes a deterministi
 
 ```mermaid
 flowchart TD
-  RAW[Raw Ingestion Image] --> QG{1. Quality Gate Check}
-  QG -->|Fails: Blur / Glare / Dark| REJ[Reject Image: Output Operator Remedy]
-  QG -->|Passes| MK{2. ChArUco Target Found?}
-  MK -->|Yes| HM[3. RANSAC Planar Homography: Exact mm/px Scale]
-  MK -->|No: Occluded| FB[3. Fallback: Overhead Prior Elevation Model]
-  HM --> YOLO[4. YOLO11s-seg Instance Polygon Segmentation]
+  RAW["Raw Ingestion Image"] --> QG{"1. Quality Gate Check"}
+  QG -->|"Fails: Blur / Glare / Dark"| REJ["Reject Image: Output Operator Remedy"]
+  QG -->|"Passes"| MK{"2. ChArUco Target Found?"}
+  MK -->|"Yes"| HM["3. RANSAC Planar Homography: Exact mm/px Scale"]
+  MK -->|"No: Occluded"| FB["3. Fallback: Overhead Prior Elevation Model"]
+  HM --> YOLO["4. YOLO11s-seg Instance Polygon Segmentation"]
   FB --> YOLO
-  YOLO --> CR[5. Alpha Crop Extraction: Blackout Background]
-  CR --> MOB[6. MobileNetV3 Multi-Label Defect Classifier]
-  MOB --> MORPH[7. Morphometry: Caliper Diameter, Polar Axis, Mass]
-  MORPH --> CONF[8. Confidence Tier Assignment: HIGH / REVIEW / UNUSABLE]
+  YOLO --> CR["5. Alpha Crop Extraction: Blackout Background"]
+  CR --> MOB["6. MobileNetV3 Multi-Label Defect Classifier"]
+  MOB --> MORPH["7. Morphometry: Caliper Diameter, Polar Axis, Mass"]
+  MORPH --> CONF["8. Confidence Tier Assignment: HIGH / REVIEW / UNUSABLE"]
 ```
 
 ### Stage 1: Automated Image Quality Gate (`quality_gate.py`)
@@ -402,8 +406,9 @@ Defects in agricultural produce are not mutually exclusive. A bulb may simultane
 
 ### Stage 7: Geometric Morphometry and Size Estimation (`size_estimator.py`)
 - **Equivalent Circular Diameter ($D_{\text{eq}}$):**  
-  $$D_{\text{eq}} = 2 \cdot \sqrt{\frac{\text{Area}_{\text{mask\_px}}}{\pi}} \cdot \text{scale\_mm\_per\_px}$$
-- **Polar and Equatorial Caliper Separation:** Curvature analysis extracts the stem apex and root basal plate poles. The transverse axis orthogonal to the polar vector yields the true equatorial caliper diameter ($D_{\text{eq\_caliper}}$) using Fitzgibbon Direct Least Squares (DLS) algebraic ellipse fitting.
+  $$D_{\text{eq}} = 2 \cdot \sqrt{\frac{\text{Area}_{\text{mask}}}{\pi}} \cdot s_{\text{metric}}$$
+  Where $\text{Area}_{\text{mask}}$ is the segmented polygon pixel area and $s_{\text{metric}}$ is the calibrated scale factor in millimeters per pixel ($s_{\text{metric}} \in [0.01, 5.0]\text{ mm/px}$).
+- **Polar and Equatorial Caliper Separation:** Curvature analysis extracts the stem apex and root basal plate poles. The transverse axis orthogonal to the polar vector yields the true equatorial caliper diameter ($D_{\text{caliper}}$) using Fitzgibbon Direct Least Squares (DLS) algebraic ellipse fitting.
 - **Volumetric Mass Estimation:** Assuming a prolate/oblate spheroid geometry, Indian rabi onion bulk density ($\rho = 0.985\text{ g/cm}^3$, ICAR-DOGR 2019), and Grevsen neck compensation factor ($K_{\text{comp}} = 0.93$):  
   $$V = \frac{\pi}{6} \cdot (D_{\text{eq}})^2 \cdot L_{\text{polar}} \cdot K_{\text{comp}}, \quad \text{Mass} = V \cdot \rho$$
 - **APMC Commercial Size Classification:**
@@ -522,19 +527,19 @@ Rules are maintained as declarative YAML files in `backend/grading/policies/`:
 
 ```mermaid
 flowchart TD
-  START[Bulb Physical Observables] --> CONF{Confidence == UNUSABLE?}
-  CONF -->|Yes| REV1[Grade: NEEDS_REVIEW: Low Confidence]
-  CONF -->|No| ROT{Rotten >= 0.50 OR Sprouted >= 0.50?}
-  ROT -->|Yes| REJ1[Grade: REJECTED: Biological Decay]
-  ROT -->|No| SZ{Size Caliper Missing?}
-  SZ -->|Yes| REV2[Grade: NEEDS_REVIEW: Size Unknown]
-  SZ -->|No| BOUNDS{Size < 35mm OR Size > 70mm?}
-  BOUNDS -->|Yes| REJ2[Grade: REJECTED: Out of Bounds]
-  BOUNDS -->|No| GA{45mm <= Size <= 65mm AND Damaged < 0.50?}
-  GA -->|Yes| GRADEA[Grade: GRADE_A: Prime Buffer Stock]
-  GA -->|No| URS{Policy URS Active AND 35mm <= Size <= 70mm?}
-  URS -->|Yes| GRADEURS[Grade: URS: Under Relaxed Specification]
-  URS -->|No| REJ3[Grade: REJECTED: Failed All Tiers]
+  START["Bulb Physical Observables"] --> CONF{"Confidence == UNUSABLE?"}
+  CONF -->|"Yes"| REV1["Grade: NEEDS_REVIEW (Low Confidence)"]
+  CONF -->|"No"| ROT{"Rotten >= 0.50 OR Sprouted >= 0.50?"}
+  ROT -->|"Yes"| REJ1["Grade: REJECTED (Biological Decay)"]
+  ROT -->|"No"| SZ{"Size Caliper Missing?"}
+  SZ -->|"Yes"| REV2["Grade: NEEDS_REVIEW (Size Unknown)"]
+  SZ -->|"No"| BOUNDS{"Size < 35mm OR Size > 70mm?"}
+  BOUNDS -->|"Yes"| REJ2["Grade: REJECTED (Out of Bounds)"]
+  BOUNDS -->|"No"| GA{"45mm <= Size <= 65mm AND Damaged < 0.50?"}
+  GA -->|"Yes"| GRADEA["Grade: GRADE_A (Prime Buffer Stock)"]
+  GA -->|"No"| URS{"Policy URS Active AND 35mm <= Size <= 70mm?"}
+  URS -->|"Yes"| GRADEURS["Grade: URS (Under Relaxed Specification)"]
+  URS -->|"No"| REJ3["Grade: REJECTED (Failed All Tiers)"]
 ```
 
 ### 7.3 Statistical Lot Estimation & Wilson Score Confidence Intervals (`statistics.py`)
