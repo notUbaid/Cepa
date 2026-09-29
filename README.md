@@ -44,19 +44,11 @@
 
 ---
 
-### Optical Metrology and Field Calibration in Practice
-
 <div align="center">
 
-| Physical Mandi Spread Input | Planar ChArUco Calibration Target |
-|:---:|:---:|
-| <img src="backend/static/demo_onion_spread.jpg" alt="Ground Truth Mandi Spread" width="420" /><br />**Figure 1A:** Ground-truth multi-bulb spread (*Nashik Red*, APMC intake yard) | <img src="backend/static/charuco_board_7x5_40mm.png" alt="ChArUco 7x5 40mm Calibration Board" width="420" /><br />**Figure 1B:** Standardized 7x5 ChArUco metric fiducial target |
+<img src="backend/static/calibration_guide.png" alt="CEPA Autonomous Assaying Station" width="820" />
 
-<br />
-
-<img src="backend/static/calibration_guide.png" alt="CEPA ChArUco Calibration Placement Guide" width="860" />
-
-**Figure 2:** Field operational calibration guide for ChArUco placement, focal distance, and orientation in high-throughput mandi intake sheds.
+*Figure 1: Field inspection station geometry: overhead optical capture with planar metric calibration and multi-sensor NDT probe.*
 
 </div>
 
@@ -329,6 +321,16 @@ curl -X POST "http://localhost:8000/api/v1/inspections/c7a82e14-9b23-4e89-9a21-8
 ## 5. The 8-Stage Computer Vision and Metrology Pipeline
 
 The core metrology pipeline resides in `backend/cv/` and executes a deterministic eight-stage sequential transformation over photographed produce spreads.
+
+<div align="center">
+
+<img src="backend/static/demo_onion_spread.jpg" alt="Ground Truth Mandi Spread" width="760" />
+
+*Figure 3: Ground-truth multi-bulb produce spread (Nashik Red, APMC intake yard) ingested into the 8-stage computer vision pipeline.*
+
+</div>
+
+<br />
 
 ```mermaid
 flowchart TD
