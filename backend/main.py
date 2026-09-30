@@ -49,7 +49,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception("Failed to initialize CV components during startup: %s", e)
         # We don't crash the server so health checks and diagnostics can still report errors
-    
+
+    # 4. Automatically seed demo data if database is empty (ephemeral Render recovery)
+    try:
+        from services.seed_service import seed_demo_data_if_empty
+        seed_demo_data_if_empty()
+    except Exception as e:
+        logger.warning("Failed to auto-seed demo data at startup: %s", e)
+
     yield
 
     logger.info("Cepa backend shutting down cleanly.")
@@ -68,7 +75,7 @@ app = FastAPI(
 # ── CORS Middleware ───────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permissive for mobile Expo / dev environment
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

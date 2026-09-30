@@ -23,8 +23,15 @@ from schemas.sample import (
     OnionInstanceSummary,
     SampleDetail,
 )
+from auth import verify_officer_token
 from services import inspection_service
 from services.image_storage import path_to_url
+from services.upload_validator import (
+    ALLOWED_AUDIO_TYPES,
+    ALLOWED_IMAGE_TYPES,
+    ALLOWED_VIDEO_TYPES,
+    validate_and_read_upload,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["inspections"])

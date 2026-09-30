@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     active_grading_policy: str = "DEMO_ASSUMPTION_v1"
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    cors_origins: str = "http://localhost:8081,http://localhost:19006,exp://localhost:8081"
+    cors_origins: str = (
+        "http://localhost:8081,http://localhost:19006,exp://localhost:8081,"
+        "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000"
+    )
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -65,9 +68,18 @@ class Settings(BaseSettings):
     seg_confidence_threshold: float = 0.35
     seg_iou_threshold: float = 0.45
 
+    # ── Security & Authentication ────────────────────────────────────────────
+    officer_api_key: str = "cepa-officer-dev-key"
+    enforce_officer_auth: bool = False  # Set to True in production to strictly require X-Officer-Token
+
+    # ── Upload Limits ────────────────────────────────────────────────────────
+    max_image_upload_mb: int = 25
+    max_video_upload_mb: int = 100
+    max_audio_upload_mb: int = 10
+
     # ── Defect classifier ────────────────────────────────────────────────────
     def_model_path: Path = Path("./weights/defect_classifier.pt")
-    def_use_mock: bool = False         # Real trained PyTorch model active
+    def_use_mock: bool = True          # Default: mock mode (no trained weights shipped in repo)
 
     # ── ChArUco calibration board ────────────────────────────────────────────
     charuco_square_length_mm: float = 40.0
@@ -108,5 +120,5 @@ class Settings(BaseSettings):
             d.mkdir(parents=True, exist_ok=True)
 
 
-# Module-level singleton — import this everywhere
+# Module-level singleton -- import this everywhere
 settings = Settings()
