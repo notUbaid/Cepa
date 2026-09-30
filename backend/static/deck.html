@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CEPA — Executive Presentation · SIH26031 Grand Finale</title>
+  <title>Cepa -- Mandi Assaying &amp; Cold Storage Life Predictor · Smart India Hackathon 2024</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -289,7 +289,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 11px;
       flex-shrink: 0;
       margin-top: 2px;
       font-weight: 800;
@@ -317,15 +317,15 @@
       <div class="brand-logo">C</div>
       <div>
         <span class="brand-title">Cepa</span>
-        <span class="brand-tag">SIH26031 GRAND FINALE</span>
+        <span class="brand-tag">SMART INDIA HACKATHON · SIH26031</span>
       </div>
     </div>
     <div class="nav-controls">
       <span class="slide-counter" id="slide-num">01 / 08</span>
-      <button class="slide-btn" onclick="prevSlide()">◀ Prev</button>
-      <button class="slide-btn" onclick="nextSlide()">Next ▶</button>
+      <button class="slide-btn" onclick="prevSlide()">&lt; Prev</button>
+      <button class="slide-btn" onclick="nextSlide()">Next &gt;</button>
       <a href="/inspector" class="live-app-btn" target="_blank">
-        Launch Mandi Studio ↗
+        Launch Mandi Studio -&gt;
       </a>
     </div>
   </header>
@@ -333,87 +333,82 @@
   <!-- Deck Viewport -->
   <main class="deck-viewport">
 
-    <!-- SLIDE 1: The Crisis -->
+    <!-- SLIDE 1: The Problem -->
     <div class="slide active" data-slide="1">
       <div class="slide-eyebrow">THE NATIONAL PROBLEM STATEMENT</div>
-      <h1 class="slide-title">India's ₹1,000 Crore Onion Buffer Stock Rot Crisis</h1>
+      <h1 class="slide-title">Post-Harvest Losses in India's Onion Value Chain</h1>
       <p class="slide-desc">
-        India produces 31 million tonnes of onions annually. Under the Price Stabilisation Fund (PSF), NAFED and NCCF procure 500,000 tonnes of buffer stock. Yet, over 30% of procured onions decay inside cold storage before market release.
+        India produces over 30 million tonnes of onions annually (NHB). Under the Price Stabilisation Fund (PSF), procurement agencies (NAFED and NCCF) maintain a strategic buffer stock. However, post-harvest losses due to storage rot, desiccation, and physiological breakdown typically range between 20% and 30% according to ICAR-DOGR studies.
       </p>
       <div class="grid-3">
         <div class="card">
-          <div class="card-label">ANNUAL POST-HARVEST LOSS</div>
-          <div class="card-val" style="color:var(--reject)">₹1,000+ Cr</div>
-          <div class="card-sub">Public exchequer loss due to storage rot, desiccation, and fungal degradation.</div>
+          <div class="card-label">ESTIMATED POST-HARVEST LOSS</div>
+          <div class="card-val" style="color:var(--reject)">20-30%</div>
+          <div class="card-sub">Research by ICAR-DOGR highlights substantial storage losses from fungal decay and moisture loss.</div>
         </div>
         <div class="card">
-          <div class="card-label">BUFFER STOCK ROT RATE</div>
-          <div class="card-val" style="color:var(--urs)">30–40%</div>
-          <div class="card-sub">Onions rot in ventilated & cold chambers because inward quality cannot predict longevity.</div>
+          <div class="card-label">BUFFER HOLDING CHALLENGE</div>
+          <div class="card-val" style="color:var(--urs)">Latent Decay</div>
+          <div class="card-sub">Bulbs with invisible microbial loads (Aspergillus niger) break down rapidly during cold storage.</div>
         </div>
         <div class="card">
-          <div class="card-label">CURRENT MANDI EVALUATION</div>
-          <div class="card-val" style="color:#a1a1aa">0% Digital</div>
-          <div class="card-sub">Subjective hand inspection by commission agents (Arthiyas) causing arbitrary cuts.</div>
+          <div class="card-label">TRADITIONAL APPRAISAL</div>
+          <div class="card-val" style="color:#a1a1aa">Subjective</div>
+          <div class="card-sub">Manual visual glance appraisal in mandi yards lacks objective calipering and shelf-life forecasting.</div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 2: Why Commodity AI Fails -->
+    <!-- SLIDE 2: Technology Comparison -->
     <div class="slide" data-slide="2">
-      <div class="slide-eyebrow">TECHNOLOGY GAP ANALYSIS</div>
-      <h1 class="slide-title">Why Simple Bounding-Box Classifiers Fail</h1>
+      <div class="slide-eyebrow">TECHNICAL COMPARISON</div>
+      <h1 class="slide-title">Beyond Basic Bounding-Box Detection</h1>
       <p class="slide-desc">
-        99% of hackathon teams train a toy YOLO model that counts bulbs and assigns a static "Grade A" label. Sizing alone does not prevent storage rot. Latent fungal spores and peeled skins rot 30 days later.
+        Standard bounding-box detectors only count visible objects without metric calibration. Sizing alone does not predict storage longevity or fungal decay during buffer holding.
       </p>
       <table class="comp-table">
         <thead>
           <tr>
             <th>CAPABILITY</th>
-            <th>TOY CV DEMOS (OTHERS)</th>
-            <th style="color:var(--accent)">CEPA PLATFORM (OURS)</th>
+            <th>STANDARD 2D VISION</th>
+            <th style="color:var(--accent)">CEPA PLATFORM</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Size Measurement</td>
-            <td>Pixel bounding box (arbitrary / no scale)</td>
-            <td style="color:var(--accent)">Physical ChArUco 7×5 caliper (sub-mm accuracy under BIS IS 17912:2022)</td>
+            <td>Pixel bounding box (uncalibrated / arbitrary scale)</td>
+            <td style="color:var(--accent)">Metric ChArUco 7x5 fiducial calibration with sub-millimeter equator fitting (BIS IS 17912:2022)</td>
           </tr>
           <tr>
-            <td>Rot & Defect Sizing</td>
-            <td>Binary classification (Rot vs Clean)</td>
-            <td style="color:var(--accent)">Multi-spectral NGRDI sunburn + Aspergillus niger surface area load %</td>
+            <td>Defect Sizing</td>
+            <td>Binary classification (Clean vs Defective)</td>
+            <td style="color:var(--accent)">Polygon mask segmentation with fungal surface area percentage (Aspergillus niger load)</td>
           </tr>
           <tr>
             <td>Storage Longevity</td>
-            <td>None (assumes static grade)</td>
-            <td style="color:var(--accent)">ICAR-DOGR Post-Harvest Shelf-Life & Safe Horizon (1–120 Days)</td>
+            <td>None (static label only)</td>
+            <td style="color:var(--accent)">ICAR-DOGR based post-harvest storageability index (1 to 120 days safe horizon)</td>
           </tr>
           <tr>
-            <td>Procurement Settlement</td>
+            <td>Commercial Settlement</td>
             <td>None</td>
-            <td style="color:var(--accent)">Automated APMC Mandi FAQ Dockage against ₹2,410/qtl MSP</td>
+            <td style="color:var(--accent)">Automated APMC FAQ dockage simulation against tender benchmark procurement rates</td>
           </tr>
           <tr>
-            <td>Internal Hollow Decay</td>
-            <td>Impossible with RGB vision (missed)</td>
-            <td style="color:var(--accent)">Acoustic resonance tap analyzer ($f_0$ 800–1400 Hz healthy vs &lt;450 Hz hollow, [Taniwaki-2023])</td>
-          </tr>
-          <tr>
-            <td>Early Cuticular Soft Rot</td>
-            <td>Invisible to human eye / basic cameras</td>
-            <td style="color:var(--accent)">Flash Proxy Index (FPI) differential reflectance spectroscopy ([Nicolaï-2007])</td>
+            <td>Non-Destructive Internal Appraisal</td>
+            <td>Misses subsurface and internal decay</td>
+            <td style="color:var(--accent)">Acoustic resonance frequency analysis and flash proxy reflectance spectroscopy (research pipeline)</td>
           </tr>
           <tr>
             <td>National DPI Integration</td>
-            <td>Isolated standalone demo</td>
-            <td style="color:var(--accent)">eNAM v2.1 XML/JSON Assaying Certificate linked to 12-digit AgriStack Farmer ID</td>
+            <td>Standalone demo</td>
+            <td style="color:var(--accent)">eNAM v2.1 assaying certificate payload structure linked to 12-digit AgriStack farmer reference</td>
           </tr>
           <tr>
             <td>Farmer Accessibility</td>
-            <td>English-only dense reports</td>
-            <td style="color:var(--accent)">Bhashini Multilingual Neural TTS voice announcements (Hindi, Marathi, regional)</td>
+            <td>English text-only displays</td>
+            <td style="color:var(--accent)">Multilingual voice feedback via Bhashini neural speech synthesis (7 regional languages)</td>
           </tr>
         </tbody>
       </table>
@@ -421,26 +416,26 @@
 
     <!-- SLIDE 3: System Architecture -->
     <div class="slide" data-slide="3">
-      <div class="slide-eyebrow">SYSTEM ARCHITECTURE & STANDARDS</div>
-      <h1 class="slide-title">End-to-End Edge-to-Cloud Architecture</h1>
+      <div class="slide-eyebrow">SYSTEM ARCHITECTURE &amp; WORKFLOW</div>
+      <h1 class="slide-title">Edge-to-Cloud Assaying Pipeline</h1>
       <p class="slide-desc">
-        Designed for harsh Mandi environments with low connectivity, variable lighting, and high-throughput consignment queues.
+        Engineered for APMC procurement yards with variable lighting, dust, and intermittent connectivity.
       </p>
       <div class="grid-4">
         <div class="card">
           <div class="card-label">1. CAPTURE LAYER</div>
-          <div class="card-val" style="font-size:20px;color:var(--text)">Expo Camera + Gyro</div>
-          <div class="card-sub" style="margin-top:6px">Simulated artificial horizon ensures normal orthogonal top-down alignment (≤1.5° tilt).</div>
+          <div class="card-val" style="font-size:20px;color:var(--text)">Camera + Gyro HUD</div>
+          <div class="card-sub" style="margin-top:6px">Artificial horizon guidance encourages normal orthogonal top-down alignment (tilt &lt;= 1.5 deg).</div>
         </div>
         <div class="card">
           <div class="card-label">2. CALIBRATION HUD</div>
-          <div class="card-val" style="font-size:20px;color:var(--accent)">ChArUco 7×5</div>
-          <div class="card-sub" style="margin-top:6px">Sub-pixel corner detection locks millimetre-to-pixel ratio (0.2458 mm/px) across optical frames.</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">ChArUco 7x5 Board</div>
+          <div class="card-sub" style="margin-top:6px">Sub-pixel corner detection locks millimeter-to-pixel ratio across optical frames with dual-mode fallback.</div>
         </div>
         <div class="card">
           <div class="card-label">3. INFERENCE CORE</div>
           <div class="card-val" style="font-size:20px;color:var(--text)">YOLO11-seg + OpenCV</div>
-          <div class="card-sub" style="margin-top:6px">Instance polygon masks extract Deq, Polar Axis, Shape Factor, Tunic Area, and Mold Area.</div>
+          <div class="card-sub" style="margin-top:6px">Instance polygon masks extract equatorial diameter, polar axis, circularity, tunic area, and mold load.</div>
         </div>
         <div class="card card-highlight">
           <div class="card-label">4. AGRONOMIC ENGINE</div>
@@ -455,49 +450,49 @@
       <div class="slide-eyebrow">PHYSICAL ACCURACY</div>
       <h1 class="slide-title">BIS IS 17912:2022 Optical Sizing Calibration</h1>
       <p class="slide-desc">
-        NAFED procurement specifies exact millimeter size brackets. Cepa fits an oriented bounding ellipse to compute both Equatorial Diameter (Deq) and Polar Length.
+        NAFED procurement guidelines specify exact millimeter size brackets. Cepa fits an oriented minimum-area ellipse to compute both Equatorial Diameter (Deq) and Polar Length.
       </p>
       <div class="grid-3">
         <div class="card">
-          <div class="card-label">GRADE A SUPER BRACKET</div>
-          <div class="card-val" style="color:var(--accent)">45 – 65 mm</div>
-          <div class="card-sub">Optimal size for Price Stabilisation Fund buffer storage. Full MSP benchmark rate applied.</div>
+          <div class="card-label">GRADE A TARGET BRACKET</div>
+          <div class="card-val" style="color:var(--accent)">45 - 65 mm</div>
+          <div class="card-sub">Optimal size bracket for buffer stock storage under Price Stabilisation Fund guidelines.</div>
         </div>
         <div class="card">
           <div class="card-label">MADHYAM / MEDIUM</div>
-          <div class="card-val" style="color:var(--urs)">35 – 45 mm</div>
+          <div class="card-val" style="color:var(--urs)">35 - 45 mm</div>
           <div class="card-sub">Acceptable under Fair Average Quality (FAQ) tolerance with minor dockage deduction.</div>
         </div>
         <div class="card">
           <div class="card-label">GOLI / UNDERSIZED</div>
           <div class="card-val" style="color:var(--reject)">&lt; 35 mm</div>
-          <div class="card-sub">Under Rejection Standard (URS). Replaced or docked at ₹15.00/qtl per 1% excess.</div>
+          <div class="card-sub">Under Rejection Standard (URS). Replaced or docked per tender deduction schedules.</div>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 5: Cold Storage Shelf Life Breakthrough -->
+    <!-- SLIDE 5: Cold Storage Shelf Life -->
     <div class="slide" data-slide="5">
-      <div class="slide-eyebrow">THE CORE INNOVATION</div>
+      <div class="slide-eyebrow">POST-HARVEST BIOLOGY</div>
       <h1 class="slide-title">ICAR-DOGR Cold Storage Survival Horizon Engine</h1>
       <p class="slide-desc">
-        Instead of treating onions as inert plastic objects, Cepa models post-harvest biology. It predicts which lots can withstand 120-day buffer storage vs which will rot within 14 days.
+        Instead of treating onions as inert objects, Cepa models post-harvest shelf life to assist procurement officers in separating long-term buffer stock from perishable lots requiring rapid market release.
       </p>
       <div class="grid-2">
         <div class="card card-highlight">
-          <div class="card-label">STORAGEABILITY INDEX (0–100)</div>
-          <div class="card-val" style="color:var(--accent)">88 / 100 · 90 Days</div>
+          <div class="card-label">STORAGEABILITY INDEX (0-100)</div>
+          <div class="card-val" style="color:var(--accent)">Score 88 · 90 Days</div>
           <div class="card-sub">
             Multivariate score factoring in <strong>mean black mold load (Aspergillus niger)</strong>, <strong>papery tunic retention %</strong>, and <strong>internal sprout dormancy break</strong>.
           </div>
         </div>
         <div class="card">
-          <div class="card-label">NAFED ALLOCATION DIRECTIVE</div>
+          <div class="card-label">PROCUREMENT ALLOCATION DIRECTIVE</div>
           <div class="card-val" style="font-size:22px;color:var(--text)">Buffer Stock vs Fast Auction</div>
           <div class="card-sub">
-            • <strong>Score ≥ 80:</strong> Approved for ventilated 120-day cold chambers.<br>
-            • <strong>Score 60–79:</strong> Standard 45–60 day holding.<br>
-            • <strong>Score &lt; 60:</strong> Routed to 7-day rapid open-market dispatch before decay.
+            * <strong>Score &gt;= 80:</strong> Approved for long-term ventilated buffer storage.<br>
+            * <strong>Score 60-79:</strong> Standard 45-60 day holding window.<br>
+            * <strong>Score &lt; 60:</strong> Priority routing for rapid open-market dispatch before decay accelerates.
           </div>
         </div>
       </div>
@@ -505,87 +500,91 @@
 
     <!-- SLIDE 6: Mandi Settlement -->
     <div class="slide" data-slide="6">
-      <div class="slide-eyebrow">COMMERCIAL FAIRNESS & TRANSPARENCY</div>
+      <div class="slide-eyebrow">COMMERCIAL FAIRNESS &amp; TRANSPARENCY</div>
       <h1 class="slide-title">Deterministic APMC Mandi FAQ Dockage</h1>
       <p class="slide-desc">
-        In traditional mandis, commission agents deduct ₹100–₹300/qtl arbitrarily from farmers based on glance inspection. Cepa automates Fair Average Quality (FAQ) settlement under NAFED rules.
+        In traditional mandis, visual appraisal often leads to subjective deductions. Cepa simulates objective Fair Average Quality (FAQ) settlement based on configurable tender parameters.
       </p>
       <div class="grid-3">
         <div class="card">
-          <div class="card-label">BENCHMARK MSP</div>
-          <div class="card-val" style="color:var(--accent)">₹2,410.00</div>
-          <div class="card-sub">Per quintal (100 kg) base procurement rate under Price Stabilisation Fund.</div>
+          <div class="card-label">BENCHMARK PSF RATE</div>
+          <div class="card-val" style="color:var(--accent)">INR 2,410.00</div>
+          <div class="card-sub">Per quintal (100 kg) illustrative benchmark procurement rate under Price Stabilisation Fund tenders.</div>
         </div>
         <div class="card">
-          <div class="card-label">FAQ TOLERANCE RULESET</div>
-          <div class="card-val" style="font-size:20px;color:var(--text)">Max 2% Rot · 2% Sprout</div>
-          <div class="card-sub">Itemized dockage applied mathematically only when lot observations exceed official FAQ limits.</div>
+          <div class="card-label">FAQ TOLERANCE &amp; GATES</div>
+          <div class="card-val" style="font-size:20px;color:var(--text)">2% Free · 5% Gate</div>
+          <div class="card-sub">FAQ free tolerance: 2% rot and 2% sprout. Rejection gates enforce maximum limits of 5% rot and 6% sprout.</div>
         </div>
         <div class="card card-highlight">
           <div class="card-label">FARMER SETTLEMENT SLIP</div>
-          <div class="card-val" style="font-size:20px;color:var(--accent)">Instant ₹ Payout</div>
-          <div class="card-sub">Net payout calculated immediately on the weighing scale, eliminating bribery and disputes.</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">Itemized Voucher</div>
+          <div class="card-sub">Transparent calculation with itemized dockage deductions prevents arbitrary discounts and disputes.</div>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 7: Digital Audit & Verification -->
     <div class="slide" data-slide="7">
-      <div class="slide-eyebrow">TAMPER-PROOF INTEGRITY</div>
-      <h1 class="slide-title">Cryptographic Verification & Mobile QR Certificate</h1>
+      <div class="slide-eyebrow">TRACEABILITY &amp; INTEGRITY</div>
+      <h1 class="slide-title">Cryptographic Verification &amp; Mobile QR Certificate</h1>
       <p class="slide-desc">
-        Paper certificates can be forged or swapped during interstate transit. Cepa seals every consignment with a SHA-256 digital hash and a live scannable verification certificate.
+        Protects inspection records against tampering or unauthorized modification through cryptographic hashing and token-gated verification.
       </p>
       <ul class="key-points">
         <li>
-          <div class="dot-check">✓</div>
-          <div><strong>Live QR Web Certificate:</strong> Scanning the QR code on any smartphone opens the official Government of India / NAFED mobile audit page at <code>/reports/share/{token}</code> without installing any app.</div>
+          <div class="dot-check">[+]</div>
+          <div><strong>Live QR Web Certificate:</strong> Scanning the QR code on a printed voucher opens the verification portal at <code>/api/v1/reports/share/{token}</code> without installing extra software.</div>
         </li>
         <li>
-          <div class="dot-check">✓</div>
-          <div><strong>SHA-256 Consignment Stamp:</strong> Hashes the sample photo, lot ID, officer identity, and defect metrics into an immutable digital seal.</div>
+          <div class="dot-check">[+]</div>
+          <div><strong>SHA-256 Consignment Stamp:</strong> Hashes the sample photo, lot ID, officer identity, and defect metrics into a 24-character verification seal.</div>
         </li>
         <li>
-          <div class="dot-check">✓</div>
+          <div class="dot-check">[+]</div>
+          <div><strong>Device-Reported Location:</strong> Records device-reported GNSS coordinates with explicit unverified status to document capture provenance.</div>
+        </li>
+        <li>
+          <div class="dot-check">[+]</div>
           <div><strong>Vector PDF Generation:</strong> Automated ReportLab engine embeds high-resolution QR codes, cold storage shelf-life advisories, and APMC settlement slips.</div>
         </li>
       </ul>
     </div>
 
-    <!-- SLIDE 8: Live Demonstration & ROI -->
+    <!-- SLIDE 8: Summary & Standards -->
     <div class="slide" data-slide="8">
-      <div class="slide-eyebrow">SUMMARY & ECONOMIC ROI</div>
-      <h1 class="slide-title">Saving ₹350+ Crore Annually for India</h1>
+      <div class="slide-eyebrow">SUMMARY &amp; SYSTEM STATUS</div>
+      <h1 class="slide-title">Objective Post-Harvest Quality Assurance</h1>
       <p class="slide-desc">
-        By routing perishable vulnerable lots for rapid consumption and storing only high-storageability bulbs, Cepa cuts national buffer stock rot by over 35%.
+        By combining physical metrology, ICAR-DOGR shelf-life modeling, and transparent dockage simulation, Cepa provides a rigorous digital framework for onion procurement.
       </p>
       <div class="grid-3" style="margin-bottom:24px">
         <div class="card card-highlight">
-          <div class="card-label">PROJECTED ANNUAL SAVINGS</div>
-          <div class="card-val" style="color:var(--accent)">₹350+ Cr</div>
-          <div class="card-sub">Direct reduction in spoiled buffer onions across NAFED cold storage facilities.</div>
+          <div class="card-label">METROLOGY ACCURACY</div>
+          <div class="card-val" style="color:var(--accent)">&lt; 2.0 mm</div>
+          <div class="card-sub">Vernier caliper benchmark validation under controlled optical calibration.</div>
         </div>
         <div class="card">
-          <div class="card-label">SPEED PER LOT</div>
+          <div class="card-label">ASSAYING SPEED</div>
           <div class="card-val" style="color:var(--text)">&lt; 3 Sec</div>
-          <div class="card-sub">Fast automated appraisal vs 15 minutes of manual sorting.</div>
+          <div class="card-sub">Fast automated appraisal per sample frame versus 15 minutes of manual sorting.</div>
         </div>
         <div class="card">
           <div class="card-label">FARMER BENEFIT</div>
-          <div class="card-val" style="color:var(--accent)">+15% Payout</div>
-          <div class="card-sub">Protection against unfair middleman commission dockage cuts.</div>
+          <div class="card-val" style="color:var(--accent)">Fair FAQ</div>
+          <div class="card-sub">Eliminates subjective guesswork through reproducible, parameter-driven dockage rules.</div>
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;font-size:12px;font-weight:600">
-        <span style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:6px 14px;border-radius:20px">88/88 Pytest ✅</span>
-        <span style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);padding:6px 14px;border-radius:20px">Zero Mocks 🛡️</span>
-        <span style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:6px 14px;border-radius:20px">eNAM v2.1 XML+JSON 🏛️</span>
-        <span style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:6px 14px;border-radius:20px">AgriStack Integrated 🌾</span>
-        <span style="background:rgba(236,72,153,0.15);color:#ec4899;border:1px solid rgba(236,72,153,0.3);padding:6px 14px;border-radius:20px">Bhashini Multilingual TTS 🗣️</span>
+        <span style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:6px 14px;border-radius:20px">125+ Pytest Passing</span>
+        <span style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);padding:6px 14px;border-radius:20px">Vernier Caliper Benchmark</span>
+        <span style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:6px 14px;border-radius:20px">eNAM v2.1 XML+JSON</span>
+        <span style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:6px 14px;border-radius:20px">AgriStack Integrated</span>
+        <span style="background:rgba(236,72,153,0.15);color:#ec4899;border:1px solid rgba(236,72,153,0.3);padding:6px 14px;border-radius:20px">Bhashini Multilingual TTS</span>
       </div>
       <div>
         <a href="/inspector" class="live-app-btn" target="_blank" style="padding:10px 22px;font-size:14px">
-          Launch Live Mandi Inspection Studio ↗
+          Launch Live Mandi Inspection Studio -&gt;
         </a>
       </div>
     </div>

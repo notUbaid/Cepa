@@ -131,16 +131,16 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 />
               </View>
               <View style={styles.gpsInfo}>
-                <Text style={styles.gpsTitle}>Mandi Geolocation</Text>
+                <Text style={styles.gpsTitle}>Device-Reported Location</Text>
                 {location.status === 'fetching' ? (
-                  <Text style={styles.gpsText}>Acquiring GPS location...</Text>
+                  <Text style={styles.gpsText}>Acquiring device GNSS location...</Text>
                 ) : location.status === 'locked' ? (
                   <Text style={styles.gpsLockedText}>
-                    GPS Locked: {location.lat?.toFixed(4)}° N, {location.lon?.toFixed(4)}° E (±{location.accuracy?.toFixed(0)} m)
+                    Device GNSS: {location.lat?.toFixed(4)}° N, {location.lon?.toFixed(4)}° E (±{location.accuracy?.toFixed(0)} m)
                   </Text>
                 ) : (
                   <Text style={styles.gpsDeniedText}>
-                    GPS Offline ({location.status})
+                    Location Unavailable ({location.status})
                   </Text>
                 )}
               </View>
