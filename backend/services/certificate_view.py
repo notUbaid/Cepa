@@ -10,6 +10,9 @@ import hashlib
 import json
 from typing import Any
 
+from config import settings
+from services.report_generator import _get_policy_verified
+
 
 def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     """
@@ -19,6 +22,22 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     cert_hash = hashlib.sha256(
         f"{r.report_id}-{r.total_bulbs}-{r.grade_a_pct}".encode()
     ).hexdigest()[:24].upper()
+
+    policy_version = getattr(r, "ruleset_version", "DEMO_ASSUMPTION_v1")
+    is_policy_verified = _get_policy_verified(policy_version)
+    is_mock = getattr(settings, "def_use_mock", True)
+    is_provisional = (not is_policy_verified) or is_mock
+
+    provisional_banner_html = ""
+    if is_provisional:
+        provisional_banner_html = f"""
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; border-radius: 12px; padding: 14px 18px; color: #fca5a5; font-size: 13px; line-height: 1.5;">
+          <div style="font-weight: 700; color: #f87171; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <span>[WARN]</span> PROVISIONAL RECORD -- UNVERIFIED INPUTS
+          </div>
+          <div>This certificate was evaluated under working policy <strong>{policy_version}</strong> (verified: {is_policy_verified}) and rule-based mock defect scores (DEF_USE_MOCK={is_mock}). It is an academic prototype artifact and <strong>not legally binding for commercial APMC settlement</strong>.</div>
+        </div>
+        """
 
     storage_adv = getattr(r, "storage_advisory", None) or {}
     storage_score = storage_adv.get("mean_storageability_score", 85.0)
@@ -65,7 +84,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         dockage_rows_html = """
         <tr>
           <td colspan="4" style="text-align:center; color:#22c55e; padding:12px 0;">
-            ✓ Zero FAQ off-grade dockage. Full standard met.
+            [PASS] Zero FAQ off-grade dockage. Full standard met.
           </td>
         </tr>
         """
@@ -77,7 +96,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cepa — Verified Mandi Lot Certificate #{r.report_id[:8]}</title>
+  <title>Cepa -- Verified Mandi Lot Certificate #{r.report_id[:8]}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -375,8 +394,9 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     }}
   </style>
 </head>
-<body>
   <div class="cert-container">
+
+    {provisional_banner_html}
 
     <!-- Header Certificate Card -->
     <div class="header-card">
@@ -385,11 +405,11 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
           <img src="/ui/logo.png" alt="Cepa" class="brand-logo" onerror="this.style.display='none'" />
           <div>
             <div class="brand-title">Cepa Mandi Procurement Record</div>
-            <div class="brand-sub">Government of India • NAFED PSF Quality Protocol</div>
+            <div class="brand-sub">Government of India - APMC Quality Protocol</div>
           </div>
         </div>
-        <div class="verified-badge">
-          <span class="pulse-dot"></span> VERIFIED
+        <div class="verified-badge" style="{'background:rgba(245,158,11,0.15); border-color:#f59e0b; color:#fbbf24;' if is_provisional else ''}">
+          <span class="pulse-dot" style="{'background:#f59e0b;' if is_provisional else ''}"></span> {'PROVISIONAL' if is_provisional else 'VERIFIED'}
         </div>
       </div>
 
@@ -413,7 +433,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </div>
         <div class="data-item">
           <span class="data-label">Authorized Grading Officer · तपासणी अधिकारी</span>
-          <span class="data-value">{r.officer_name or 'N/A'} ({r.officer_id or 'ID: —'})</span>
+          <span class="data-value">{r.officer_name or 'N/A'} ({r.officer_id or 'ID: --'})</span>
         </div>
         <div class="data-item">
           <span class="data-label">Grading Specification Standard · निकष</span>
@@ -437,12 +457,12 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         <div class="kpi-box" style="border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.04);">
           <span class="kpi-box-val" style="color:var(--grade-a);">{r.grade_a_pct:.1f}%</span>
           <span class="kpi-box-lbl">Grade A · दर्जा 'अ' ({r.grade_a_count} bulbs)</span>
-          <span style="font-size:10px; color:var(--text-dim);">45–65 mm target (सुपर)</span>
+          <span style="font-size:10px; color:var(--text-dim);">45-65 mm target (सुपर)</span>
         </div>
         <div class="kpi-box" style="border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.04);">
           <span class="kpi-box-val" style="color:var(--urs);">{r.urs_pct:.1f}%</span>
           <span class="kpi-box-lbl">URS · शिथिल निकष ({r.urs_count} bulbs)</span>
-          <span style="font-size:10px; color:var(--text-dim);">35–70 mm relaxed (मध्यम)</span>
+          <span style="font-size:10px; color:var(--text-dim);">35-70 mm relaxed (मध्यम)</span>
         </div>
         <div class="kpi-box" style="border: 1px solid rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
           <span class="kpi-box-val" style="color:var(--reject);">{r.rejected_pct:.1f}%</span>
@@ -528,7 +548,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
       <div class="section-title">Optical Verification Evidence (ChArUco Calibrated)</div>
       <img src="{annotated_img_url}" alt="Annotated Inspection Lot" class="img-card" />
       <div style="font-size:11px; color:var(--text-dim); text-align:center;">
-        Computer vision segmentation overlay: Cyan reticle = equatorial axis • Magenta = polar axis.
+        Computer vision segmentation overlay: Cyan reticle = equatorial axis - Magenta = polar axis.
       </div>
     </div>
     ''' if annotated_img_url else ''}
@@ -540,8 +560,9 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     </div>
 
     <div class="footer-note">
-      Cepa National Onion Quality & Cold Storage Intelligence Platform • SIH26031 Proof of Concept<br/>
-      Cryptographically signed and timestamped under Ministry of Consumer Affairs guidelines.
+      Cepa National Produce Quality & Cold Storage Platform - SIH26031 Proof of Concept<br/>
+      Policy: <strong>{policy_version}</strong> (verified: {is_policy_verified}) - Segmentation: <strong>YOLO11n-seg</strong> - Defect Model: <strong>{'Mock/Rule-based (DEF_USE_MOCK=true)' if is_mock else 'MobileNetV3 PyTorch'}</strong><br/>
+      Report Fingerprint: <code>SHA256:{cert_hash}</code> (covers report summary fields only)
     </div>
 
   </div>

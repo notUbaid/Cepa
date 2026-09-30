@@ -14,7 +14,7 @@ The report includes:
 
 Design constraints:
   - No fake government logos or official-looking seals
-  - Limitations section is mandatory — never omitted
+  - Limitations section is mandatory -- never omitted
   - Policy version always visible
   - Mock prediction warning shown if applicable
 """
@@ -101,21 +101,48 @@ def generate_pdf_report(
     )
 
     story.append(Paragraph("Onion Quality Inspection Report", title_style))
-    story.append(Paragraph("Cepa Inspection System — SIH26031 Proof of Concept", subtitle_style))
+    story.append(Paragraph("Cepa Inspection System -- SIH26031 Proof of Concept", subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#ccc")))
     story.append(Spacer(1, 0.3 * cm))
 
+    is_verified = _get_policy_verified(report.ruleset_version)
+    is_mock_defect = settings.def_use_mock
+    is_provisional = (not is_verified) or is_mock_defect
+
     # Policy/model version in header (always visible)
     policy_note = (
-        f"Policy: {report.ruleset_version}  |  "
-        f"Model: {report.model_version}  |  "
-        f"Policy Verified: {'YES' if _get_policy_verified(report.ruleset_version) else 'NO — DEMO ASSUMPTIONS'}"
+        f"Policy: {report.ruleset_version} | "
+        f"Segmentation: {report.model_version} | "
+        f"Defect Classifier: {'MOCK/RULE-BASED' if is_mock_defect else 'MobileNetV3'} | "
+        f"Policy Verified: {'YES' if is_verified else 'NO -- WORKING ASSUMPTION'}"
     )
     story.append(Paragraph(policy_note, ParagraphStyle(
-        "PolicyNote", parent=styles["Normal"], fontSize=8,
-        textColor=colors.HexColor("#c0392b"),
+        "PolicyNote", parent=styles["Normal"], fontSize=7.5,
+        textColor=colors.HexColor("#c0392b" if is_provisional else "#27ae60"),
     )))
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(Spacer(1, 0.2 * cm))
+
+    # Prominent warning box for unverified / mock reports
+    if is_provisional:
+        warn_html = (
+            "<b>PROVISIONAL INSPECTION REPORT -- NOT FOR COMMERCIAL SETTLEMENT</b><br/>"
+            f"This inspection was evaluated under unverified grading specifications ({report.ruleset_version}) "
+            f"and/or rule-based mock defect predictions (DEF_USE_MOCK=true). "
+            "It is a research demonstration prototype and is NOT certified for commercial APMC trade settlement."
+        )
+        warn_box = Table([[Paragraph(warn_html, ParagraphStyle(
+            "WarnText", parent=styles["Normal"], fontSize=8, leading=11, textColor=colors.HexColor("#991b1b")
+        ))]], colWidths=[16 * cm])
+        warn_box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fee2e2")),
+            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#ef4444")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.append(warn_box)
+        story.append(Spacer(1, 0.3 * cm))
 
     # ── Report metadata table ─────────────────────────────────────────────────
     meta_data = [
@@ -127,6 +154,10 @@ def generate_pdf_report(
         ["Procurement Centre", inspection.procurement_centre or "Not specified"],
         ["Lot ID", inspection.lot_id or "Not specified"],
         ["Location", _format_location(inspection)],
+        ["Grading Policy", f"{report.ruleset_version} (verified: {is_verified})"],
+        ["Defect Classifier", "Mock / Rule-Based (DEF_USE_MOCK=true)" if is_mock_defect else "MobileNetV3 PyTorch"],
+        ["Segmentation Model", str(report.model_version)],
+        ["Certification Status", "PROVISIONAL / RESEARCH DEMO" if is_provisional else "OFFICIAL APMC RECORD"],
     ]
 
     meta_table = Table(meta_data, colWidths=[5 * cm, 11 * cm])
@@ -154,18 +185,18 @@ def generate_pdf_report(
         ["Rejected", str(report.rejected_count), f"{report.rejected_pct:.1f}%"],
         ["Needs Review", str(report.review_count),
          f"{100.0 * report.review_count / max(report.total_bulbs, 1):.1f}%"],
-        ["Edge Cutoff (partial)", str(report.edge_cutoff_count), "—"],
+        ["Edge Cutoff (partial)", str(report.edge_cutoff_count), "--"],
         ["Total Detected", str(report.total_bulbs), "100%"],
     ]
 
     grade_colors = [
         colors.white,
-        colors.HexColor("#27ae60"),  # Grade A — green
-        colors.HexColor("#f39c12"),  # URS — amber
-        colors.HexColor("#e74c3c"),  # Rejected — red
-        colors.HexColor("#3498db"),  # Review — blue
-        colors.HexColor("#95a5a6"),  # Edge cutoff — grey
-        colors.HexColor("#ecf0f1"),  # Total — light
+        colors.HexColor("#27ae60"),  # Grade A -- green
+        colors.HexColor("#f39c12"),  # URS -- amber
+        colors.HexColor("#e74c3c"),  # Rejected -- red
+        colors.HexColor("#3498db"),  # Review -- blue
+        colors.HexColor("#95a5a6"),  # Edge cutoff -- grey
+        colors.HexColor("#ecf0f1"),  # Total -- light
     ]
 
     grade_table = Table(grade_data, colWidths=[9 * cm, 3 * cm, 3 * cm])
@@ -201,10 +232,10 @@ def generate_pdf_report(
 
     defect_data = [
         ["Defect Type", "Count (bulbs)"],
-        ["Damaged (visible damage)", str(defect_counts.get("damaged", "—"))],
-        ["Rotten (visible rot/decay)", str(defect_counts.get("rotten", "—"))],
-        ["Sprouted (visible sprouting)", str(defect_counts.get("sprouted", "—"))],
-        ["Undersized (< 35mm)", str(defect_counts.get("undersize", "—"))],
+        ["Damaged (visible damage)", str(defect_counts.get("damaged", "--"))],
+        ["Rotten (visible rot/decay)", str(defect_counts.get("rotten", "--"))],
+        ["Sprouted (visible sprouting)", str(defect_counts.get("sprouted", "--"))],
+        ["Undersized (< 35mm)", str(defect_counts.get("undersize", "--"))],
     ]
 
     defect_table = Table(defect_data, colWidths=[9 * cm, 3 * cm])
@@ -248,11 +279,11 @@ def generate_pdf_report(
     mandi_data = [
         ["Mandi Size Grade", "Specification", "Count", "Percentage"],
         ["Goli (Baby)", "< 35 mm", str(apmc.goli_count), f"{apmc.goli_pct:.1f}%"],
-        ["Madhyam (Medium)", "35 – 45 mm", str(apmc.madhyam_count), f"{apmc.madhyam_pct:.1f}%"],
-        ["Super (Grade A Target)", "45 – 65 mm", str(apmc.super_count), f"{apmc.super_pct:.1f}%"],
+        ["Madhyam (Medium)", "35 - 45 mm", str(apmc.madhyam_count), f"{apmc.madhyam_pct:.1f}%"],
+        ["Super (Grade A Target)", "45 - 65 mm", str(apmc.super_count), f"{apmc.super_pct:.1f}%"],
         ["Jumbo (Oversized)", "> 65 mm", str(apmc.jumbo_count), f"{apmc.jumbo_pct:.1f}%"],
         ["Estimated Sample Weight", f"{weights.total_sample_weight_kg:.2f} kg",
-         f"Mean: {weights.mean_bulb_weight_g:.0f}g / bulb", f"Range: {weights.min_bulb_weight_g:.0f}–{weights.max_bulb_weight_g:.0f}g"],
+         f"Mean: {weights.mean_bulb_weight_g:.0f}g / bulb", f"Range: {weights.min_bulb_weight_g:.0f}-{weights.max_bulb_weight_g:.0f}g"],
     ]
 
     mandi_table = Table(mandi_data, colWidths=[5 * cm, 4 * cm, 3 * cm, 3 * cm])
@@ -339,7 +370,7 @@ def generate_pdf_report(
         ["Cold Storage Metric", "Assessment & Directive"],
         ["Lot Storageability Index", f"{storage_adv.mean_storageability_score:.1f} / 100.0"],
         ["Preservation Classification", f"{storage_adv.storage_recommendation.replace('_', ' ')}"],
-        ["Safe Cold Storage Window", f"Up to {storage_adv.recommended_max_storage_days} days (0–2°C, 65–70% RH)"],
+        ["Safe Cold Storage Window", f"Up to {storage_adv.recommended_max_storage_days} days (0-2°C, 65-70% RH)"],
         ["Respiration & Spoilage Risk", f"{storage_adv.respiration_risk_level}"],
         ["Pathogen Exposure Breakdown", f"Mold: {storage_adv.fungal_spore_exposure_pct:.1f}% | Tunic Loss: {storage_adv.tunic_loss_exposure_pct:.1f}% | Sprout: {storage_adv.dormancy_break_exposure_pct:.1f}%"],
     ]
@@ -378,22 +409,22 @@ def generate_pdf_report(
     )))
     story.append(Spacer(1, 0.5 * cm))
 
-    # ── Limitations (mandatory — never omitted) ────────────────────────────────
+    # ── Limitations (mandatory -- never omitted) ────────────────────────────────
     story.append(Paragraph("System Limitations and Notes", styles["Heading2"]))
     limitations = (
         "1. EXTERNAL SURFACE ONLY: This inspection detects only VISIBLE surface defects. "
         "Internal rot and hidden defects not visible from the exterior cannot be detected by camera.\n\n"
         "2. PROJECTED MEASUREMENT: Onion size is measured as the projected equivalent diameter "
         "from a top-view image. This is NOT equivalent to a laboratory caliper measurement across "
-        "the equator. Error range is typically ±5–15mm compared to caliper.\n\n"
+        "the equator. Error range is typically ±5-15mm compared to caliper.\n\n"
         "3. AI-ASSISTED: Defect classification uses AI computer vision. Borderline cases are "
         "flagged for human review. Mock predictions are labelled [MOCK] and should not be used "
         "for actual procurement decisions.\n\n"
         "4. SAMPLING: Lot statistics are based on the inspected sample only. A single photograph "
         "of the top surface does not represent the full consignment.\n\n"
         "5. GRADING POLICY: "
-        f"Active policy '{report.ruleset_version}' — "
-        f"{'VERIFIED against official specification' if _get_policy_verified(report.ruleset_version) else 'DEMO ASSUMPTIONS — NOT official NAFED/NCCF specification'}."
+        f"Active policy '{report.ruleset_version}' -- "
+        f"{'VERIFIED against official specification' if _get_policy_verified(report.ruleset_version) else 'DEMO ASSUMPTIONS -- NOT official NAFED/NCCF specification'}."
     )
     story.append(Paragraph(limitations, ParagraphStyle(
         "Limitations", parent=styles["Normal"], fontSize=8,
@@ -451,8 +482,18 @@ def generate_pdf_report(
                        textColor=colors.HexColor("#999"), alignment=TA_CENTER),
     ))
 
-    doc.build(story)
-    logger.info("PDF report generated: %s", pdf_path)
+    def _draw_provisional_watermark(canvas, document):
+        if is_provisional:
+            canvas.saveState()
+            canvas.setFont("Helvetica-Bold", 32)
+            canvas.setFillColor(colors.HexColor("#ef4444"), alpha=0.08)
+            canvas.translate(297.5, 421)  # Center of A4 in points (595x842)
+            canvas.rotate(45)
+            canvas.drawCentredString(0, 0, "PROVISIONAL -- UNVERIFIED INPUTS")
+            canvas.restoreState()
+
+    doc.build(story, onFirstPage=_draw_provisional_watermark, onLaterPages=_draw_provisional_watermark)
+    logger.info("PDF report generated: %s (provisional=%s)", pdf_path, is_provisional)
     return pdf_path
 
 

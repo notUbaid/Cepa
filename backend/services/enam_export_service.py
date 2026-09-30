@@ -9,14 +9,14 @@ and links them to the Government of India's AgriStack 12-digit Indian Farmer ID.
 Regulatory & Academic Citations:
 --------------------------------
 1. [eNAM-2024] Ministry of Agriculture & Farmers Welfare, Government of India.
-   "National Agriculture Market (eNAM) — Standard Operating Procedure for Assaying
+   "National Agriculture Market (eNAM) -- Standard Operating Procedure for Assaying
    and Quality Testing of Agricultural Commodities." DMI/eNAM Portal Spec v2.1, 2024.
    Commodity Code: AGMARK-19-ONION (Allium cepa L.).
 2. [AgriStack-2024] Department of Agriculture & Farmers Welfare (DA&FW), GoI.
    "AgriStack Architecture and Farmer Registry Standards." Digital Public Infrastructure, 2024.
    Standardizes 12-digit unique Farmer ID (FID) with land parcel registry (Khasra).
 3. [AGMARK-2004] Directorate of Marketing & Inspection, Ministry of Agriculture.
-   "Fruits and Vegetables Grading and Marking Rules 2004 (Schedule XIX — Onion)."
+   "Fruits and Vegetables Grading and Marking Rules 2004 (Schedule XIX -- Onion)."
    Defines size grades (Goli, Madhyam, Super, Jumbo) and defect tolerances.
 
 Enables seamless settlement:
@@ -32,7 +32,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from xml.dom import minidom
 
+from config import settings
 from schemas.inspection import InspectionDetail
+from services.report_generator import _get_policy_verified
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +103,26 @@ def build_enam_assaying_payload(
 
     timestamp_iso = datetime.now(timezone.utc).isoformat()
 
+    policy_name = settings.active_grading_policy
+    is_policy_verified = _get_policy_verified(policy_name)
+    is_mock_defect = settings.def_use_mock
+    is_provisional = (not is_policy_verified) or is_mock_defect
+
     return {
         "schema_version": ENAM_SCHEMA_VERSION,
         "certificate_type": "APMC_DIGITAL_ASSAYING_CERTIFICATE",
+        "verification_status": "PROVISIONAL_UNVERIFIED_INPUTS" if is_provisional else "CERTIFIED_STANDARD",
+        "is_provisional": is_provisional,
+        "provisional_disclaimer": (
+            "NOTICE: Certificate generated under unverified policy or mock defect classification. Research prototype only."
+            if is_provisional else None
+        ),
+        "model_telemetry": {
+            "segmentation_model": "yolo11n-seg:mandi-onion-v1",
+            "defect_classifier": "mock/rule-based (DEF_USE_MOCK=true)" if is_mock_defect else "mobilenetv3",
+            "grading_policy": policy_name,
+            "policy_verified": is_policy_verified,
+        },
         "issued_by": "CEPA AI Autonomous Assaying Terminal (SIH26031)",
         "regulatory_standard": AGMARK_RULES_REF,
         "timestamp_utc": timestamp_iso,
@@ -195,6 +214,14 @@ def build_enam_assaying_xml(inspection: InspectionDetail, lot_weight_kg: float =
     header = ET.SubElement(root, "CertificateHeader")
     ET.SubElement(header, "IssuedBy").text = payload["issued_by"]
     ET.SubElement(header, "RegulatoryStandard").text = payload["regulatory_standard"]
+    ET.SubElement(header, "VerificationStatus").text = payload["verification_status"]
+    if payload.get("is_provisional"):
+        ET.SubElement(header, "ProvisionalDisclaimer").text = payload["provisional_disclaimer"]
+    model_elem = ET.SubElement(header, "ModelTelemetry")
+    model_elem.set("segModel", payload["model_telemetry"]["segmentation_model"])
+    model_elem.set("defectClassifier", payload["model_telemetry"]["defect_classifier"])
+    model_elem.set("gradingPolicy", payload["model_telemetry"]["grading_policy"])
+    model_elem.set("policyVerified", str(payload["model_telemetry"]["policy_verified"]).lower())
 
     # 2. Consignment
     consignment = ET.SubElement(root, "Consignment")
