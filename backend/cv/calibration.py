@@ -52,7 +52,10 @@ class CalibrationResult:
     perspective_valid: True if homography was computed and applied successfully.
     is_estimated: True if scale was derived via autonomous packhouse overhead heuristic.
     calibration_method: "CHARUCO_BOARD" or "AUTONOMOUS_OVERHEAD_HEURISTIC"
-    uncertainty_mm: estimated error margin (0.5mm for ChArUco, 3.5mm for heuristic)
+    uncertainty_mm: estimated error margin for diameter measurements.
+                   ChArUco board path: ~2.0mm (board-plane parallax at 65cm height
+                   introduces ~1.5-2.5mm error for bulbs sitting 20-40mm above the board).
+                   Heuristic path: ~5.0mm (scale from FOV prior only, no perspective correction).
     failure_code: set if perspective_valid is False.
     failure_message: human readable explanation.
     measured_square_px: measured square size in rectified image pixels
@@ -62,7 +65,7 @@ class CalibrationResult:
     perspective_valid: bool
     is_estimated: bool = False
     calibration_method: str = "CHARUCO_BOARD"
-    uncertainty_mm: float = 0.5
+    uncertainty_mm: float = 2.0  # see docstring above; ChArUco path default
     failure_code: str | None = None
     failure_message: str | None = None
     # Debug: measured square size in rectified image pixels
@@ -242,6 +245,8 @@ def compute_calibration(
         perspective_valid=True,
         is_estimated=False,
         calibration_method="CHARUCO_BOARD",
-        uncertainty_mm=0.5,
+        # ~2mm accounts for board-plane parallax: onion equators sit 20-40mm
+        # above the flat board, introducing ~1.5-2.5mm scale error at 65cm height.
+        uncertainty_mm=2.0,
         measured_square_px=px_per_mm * (settings.charuco_square_length_mm),
     )

@@ -1,13 +1,20 @@
-# Cepa Grading Policy — BIS IS 17912:2022
-# Official Bureau of Indian Standards & NAFED Procurement Standard
+# Cepa Grading Policy -- BIS IS 17912:2022 / APMC commercial practice
 # Guidelines for Supply Chain of Fresh Onions (Allium cepa L.)
+#
+# NOTE: IS 17912:2022 (Bureau of Indian Standards) is a supply-chain logistics
+# specification, not a dimensional grading standard with 45-75mm windows.
+# The size thresholds below are working assumptions aligned with observed APMC
+# commercial practice and NAFED Market Intervention Scheme descriptions, and are
+# pending verification against the actual NAFED/NCCF procurement EOI document.
+# Do NOT claim these are certified BIS grading thresholds.
 
 version: "BIS_IS_17912_2022"
-label: "BIS IS 17912:2022 / NAFED Commercial Grade Standard"
+label: "APMC Commercial Grade (working thresholds -- pending NAFED EOI verification)"
 source_note: >
-  Bureau of Indian Standards IS 17912:2022 Supply Chain Guidelines for Onions
-  combined with NAFED/NCCF Market Intervention Scheme quality specifications.
-verified: true
+  Working assumptions based on APMC-observed commercial practice.
+  IS 17912:2022 covers supply-chain logistics for onions, not dimensional grading windows.
+  Thresholds pending official NAFED/NCCF EOI document confirmation.
+verified: false  # IS 17912 is a supply-chain spec, not a grading standard
 created: "2026-09-28"
 
 # Whether URS / Grade B specifications are active for commercial lots

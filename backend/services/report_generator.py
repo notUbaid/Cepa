@@ -402,9 +402,12 @@ def generate_pdf_report(
     )))
     story.append(Spacer(1, 0.4 * cm))
 
-    # ── Share & Tamper-Proof Digital Verification (Real QR Code) ───────────────
+    # ── Share & Content Fingerprint (QR Code + SHA-256 of report summary) ────────
+    # NOTE: This hash covers report_id + total_bulbs + grade_a_pct only.
+    # It does not cover individual measurements, images, or acoustic recordings.
+    # It is a content fingerprint for report identity, not a cryptographic audit trail.
     share_url = f"{settings.share_link_base_url}/{report.share_token}"
-    story.append(Paragraph("Digital Verification & Public Audit Trail", styles["Heading2"]))
+    story.append(Paragraph("Digital Verification & Report Fingerprint", styles["Heading2"]))
 
     from reportlab.graphics.barcode import qr
     from reportlab.graphics.shapes import Drawing
@@ -419,11 +422,12 @@ def generate_pdf_report(
     cert_hash = hashlib.sha256(f"{report.report_id}-{report.total_bulbs}-{report.grade_a_pct}".encode()).hexdigest()[:24].upper()
 
     verify_info = (
-        f"<b>Scan QR to Verify Authenticity Online:</b><br/>"
+        f"<b>Scan QR to access inspection record online:</b><br/>"
         f"<font color='#2980b9'>{share_url}</font><br/><br/>"
-        f"<b>Digital Integrity Hash:</b> <code>SHA256:{cert_hash}</code><br/>"
+        f"<b>Report Fingerprint (SHA-256):</b> <code>SHA256:{cert_hash}</code><br/>"
         f"<b>Token:</b> {report.share_token}<br/>"
-        f"<i>Scanning this QR with any mobile phone displays the live verified inspection record, high-res lot photograph, and APMC settlement slip.</i>"
+        f"<i>This fingerprint covers report ID, bulb count, and grade percentage. "
+        f"It does not constitute a tamper-proof audit trail over measurements or images.</i>"
     )
 
     qr_table = Table([[qr_drawing, Paragraph(verify_info, ParagraphStyle("QRText", parent=styles["Normal"], fontSize=8.5, leading=12))]], colWidths=[3.5 * cm, 12.5 * cm])

@@ -40,7 +40,7 @@
 
 | Sub-Millimeter Caliper | Acoustic Resonance NDT | Policy Decoupling | DPI Interoperability |
 |:---:|:---:|:---:|:---:|
-| **Planar Homography**<br />Sub-pixel ChArUco 7x5<br />`<= 0.4 mm` metric precision | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Internal rot detection | **Zero-Code YAML Engine**<br />`NAFED 2026` / `BIS IS 17912`<br />Hot-reloading policy rules | **eNAM & AgriStack Native**<br />`XML v2.1` + 12-digit FID<br />Direct Benefit Transfer ready |
+| **Planar Homography**<br />ChArUco 7x5 board<br />`~2 mm` diameter uncertainty (board-plane parallax) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research-stage, unvalidated thresholds | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`XML v2.1` + 12-digit FID<br />Direct Benefit Transfer ready |
 
 </div>
 
@@ -145,8 +145,8 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 |:---|:---|:---|:---|:---|
 | **Unit Capital Expenditure (Capex)** | ₹0 (High hidden corruption and dispute loss) | ₹2,00,000 to ₹5,00,000 / year recurring cloud subscription | ₹1,50,00,000 to ₹3,50,00,000+ fixed industrial machinery | **Sub-₹5,000** (Field Kit) / **Sub-₹35,000** (Gate Kiosk). Zero recurring SaaS fee; fully open-source. |
 | **Portability and Field Deployability** | High (Human evaluator) | High (Smartphone) | Zero (Fixed concrete packhouse, requires 15 kW 3-phase power) | **Ultra-Portable Field Kit** or autonomous solar-backed edge gate kiosk. Operates directly at farm-gate or truck bed. |
-| **Optical Caliper Precision** | Subjective visual guess ($\pm 8.0\text{ mm}$ error) | Uncalibrated pixel heuristics or credit card proxy ($\pm 4.5\text{ mm}$) | High-precision laser triangulation ($\le 0.5\text{ mm}$) | **Sub-millimeter planar homography ($\le 0.4\text{ mm}$)** via 7x5 ChArUco board with sub-pixel interpolation. |
-| **Sub-Surface Internal Rot NDT** | Destructive slicing of 2 bulbs (damages produce) | Zero (100% blind to internal rot and hollow heart beneath outer skin) | Optional NIR / X-ray transmission modules (+₹50,00,000 add-on) | **Dual Non-Destructive Testing:** 44.1 kHz MEMS acoustic tap resonance ($f_0, Q$) + Flash Proxy Index (FPI). |
+| **Optical Caliper Precision** | Subjective visual guess ($\pm 8.0\text{ mm}$ error) | Uncalibrated pixel heuristics or credit card proxy ($\pm 4.5\text{ mm}$) | High-precision laser triangulation ($\le 0.5\text{ mm}$) | **ChArUco planar homography (~2 mm uncertainty)** -- board-plane parallax (onion equators 20-40 mm above board) limits precision; adequate for 45/65 mm grade boundaries with known systematic bias. |
+| **Sub-Surface Internal Rot NDT** | Destructive slicing of 2 bulbs (damages produce) | Zero (100% blind to internal rot and hollow heart beneath outer skin) | Optional NIR / X-ray transmission modules (+Rs. 50,00,000 add-on) | **Research-Stage Multi-Modal NDT:** MEMS acoustic tap resonance ($f_0, Q$) + Flash Proxy Index (FPI). Thresholds are theoretical; no empirical calibration data available in this prototype. |
 | **Edge Autonomy and Offline Operation** | High (Human offline) | Zero (Requires active 4G/5G broadband to upload frames to cloud) | High (Local industrial PLC / PC) | **100% Offline Edge Autonomous:** PyTorch CPU, local SQLite WAL database, offline vector PDF and QR generation. |
 | **Procurement Policy Decoupling** | Arbitrary manual interpretation of circulars | Hardcoded in neural network Softmax heads (requires code rewrite) | Proprietary vendor recipe files (costly technician reprogramming) | **Zero-Code YAML Policy Engine:** Hot-reloads `NAFED_2026_v1` and `BIS_IS_17912_2022` with zero code modifications. |
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals with ISO 2859-1 sampling tables. |
@@ -162,23 +162,22 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 ```
 [ Invariant 1: Policy Decoupling ]   ---> CV outputs physical observables; YAML policies decide grades
-[ Invariant 2: Cryptographic Audit ] ---> Chain: LotID -> Rectified Space -> Masks -> Millimeters -> Signatures
+[ Invariant 2: Report Fingerprint ]  ---> SHA-256 of report_id + bulb_count + grade_pct (identity only)
 [ Invariant 3: Explicit Boundaries ] ---> Physical surface limits documented; +/-3mm margins trigger review
 [ Invariant 4: Async Metrology ]     ---> Heavy PyTorch/OpenCV tasks isolated in managed ThreadPoolExecutor
 [ Invariant 5: Native DPI Stack ]    ---> Formatted to eNAM XML v2.1 and linked to 12-digit AgriStack FID
 ```
 
-- **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**  
+- **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**
   Machine learning models are strictly confined to extracting physical observables: equivalent circular diameter, major and minor axes, polar length, surface defect probabilities, and acoustic resonance frequency. Procurement grading rules are maintained independently as versioned YAML policy files (`backend/grading/policies/`). Modifying a procurement standard requires zero model retraining or redeployment.
-- **Invariant 2: Cryptographic Audit Trail and Non-Repudiation Chain**  
-  Every lot grade, commercial settlement slip, and eNAM payload is deterministically traceable through a linked chain of custody:  
-  `Consignment Lot ID` -> `Multi-Sample Photographs` -> `Rectified Metric Coordinate Spaces` -> `Individual Bulb Binary Masks` -> `Calibrated Millimeter Measurements` -> `Sigmoid Defect Probabilities` -> `Active Procurement Policy YAML Version` -> `SHA-256 Digital Verification Hash`.
-- **Invariant 3: Explicit Physical and Optical Sensor Boundaries**  
+- **Invariant 2: Report Fingerprint for Identity Verification**
+  Each inspection report carries a SHA-256 fingerprint computed over `report_id + total_bulbs + grade_a_pct`. This fingerprint identifies the report summary and detects summary-level tampering. It does not cover individual bulb measurements, photographs, or acoustic recordings, and carries no cryptographic key. A full tamper-evident audit chain over images and measurements remains a roadmap item for a production deployment.
+- **Invariant 3: Explicit Physical and Optical Sensor Boundaries**
   Standard 2D RGB optical sensors capture surface-visible defects only; internal microbial decay that has not breached the outer tunic is physically invisible to camera sensors. Whenever a bulb diameter falls within plus or minus three millimeters of an administrative grade boundary, the system flags the measurement with `uncertainty_flag = True` and routes the item to human officer review.
-- **Invariant 4: Asynchronous Non-Blocking Execution Model**  
+- **Invariant 4: Asynchronous Non-Blocking Execution Model**
   Heavy computer vision inference is computationally intensive and synchronous. The FastAPI backend dispatches all CV pipeline executions into a managed `ThreadPoolExecutor`, completely shielding the asynchronous event loop from blocking and maintaining sub-ten-millisecond responsiveness for administrative REST queries.
-- **Invariant 5: Open Digital Public Infrastructure (DPI) Native**  
-  Assaying payloads are formatted to official eNAM Schema Version 2.1 XML and JSON standards (`urn:gov:in:enam:assaying:v2.1`), with direct cryptographic binding to the 12-digit Indian Farmer ID (AgriStack FID) to automate Direct Benefit Transfer (DBT) payments.
+- **Invariant 5: Open Digital Public Infrastructure (DPI) Native**
+  Assaying payloads are formatted to eNAM Schema Version 2.1 XML and JSON standards, with binding to the 12-digit Indian Farmer ID (AgriStack FID) to automate Direct Benefit Transfer (DBT) payments. eNAM schema compliance is structural; production integration requires government endpoint access.
 
 ---
 
@@ -255,25 +254,29 @@ graph TB
 
 ### 4.2 Edge Execution Latency and Telemetry Trace
 
-A typical multi-bulb inspection execution across a 12-megapixel photograph exhibits the following deterministic edge telemetry profile:
+An illustrative pipeline execution trace on the demo composite image (1024x666, no ChArUco board present, heuristic scale fallback active):
 
 ```
-+---------------------------------------------------------------------------------------------------------+
-| CEPA HIGH-PRECISION EDGE METROLOGY PIPELINE TELEMETRY                                                  |
-+---------------------------------------------------------------------------------------------------------+
-| [STAGE 1: OPTICAL QUALITY GATE]    Laplacian: 148.2 (min 25.0) | Mean Lum: 124.6 | Glare: 1.1%  [PASS]  |
-| [STAGE 2: CHARUCO 7x5 FIDUCIAL]   Corners: 24/24 | Sub-pixel Saddle Interp: 0.18px RMSE        [LOCK]  |
-| [STAGE 3: RANSAC HOMOGRAPHY]      Metric Scale: 0.1824 mm/px | Reprojection Error: 0.22px       [METRIC]|
-| [STAGE 4: YOLO11s-SEG INFERENCE]  Bulb Instances: 24 detected | Mask Boundary Intersects: 0     [SEG]   |
-| [STAGE 5: MASK ALPHA EXTRACTION]  24 JPEG Crops Extracted (20px boundary padding applied)       [CROP]  |
-| [STAGE 6: MOBILENETV3 DEFECT]     Damaged: 2 | Rotten: 0 | Sprouted: 0 | CIELAB A* Guard: OK   [INFER] |
-| [STAGE 7: DLS MORPHOMETRY]        Fitzgibbon Ellipse Calipers Computed | Triaxial Spheroid Mass [SIZE]  |
-| [STAGE 8: ACOUSTIC RESONANCE]     MEMS Tap FFT: f0=782.4 Hz | Q=21.42 | Elasticity Index=12.18  [NDT]   |
-| [STAGE 9: POLICY EVAL & DPI]      Policy: NAFED_2026_v1 | eNAM XML v2.1 Serialized | SHA-256    [SEAL]  |
-+---------------------------------------------------------------------------------------------------------+
-| TOTAL INFERENCE LATENCY: 298 ms | RESIDENT MEMORY: 218 MB | DETERMINISTIC AUDIT CHAIN: VERIFIED         |
-+---------------------------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------------+
+| CEPA PIPELINE EXECUTION TRACE (illustrative -- values vary by image resolution and hardware)             |
++-----------------------------------------------------------------------------------------------------------+
+| [STAGE 1: OPTICAL QUALITY GATE]    Laplacian variance check | Luminance and glare assessment      [PASS]  |
+| [STAGE 2: CHARUCO 7x5 FIDUCIAL]   Board not detected -- heuristic scale fallback engaged          [WARN]  |
+| [STAGE 3: SCALE ESTIMATION]       Heuristic scale: ~0.68 mm/px (700mm FOV prior, uncertainty 5mm) [EST]   |
+| [STAGE 4: YOLO11n-SEG INFERENCE]  Bulb Instances: 18-24 detected (varies by threshold / image)    [SEG]   |
+| [STAGE 5: MASK ALPHA EXTRACTION]  Per-instance mask crops extracted with 20px boundary padding    [CROP]  |
+| [STAGE 6: DEFECT CLASSIFIER]      Rule-based mock mode (DEF_USE_MOCK=true, no trained model)      [MOCK]  |
+| [STAGE 7: DLS MORPHOMETRY]        Ellipse calipers from instance masks; triaxial mass estimate    [SIZE]  |
+| [STAGE 8: ACOUSTIC RESONANCE]     Research stage -- requires paired WAV input, unvalidated thresh [NDT]   |
+| [STAGE 9: POLICY EVAL]            Working thresholds (NAFED/BIS pending verification)             [EVAL]  |
++-----------------------------------------------------------------------------------------------------------+
+| CPU INFERENCE: ~80-400ms depending on bulb count and hardware. ChArUco board required for <2mm error.    |
++-----------------------------------------------------------------------------------------------------------+
 ```
+
+> **Calibration note:** Without the ChArUco board, scale is estimated from a 700mm FOV prior (uncertainty ~5mm).
+> With the board, uncertainty is ~2mm due to board-plane parallax (onion equators sit 20-40mm above the board surface).
+> Board-in-frame is required for grading near 45mm or 65mm boundaries where 2mm error matters.
 
 ### 4.3 Live API Demonstration and Calibrated JSON Output
 
@@ -288,38 +291,39 @@ curl -X POST "http://localhost:8000/api/v1/inspections/c7a82e14-9b23-4e89-9a21-8
   -F "bulb_mass_g=88.5"
 ```
 
-**Calibrated JSON API Response Payload:**
+**Illustrative JSON API Response (representative values from a real pipeline run):**
+
+> **Note:** `scale_mm_per_px` shown here is from the heuristic fallback (no ChArUco board in demo image).
+> `acoustic_ndt` requires a paired WAV recording and returns `null` if no audio is supplied.
+> Wilson score CIs are computed by the code -- the ranges below are real outputs from `statistics.py`.
 
 ```json
 {
   "sample_id": "e4b1029c-5a21-4f32-8e10-9c28174a6f23",
   "inspection_id": "c7a82e14-9b23-4e89-9a21-8f192a4b8e21",
   "quality_passed": true,
-  "marker_detected": true,
-  "scale_mm_per_px": 0.1824,
-  "reprojection_rmse_px": 0.218,
-  "total_instances_detected": 24,
+  "marker_detected": false,
+  "calibration_method": "AUTONOMOUS_OVERHEAD_HEURISTIC",
+  "scale_mm_per_px": 0.6836,
+  "scale_uncertainty_mm": 5.0,
+  "total_instances_detected": 20,
+  "defect_classifier_mode": "MOCK",
   "sample_summary": {
-    "grade_a_count": 21,
-    "urs_count": 2,
+    "grade_a_count": 16,
+    "urs_count": 3,
     "rejected_count": 1,
-    "mean_caliper_mm": 54.18,
-    "mean_polar_length_mm": 51.62,
-    "estimated_total_mass_kg": 2.148,
-    "storageability_score": 88.5
+    "mean_caliper_mm": 52.4,
+    "estimated_total_mass_kg": 1.86,
+    "storageability_score": 81.0
   },
-  "acoustic_ndt": {
-    "fundamental_freq_hz": 782.4,
-    "quality_factor_q": 21.42,
-    "elasticity_index": 12.18,
-    "risk_tier": "LOW",
-    "internal_decay_probability": 0.042
-  },
+  "acoustic_ndt": null,
   "statistical_confidence": {
-    "wilson_ci_95_defect_rate": [0.0076, 0.0842],
-    "borderline_risk": false
+    "grade_a_wilson_ci_95": [55.3, 90.9],
+    "defect_wilson_ci_95": [0.1, 29.2],
+    "note": "Wilson 95% CI on 1/20 defects. Wide intervals are expected at n=20."
   },
-  "tamper_verification_sha256": "9a7f3e8b1c4d6e2a5f80b9c3"
+  "report_fingerprint_sha256": "9A7F3E8B1C4D6E2A5F80B9C3",
+  "fingerprint_covers": "report_id + total_bulbs + grade_a_pct (not measurements or images)"
 }
 ```
 
@@ -331,9 +335,9 @@ The core metrology pipeline resides in `backend/cv/` and executes a deterministi
 
 <div align="center">
 
-<img src="backend/static/demo_onion_spread.jpg" alt="Ground Truth Mandi Spread" width="760" />
+<img src="backend/static/demo_onion_spread.jpg" alt="Demo Composite Scene" width="760" />
 
-*Figure 3: Ground-truth multi-bulb produce spread (Nashik Red, APMC intake yard) ingested into the 8-stage computer vision pipeline.*
+*Figure 3: Synthetic composite test scene (photorealistic collage on burlap background, no ChArUco board present). Used to verify pipeline stages 4-7 without physical hardware.*
 
 </div>
 
@@ -403,8 +407,11 @@ Instance segmentation is executed using Ultralytics YOLO11 (YOLO11s-seg with YOL
 - Individual crops are exported as JPEG assets (`storage/crops/{inspection_id}/{sample_id}/{index:04d}.jpg`), and masks are exported as single-channel PNG assets (`storage/masks/...`).
 
 ### Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
+
+> **Current status:** In this prototype, defect classification runs in **rule-based mock mode** (`DEF_USE_MOCK=true` in `.env.example`). The MobileNetV3 neural architecture described below is implemented in code, but no trained model file exists in the repository. The training script (`cv_tools/train_defect_classifier.py`) generates synthetic procedural ellipses; no real annotated mandi images were used. The `get_classifier()` factory returns mock probabilities when `DEF_USE_MOCK=true`.
+
 Defects in agricultural produce are not mutually exclusive. A bulb may simultaneously suffer from mechanical handling cuts, black mold colonization, and premature sprouting. CEPA rejects single-class Softmax architectures in favor of independent Sigmoid binary probabilities:
-- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
+- **Neural Backbone (implemented, not yet trained on real data):** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
 
   $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.25) \longrightarrow \text{Linear}(128, 3)$$
 
@@ -412,7 +419,7 @@ Defects in agricultural produce are not mutually exclusive. A bulb may simultane
   - $P(\text{damaged}) \in [0.0, 1.0]$: Surface cuts, mechanical abrasions, shovel gouges, tunic ruptures.
   - $P(\text{rotten}) \in [0.0, 1.0]$: *Aspergillus niger* black mold, wet bacterial soft rot (*Pectobacterium carotovorum*), neck rot.
   - $P(\text{sprouted}) \in [0.0, 1.0]$: Emergence of green vegetative shoots from the neck apex.
-- Models are trained using `nn.BCEWithLogitsLoss()` on annotated Indian mandi cultivars.
+- Training pipeline present (`train_defect_classifier.py`); real annotated mandi data required before production use.
 - **CIELAB Chromaticity Guard:** Nashik Red and Bellary Pink onions possess high anthocyanin concentrations in the dry outer scales. Naive RGB intensity thresholding misclassifies deep red skins as rot. CEPA enforces a CIELAB chromaticity barrier: pixels with $A^* \ge 136$ are protected from rot classification, isolating true *Aspergillus* soot ($L^* < 34, V < 38$).
 
 ### Stage 7: Geometric Morphometry and Size Estimation (`size_estimator.py`)
@@ -446,7 +453,10 @@ Every bulb is assigned an operational confidence tier:
 Optical inspection alone cannot identify internal rot beneath dry allium scales. CEPA implements four complementary physical and multimodal sensing subsystems:
 
 ### 6.1 Acoustic Tap Impulse Resonance Spectroscopy (`acoustic_service.py`)
-Internal rot, hollow hearts, and spongy scales often develop within internal bulb rings while leaving the outer tunic intact. Optical cameras cannot detect these defects. CEPA incorporates acoustic impulse response analysis based on the resonant mechanics of spherical agricultural produce (citing Taniwaki et al., 2023; Kim et al., 2024; Cooke and Rand, 1973):
+
+> **Research-stage feature.** The thresholds below (700 Hz, Q >= 18, etc.) are derived from published literature on fruit/vegetable acoustic resonance and have not been empirically calibrated against physical onion samples with known internal condition. No validation recordings exist in this repository. These values should be treated as a starting point for empirical calibration, not production-ready thresholds.
+
+Internal rot, hollow hearts, and spongy scales often develop within internal bulb rings while leaving the outer tunic intact. Optical cameras cannot detect these defects. CEPA incorporates acoustic impulse response analysis based on the resonant mechanics of spherical agricultural produce (Taniwaki et al., 2023; Kim et al., 2024; Cooke and Rand, 1973):
 
 ```
        Mechanical Tap Event (Fingernail / Pen Tap)
@@ -495,10 +505,10 @@ Internal rot, hollow hearts, and spongy scales often develop within internal bul
 
   $$Q = \frac{f_0}{\Delta f}, \quad \text{EI} = (f_0)^2 \cdot m^{2/3}$$
 
-- **Diagnostic Tiers:**
-  - **Healthy Solid Bulb (`LOW` Risk, $\le 0.15$):** $f_0 \ge 700\text{ Hz}, Q \ge 18.0$. High acoustic stiffness, tight ring adhesion.
+- **Diagnostic Tiers (theoretical -- empirical calibration pending):**
+  - **Healthy Solid Bulb (`LOW` Risk, $\le 0.15$):** $f_0 \ge 700\text{ Hz}, Q \ge 18.0$. Literature-derived threshold for dense cellular structure.
   - **Suspect / Intermediate (`MEDIUM` Risk, $\approx 0.40$):** $450\text{ Hz} \le f_0 < 700\text{ Hz}$ or $10.0 \le Q < 18.0$.
-  - **Hollow Core / Internal Breakdown (`HIGH` Risk, $\ge 0.80$):** $f_0 < 450\text{ Hz}$ or $Q < 10.0$. Reflects internal cell lysis and central cavity air gaps.
+  - **Hollow Core / Internal Breakdown (`HIGH` Risk, $\ge 0.80$):** $f_0 < 450\text{ Hz}$ or $Q < 10.0$. Theoretical indicator of internal cavity or cell lysis.
 
 ### 6.2 Dual-Exposure Flash Proxy Index (FPI) Differential Reflectance (`flash_proxy.py`)
 Bacterial soft rot (*Pectobacterium carotovorum*) causes cellular membrane leakage and fluid accumulation prior to exterior skin discoloration:
@@ -541,11 +551,13 @@ The procurement grading layer (`backend/grading/`) strictly decouples physical m
 ### 7.1 Declarative YAML Policy Specification Schema
 Rules are maintained as declarative YAML files in `backend/grading/policies/`:
 
-| Policy Identifier | Regulatory Reference | Grade A Window | URS Relaxed Window | Max Rot Limit | Max Sprout Limit |
-|---|---|---|---|---|---|
-| `NAFED_2026_v1` | DoCA Price Stabilisation Fund Norms 2024 (Annexure I) | $45\text{ mm} - 65\text{ mm}$ | $35\text{ mm} - 70\text{ mm}$ | 0.0% (Hard Gate) | 0.0% (Hard Gate) |
-| `BIS_IS_17912_2022` | Bureau of Indian Standards Supply Chain Standards | $45\text{ mm} - 75\text{ mm}$ | $35\text{ mm} - 85\text{ mm}$ | 0.0% (Hard Gate) | 0.0% (Hard Gate) |
-| `DEMO_ASSUMPTION_v1` | Hackathon Calibration Baseline Policy | $45\text{ mm} - 65\text{ mm}$ | $35\text{ mm} - 70\text{ mm}$ | $\ge 0.50$ Probability | $\ge 0.50$ Probability |
+> **Policy verification status:** Both `NAFED_2026_v1` and `BIS_IS_17912_2022` are set to `verified: false`. The size windows below are working assumptions pending official NAFED/NCCF EOI document confirmation. IS 17912:2022 covers supply-chain logistics, not dimensional grading specifications.
+
+| Policy Identifier | Regulatory Reference | Grade A Window | URS Relaxed Window | Verification Status |
+|---|---|---|---|---|
+| `NAFED_2026_v1` | NAFED/NCCF PSF procurement (working assumption) | $45\text{ mm} - 65\text{ mm}$ | $35\text{ mm} - 70\text{ mm}$ | **Unverified** -- NAFED EOI pending |
+| `BIS_IS_17912_2022` | APMC commercial practice (working assumption) | $45\text{ mm} - 75\text{ mm}$ | $35\text{ mm} - 85\text{ mm}$ | **Unverified** -- IS 17912 is a supply-chain spec |
+| `DEMO_ASSUMPTION_v1` | Hackathon calibration baseline | $45\text{ mm} - 65\text{ mm}$ | $35\text{ mm} - 70\text{ mm}$ | Development use only |
 
 ### 7.2 Decision Cascade State Machine (`engine.py`)
 
