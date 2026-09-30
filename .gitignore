@@ -89,3 +89,16 @@ backend/test_images/
 # Secrets
 *.pem
 *.key
+
+# AI-tool artifacts & session checkpoints
+.session-checkpoint.md
+.session-notes.md
+.handoff/
+*.handoff*
+CLAUDE.md
+AGENTS.md
+mobile/CLAUDE.md
+mobile/AGENTS.md
+mobile/.claude/
+.claude/
+

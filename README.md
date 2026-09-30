@@ -15,8 +15,8 @@
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![eNAM](https://img.shields.io/badge/eNAM-Schema_v2.1-2E7D32?style=flat-square)](https://enam.gov.in)
 [![AgriStack](https://img.shields.io/badge/AgriStack-12--Digit_FID-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-124%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
-[![License MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![Tests Passing](https://img.shields.io/badge/Tests-125%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 <br />
 
@@ -363,16 +363,16 @@ Before passing an ingested frame to machine learning models, five deterministic 
 
 - **Resolution Floor Verification:**
 
-  $$\min(W, H) \ge 360\text{ pixels}$$
+  $$\min(W, H) \ge 400\text{ pixels}$$
 
   Images below this floor contain insufficient pixel density to resolve small cuticular lesions ($< 3\text{ mm}$). Nominal operational targets exceed 1000 pixels.
 - **Laplacian Focus Measure (Blur Detection):** Computes spatial variance over the discrete Laplacian convolution:
 
   $$\text{Var}(\nabla^2 I) = \frac{1}{W \cdot H} \sum_{x=1}^{W} \sum_{y=1}^{H} \left( (I * K_{\text{Laplacian}})(x,y) - \bar{L} \right)^2$$
 
-  Where $K_{\text{Laplacian}} = \begin{bmatrix} 0 & 1 & 0 \\ 1 & -4 & 1 \\ 0 & 1 & 0 \end{bmatrix}$. If $\text{Var}(\nabla^2 I) < 25.0$, the frame is rejected with code `image_too_blurry`.
-- **Luminance Bounds Check:** Mean grayscale intensity $\bar{I} \in [25, 240]$. Frames with $\bar{I} < 25$ are rejected as `too_dark`; frames with $\bar{I} > 240$ are rejected as `too_bright`.
-- **Specular Glare Fraction:** Saturated pixels where $R, G, B \ge 250$ must not exceed 15.0% of the total frame area.
+  Where $K_{\text{Laplacian}} = \begin{bmatrix} 0 & 1 & 0 \\ 1 & -4 & 1 \\ 0 & 1 & 0 \end{bmatrix}$. If $\text{Var}(\nabla^2 I) < 80.0$, the frame is rejected with code `image_too_blurry`.
+- **Luminance Bounds Check:** Mean grayscale intensity $\bar{I} \in [40, 215]$. Frames with $\bar{I} < 40$ are rejected as `too_dark`; frames with $\bar{I} > 215$ are rejected as `too_bright`.
+- **Specular Glare Fraction:** Saturated pixels where $R, G, B \ge 250$ must not exceed 5.0% of the total frame area (`qg_glare_fraction = 0.05`).
 
 ### Stage 2: Dual-Mode Fiducial Calibration Target Detection (`marker_detector.py`)
 CEPA utilizes a standardized ChArUco 7x5 calibration board (`DICT_4X4_250`, 40 mm square length, 20 mm inner ArUco marker length):
@@ -655,7 +655,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 ### 11.2 Optical Lighting Extremes in Semi-Open Mandi Sheds
 - **Physical Reality:** Mandi intake operations occur under direct sunlight ranging from 5,000 lux (fog) to over 100,000 lux (midday direct sunlight).
 - **Operational Challenge:** Sunlight on waxy allium scales creates specular highlights exceeding 5% glare thresholds, while hand movement triggers blur rejections.
-- **Active Development Mitigation:** Re-tuned thresholds (`qg_blur_threshold = 25.0`, `qg_glare_fraction = 0.15`, min resolution $360\text{ px}$), tap-to-focus locks, and adaptive CLAHE contrast preprocessing.
+- **Active Development Mitigation:** Configured thresholds (`qg_blur_threshold = 80.0`, `qg_glare_fraction = 0.05`, min resolution $400\text{ px}$), tap-to-focus locks, and adaptive CLAHE contrast preprocessing.
 
 ### 11.3 Stock COCO Pre-Trained Weights vs Indian Cultivar Morphologies
 - **Physical Reality:** Stock YOLO11 segmentation weights detect onions using proxy categories (`apple`, `orange`).
@@ -1009,8 +1009,11 @@ Press `w` to launch the mobile client in a web browser, or scan the QR code with
 # Backend Environment Mode (development / production)
 BACKEND_ENV=production
 
-# Active Procurement Policy (NAFED_2026_v1 / BIS_IS_17912_2022 / DEMO_ASSUMPTION_v1)
-ACTIVE_GRADING_POLICY=NAFED_2026_v1
+# Active Procurement Policy (DEMO_ASSUMPTION_v1 / NAFED_2026_v1 / BIS_IS_17912_2022)
+ACTIVE_GRADING_POLICY=DEMO_ASSUMPTION_v1
+
+# Defect Classifier Mock Mode (true: rule-based mock; false: requires trained weights)
+DEF_USE_MOCK=true
 
 # CORS Allowed Origins (Comma-separated)
 CORS_ORIGINS=http://localhost:8081,http://localhost:19006,exp://localhost:8081,https://*.vercel.app
@@ -1062,6 +1065,6 @@ STORAGE_DIR=./storage
 
 **Team Better Call Coders | Smart India Hackathon (SIH 2026) | Problem Statement: SIH26031**  
 *Built for APMC Mandis, NAFED, NCCF, and Indian Agricultural Producers*  
-MIT License
+GNU Affero General Public License v3.0 (AGPL-3.0)
 
 </div>
