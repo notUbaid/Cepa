@@ -65,7 +65,9 @@ class TestHealthEndpoints:
         response = client.get("/deck")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
-        assert "CEPA — Executive Presentation" in response.text
+        assert "Cepa" in response.text
+        assert "Smart India Hackathon" in response.text
+
 
 
 class TestFullInspectionWorkflow:
@@ -250,3 +252,49 @@ class TestFullInspectionWorkflow:
         assert "ai_agronomist_verdict" in data
         assert "quality_rating" in data["ai_agronomist_verdict"]
         assert len(data["keyframes"]) > 0
+
+
+class TestStorageSecurity:
+    def test_path_traversal_blocked(self, client: TestClient):
+        # Attempting path traversal outside storage_dir must be rejected with 403
+        resp = client.get("/api/v1/storage/images/%2e%2e/%2e%2e/pyproject.toml")
+        assert resp.status_code == 403
+        assert "traversal blocked" in resp.json()["detail"].lower()
+
+    def test_nonexistent_file_returns_404(self, client: TestClient):
+        resp = client.get("/api/v1/storage/images/nonexistent_batch/missing.jpg")
+        assert resp.status_code == 404
+
+    def test_storage_auth_enforcement_when_enabled(self, client: TestClient, monkeypatch):
+        from config import settings
+        # Create a dummy file in storage_dir
+        test_file = settings.storage_dir / "images" / "test_auth" / "sample.jpg"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_bytes(b"dummy-image-bytes")
+
+        try:
+            monkeypatch.setattr(settings, "enforce_officer_auth", True)
+            monkeypatch.setattr(settings, "officer_api_key", "secret-test-key")
+
+            # 1. Unauthenticated request should be rejected with 401
+            resp = client.get("/api/v1/storage/images/test_auth/sample.jpg")
+            assert resp.status_code == 401
+
+            # 2. Invalid officer token should be rejected with 401
+            resp_bad = client.get(
+                "/api/v1/storage/images/test_auth/sample.jpg",
+                headers={"X-Officer-Token": "wrong-token"},
+            )
+            assert resp_bad.status_code == 401
+
+            # 3. Valid officer token should be authorized with 200
+            resp_good = client.get(
+                "/api/v1/storage/images/test_auth/sample.jpg",
+                headers={"X-Officer-Token": "secret-test-key"},
+            )
+            assert resp_good.status_code == 200
+            assert resp_good.content == b"dummy-image-bytes"
+        finally:
+            if test_file.exists():
+                test_file.unlink()
+

@@ -10,13 +10,15 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
 from config import settings
-from database import create_all_tables
-from routers import health, inspections, reports
+from database import create_all_tables, get_db
+from routers import health, inspections, reports, storage
 from services.inspection_service import initialize_cv_components
 
 # Configure logging
@@ -34,7 +36,7 @@ async def lifespan(app: FastAPI):
     Initializes runtime directories, database tables, and CV/grading components once at startup.
     """
     logger.info("Initializing Cepa backend service (env=%s)...", settings.backend_env)
-    
+
     # 1. Ensure required runtime storage directories exist
     settings.ensure_dirs()
 
@@ -72,7 +74,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS Middleware ───────────────────────────────────────────────────────────
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -81,19 +83,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Static File Serving (Crops, Masks, Reports, Images) ───────────────────────
-settings.ensure_dirs()
-app.mount("/static", StaticFiles(directory=str(settings.storage_dir)), name="static")
-
-# ── Interactive Mandi Inspector Web Studio ────────────────────────────────────
-from fastapi.responses import FileResponse, RedirectResponse
+# Interactive Mandi Inspector Web Studio
 static_ui_dir = Path(__file__).parent / "static"
 if static_ui_dir.exists():
     app.mount("/ui", StaticFiles(directory=str(static_ui_dir)), name="ui")
 
+
 @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 async def root_redirect():
     return RedirectResponse(url="/inspector")
+
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -103,12 +102,14 @@ async def favicon():
     from fastapi import Response
     return Response(status_code=204)
 
+
 @app.get("/inspector", include_in_schema=False)
 async def serve_inspector():
     index_path = static_ui_dir / "inspector.html"
     if index_path.exists():
         return FileResponse(index_path)
     return {"message": "Inspector UI not found"}
+
 
 @app.get("/deck", include_in_schema=False)
 async def serve_deck():
@@ -117,6 +118,7 @@ async def serve_deck():
         return FileResponse(deck_path)
     return {"message": "Presentation deck not found"}
 
+
 @app.get("/calibration-board", include_in_schema=False)
 async def download_calibration_board():
     pdf_path = static_ui_dir / "charuco_board_7x5_40mm_A4_printable.pdf"
@@ -124,14 +126,33 @@ async def download_calibration_board():
         return FileResponse(
             pdf_path,
             media_type="application/pdf",
-            filename="cepa_charuco_7x5_calibration_board_A4.pdf"
+            filename="cepa_charuco_7x5_calibration_board_A4.pdf",
         )
     return {"message": "Calibration board PDF not found"}
 
-# ── Register Routers ──────────────────────────────────────────────────────────
+
+# Protected legacy /static bridge -- routes through secure storage verification
+@app.get("/static/{file_path:path}", include_in_schema=False)
+async def protected_static_proxy(
+    file_path: str,
+    token: str | None = None,
+    x_officer_token: str | None = Header(None, alias="X-Officer-Token"),
+    db: Session = Depends(get_db),
+):
+    return await storage.serve_stored_file(
+        file_path=file_path,
+        token=token,
+        x_officer_token=x_officer_token,
+        db=db,
+    )
+
+
+# Register Routers
 app.include_router(health.router)
 app.include_router(inspections.router)
 app.include_router(reports.router)
+app.include_router(storage.router)
+
 
 if __name__ == "__main__":
     import uvicorn

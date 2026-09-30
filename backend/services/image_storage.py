@@ -2,14 +2,14 @@
 Image Storage Service
 
 Manages all file I/O for inspection images, crops, masks, and reports.
-Uses relative paths internally — absolute paths are constructed at read time.
+Uses relative paths internally -- absolute paths are constructed at read time.
 This makes storage portable (changing the storage directory is a config change).
 
 Path structure:
-  {storage_dir}/images/{inspection_id}/{sample_id}.jpg    — original image
-  {storage_dir}/crops/{inspection_id}/{sample_id}/{idx:04d}.jpg  — onion crops
-  {storage_dir}/masks/{inspection_id}/{sample_id}/{idx:04d}.png  — binary masks
-  {storage_dir}/reports/{report_id}.pdf                   — generated reports
+  {storage_dir}/images/{inspection_id}/{sample_id}.jpg    -- original image
+  {storage_dir}/crops/{inspection_id}/{sample_id}/{idx:04d}.jpg  -- onion crops
+  {storage_dir}/masks/{inspection_id}/{sample_id}/{idx:04d}.png  -- binary masks
+  {storage_dir}/reports/{report_id}.pdf                   -- generated reports
 """
 from __future__ import annotations
 
@@ -43,14 +43,19 @@ def get_absolute_path(relative_path: str) -> Path:
     return settings.storage_dir / relative_path
 
 
-def path_to_url(relative_path: str | None, base_url: str | None = None) -> str | None:
+def path_to_url(
+    relative_path: str | None,
+    base_url: str | None = None,
+    share_token: str | None = None,
+) -> str | None:
     """
-    Build a URL for serving a stored file.
-
-    For the PoC, files are served directly by FastAPI's StaticFiles.
-    The URL pattern is: /static/{relative_path}
+    Build an authorized URL for serving a stored file.
+    The URL pattern is: /api/v1/storage/{relative_path}
     """
     if relative_path is None:
         return None
     base = base_url or settings.report_base_url.rstrip("/")
-    return f"{base}/static/{relative_path}"
+    url = f"{base}/api/v1/storage/{relative_path}"
+    if share_token:
+        url += f"?token={share_token}"
+    return url
