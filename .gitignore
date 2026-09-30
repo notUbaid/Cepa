@@ -102,4 +102,11 @@ mobile/CLAUDE.md
 mobile/AGENTS.md
 mobile/.claude/
 .claude/
-
+# ML Datasets & raw archives (exclude large datasets)
+*.zip
+dataverse_files/
+"Image Dataset of Red and White Onion Bulbs and Lea/"
+ml/datasets/
+ml/models/
+ml/checkpoints/
+ml/ram_plus_plus/

@@ -27,8 +27,8 @@ function resolveDefaultApiBaseUrl(): string {
   }
 
   return Platform.select({
-    android: 'http://10.0.2.2:8000',
-    default: 'http://localhost:8000',
+    android: 'http://10.0.2.2:8001',
+    default: 'http://localhost:8001',
   })!;
 }
 

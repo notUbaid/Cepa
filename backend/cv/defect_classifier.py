@@ -37,6 +37,7 @@ DEFECT_CLASSIFIER_MOCK_VERSION = "mock-defect-classifier:v1"
 @dataclass
 class DefectPrediction:
     """Per-onion defect classification output."""
+    good_prob: float
     damaged_prob: float
     rotten_prob: float
     sprouted_prob: float
@@ -45,6 +46,7 @@ class DefectPrediction:
 
     def as_dict(self) -> dict:
         return {
+            "good_prob": self.good_prob,
             "damaged_prob": self.damaged_prob,
             "rotten_prob": self.rotten_prob,
             "sprouted_prob": self.sprouted_prob,
@@ -139,6 +141,7 @@ class MockDefectClassifier(DefectClassifier):
             probs = rng.beta([2, 2, 2], [8, 8, 8])
 
         return DefectPrediction(
+            good_prob=float(np.clip(probs[3] if len(probs) > 3 else 0.7, 0.0, 1.0)),
             damaged_prob=float(np.clip(probs[0], 0.0, 1.0)),
             rotten_prob=float(np.clip(probs[1], 0.0, 1.0)),
             sprouted_prob=float(np.clip(probs[2], 0.0, 1.0)),
@@ -158,7 +161,7 @@ except ImportError:
 
 
 class OnionDefectClassifierNet(nn.Module if _TORCH_AVAILABLE else object):
-    """MobileNetV3-Small backbone with multi-label sigmoid classifier."""
+    """MobileNetV3-Small backbone with 4-class Softmax classifier."""
     def __init__(self) -> None:
         if not _TORCH_AVAILABLE:
             raise RuntimeError("PyTorch is required for OnionDefectClassifierNet")
@@ -170,7 +173,7 @@ class OnionDefectClassifierNet(nn.Module if _TORCH_AVAILABLE else object):
             nn.Linear(in_features, 128),
             nn.Hardswish(),
             nn.Dropout(p=0.2),
-            nn.Linear(128, 3),
+            nn.Linear(128, 4),
         )
         self.net = backbone
 
@@ -244,35 +247,84 @@ class RealDefectClassifier(DefectClassifier):
         tensor = self._transform(rgb).unsqueeze(0).to(self._device)
 
         with torch.no_grad():
-            logits = self._model(tensor)          # (1, 3) raw logits
-            probs = torch.sigmoid(logits).squeeze(0).cpu().numpy()
+            logits = self._model(tensor)          # (1, 4) raw logits
+            probs = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()
 
         return DefectPrediction(
-            damaged_prob=float(probs[0]),
-            rotten_prob=float(probs[1]),
-            sprouted_prob=float(probs[2]),
+            good_prob=float(probs[0]),
+            damaged_prob=float(probs[1]),
+            rotten_prob=float(probs[2]),
+            sprouted_prob=float(probs[3]),
             model_version=self._version_str,
             is_mock=False,
         )
 
 
+class PipelineDefectClassifier(DefectClassifier):
+    """
+    Genuine ML pipeline integrating trained PyTorch model + RAM++
+    """
+    def __init__(self, config_path: str = "ml/config.yaml"):
+        from ml.inference import QualityInferencePipeline
+        import os
+        from pathlib import Path
+        
+        # Resolve config path relative to project root
+        root_dir = Path(__file__).parent.parent.parent
+        abs_config = str(root_dir / config_path)
+        
+        self.pipeline = QualityInferencePipeline(abs_config)
+        self._version_str = self.pipeline.model_version
+
+    @property
+    def model_version(self) -> str:
+        return self._version_str
+
+    @property
+    def is_mock(self) -> bool:
+        return False
+
+    def classify(self, crop_image: np.ndarray) -> DefectPrediction:
+        try:
+            result = self.pipeline.predict(crop_image)
+            probs = result["adjusted_probs"]
+            
+            return DefectPrediction(
+                damaged_prob=probs["damaged_prob"],
+                rotten_prob=probs["rotten_prob"],
+                sprouted_prob=probs["sprouted_prob"],
+                model_version=self._version_str,
+                is_mock=False,
+            )
+        except Exception as e:
+            logger.exception("Pipeline classification failed, falling back to mock")
+            return MockDefectClassifier().classify(crop_image)
+
 def get_classifier(use_mock: bool, model_path: str | None = None) -> DefectClassifier:
     """
     Factory function: returns the appropriate defect classifier.
-
-    Args:
-        use_mock: If True, always use MockDefectClassifier.
-        model_path: Path to real model weights (required if use_mock=False).
     """
     if use_mock:
         logger.info("Using MockDefectClassifier — results will be labelled [MOCK]")
         return MockDefectClassifier()
+    
+    # Try Pipeline Classifier first if ml directory exists
+    from pathlib import Path
+    root_dir = Path(__file__).parent.parent.parent
+    if (root_dir / "ml" / "config.yaml").exists():
+        try:
+            logger.info("Loading Genuine ML Pipeline (Trained Model + RAM++)")
+            return PipelineDefectClassifier()
+        except Exception:
+            logger.exception("Failed to load PipelineDefectClassifier")
+            
     if model_path:
         try:
             clf = RealDefectClassifier(model_path)
             if clf._model is not None:
                 return clf
         except Exception:
-            logger.exception("RealDefectClassifier failed to load, falling back to mock")
-    logger.warning("Falling back to MockDefectClassifier — no valid model path provided")
+            logger.exception("RealDefectClassifier failed to load")
+            
+    logger.warning("Falling back to MockDefectClassifier — no valid model found")
     return MockDefectClassifier()

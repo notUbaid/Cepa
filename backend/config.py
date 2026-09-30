@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_origins: str = (
         "http://localhost:8081,http://localhost:19006,exp://localhost:8081,"
-        "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000"
+        "http://localhost:8000,http://127.0.0.1:8000,http://localhost:8001,http://127.0.0.1:8001,"
+        "http://localhost:3000,http://localhost:4173,http://127.0.0.1:4173"
     )
 
     @property
@@ -85,9 +86,8 @@ class Settings(BaseSettings):
     max_video_upload_mb: int = 100
     max_audio_upload_mb: int = 10
 
-    # ── Defect classifier ────────────────────────────────────────────────────
     def_model_path: Path = Path(__file__).resolve().parent / "weights" / "defect_classifier.pt"
-    def_use_mock: bool = True          # Default: mock mode (set to False when real weights active)
+    def_use_mock: bool = False         # Real trained deep model is active
 
     # ── ChArUco calibration board ────────────────────────────────────────────
     charuco_square_length_mm: float = 40.0

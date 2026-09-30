@@ -1,0 +1,14 @@
+model:
+  name: "mobilenet_v3_small"
+  num_classes: 3
+  weights_path: "ml/models/onion_quality/best.pt"
+  
+ram_plus_plus:
+  enabled: true
+  model_type: "swin_b"
+  image_size: 384
+  
+inference:
+  quality_thresholds:
+    good_min_score: 75.0
+    bad_max_score: 45.0

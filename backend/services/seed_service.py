@@ -10,6 +10,7 @@ was wiped, this service seeds a known-good, verified demo inspection complete wi
 """
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -124,7 +125,7 @@ def seed_demo_data_if_empty() -> None:
                 bbox_y=50 + (idx // 5) * 140,
                 bbox_w=120,
                 bbox_h=110,
-                confidence=0.92,
+                segmentation_conf=0.92,
                 touches_border=False,
                 crop_path=f"crops/{inspection.id}/{sample.id}/{idx:04d}.jpg",
                 mask_path=f"masks/{inspection.id}/{sample.id}/{idx:04d}.png",
@@ -140,6 +141,7 @@ def seed_demo_data_if_empty() -> None:
                 polar_length_mm=pol_l,
                 estimated_weight_grams=mass,
                 mandi_size_grade=size_tier,
+                mask_area_px=int(3.14159 * ((eq_d / (2 * 0.6836)) ** 2)),
                 scale_mm_per_px=0.6836,
                 uncertainty_flag=uncert,
             )
@@ -153,6 +155,7 @@ def seed_demo_data_if_empty() -> None:
                 sprouted_prob=p_spr,
                 model_version="mock-defect-classifier:v1",
                 is_mock=True,
+                final_decision=json.dumps({"damaged_prob": p_dmg, "rotten_prob": p_rot, "sprouted_prob": p_spr}),
             )
             db.add(defect)
 
@@ -160,6 +163,7 @@ def seed_demo_data_if_empty() -> None:
                 id=f"clf-{inst.id}",
                 onion_instance_id=inst.id,
                 grade=grade,
+                rejection_reasons="[]" if grade == "GRADE_A" else json.dumps([grade]),
                 confidence_tier="HIGH" if grade == "GRADE_A" else "NEEDS_REVIEW",
                 ruleset_version="DEMO_ASSUMPTION_v1",
                 explanation=f"{'Grade A Prime' if grade == 'GRADE_A' else grade}",
@@ -169,16 +173,17 @@ def seed_demo_data_if_empty() -> None:
         # Seed Report
         report = Report(
             id=DEMO_REPORT_ID,
+            report_id=DEMO_REPORT_ID,
             inspection_id=inspection.id,
             total_bulbs=20,
             grade_a_count=16,
             urs_count=3,
             rejected_count=1,
+            defect_counts=json.dumps({"damaged": 3, "rotten": 1, "sprouted": 0}),
             ruleset_version="DEMO_ASSUMPTION_v1",
             model_version="yolo11n-seg:mandi-onion-v1",
             share_token=DEMO_SHARE_TOKEN,
             pdf_path=f"reports/{DEMO_REPORT_ID}.pdf",
-            report_id=DEMO_REPORT_ID,
             sampling_note="Seeded demo lot: 1 sample photo (20 bulbs). Does not represent a real consignment.",
             created_at=now,
         )

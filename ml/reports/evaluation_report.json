@@ -1,0 +1,12 @@
+{
+    "dataset_size": 35,
+    "class_distribution": {
+        "Healthy": 10,
+        "Damaged": 9,
+        "Rotten": 5,
+        "Sprouted": 11
+    },
+    "bad_images": 25,
+    "bad_as_good_errors": 1,
+    "bad_recall": 0.96
+}

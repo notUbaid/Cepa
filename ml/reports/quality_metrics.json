@@ -1,0 +1,11 @@
+{
+    "status": "INSUFFICIENT DATA FOR RELIABLE GENERALIZATION",
+    "total_test_images": 4,
+    "overall_accuracy": 0.25,
+    "precision_bad": 1.0,
+    "recall_bad": 0.25,
+    "f1_bad": 0.4,
+    "bad_to_good_fn_rate": 0.75,
+    "bad_to_good_fn_count": 3,
+    "total_bad_test_images": 4
+}

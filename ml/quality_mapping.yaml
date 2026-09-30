@@ -1,0 +1,41 @@
+# Map RAM++ semantic tags to defects
+ram_tag_mapping:
+  rotten:
+    - "mold"
+    - "decay"
+    - "rot"
+    - "fungus"
+    - "black mold"
+    - "spoilage"
+    - "pest"
+    - "insect"
+    - "bug"
+    - "beetle"
+  sprouted:
+    - "sprout"
+    - "green shoot"
+    - "root"
+    - "growing"
+  damaged:
+    - "cut"
+    - "bruise"
+    - "crack"
+    - "split"
+    - "peeled"
+    - "damage"
+  healthy:
+    - "clean"
+    - "fresh"
+    - "smooth"
+    - "whole"
+
+# Weights for final quality score
+weights:
+  model_prob_weight: 0.6
+  ram_tag_weight: 0.4
+
+# Penalties per detected defect (0-100 scale)
+penalties:
+  rotten: 60
+  sprouted: 40
+  damaged: 30
