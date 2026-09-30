@@ -37,7 +37,7 @@ class BulbGradingResult:
     """
     Per-bulb grading decision from the rules engine.
 
-    All fields are populated regardless of grade — the explanation JSON
+    All fields are populated regardless of grade -- the explanation JSON
     always records which rules were applied and what values were used.
     """
     grade: str          # "GRADE_A" | "URS" | "REJECTED" | "NEEDS_REVIEW"
@@ -95,7 +95,7 @@ class GradingEngine:
                 rejection_reasons=["CONFIDENCE_UNUSABLE"],
                 explanation={
                     **explanation,
-                    "reason": "Confidence tier is UNUSABLE — reliable grading not possible.",
+                    "reason": "Confidence tier is UNUSABLE -- reliable grading not possible.",
                     "confidence_reasons": "; ".join(confidence.reasons),
                 },
             )
@@ -125,7 +125,7 @@ class GradingEngine:
             explanation["defects"] = "Defect classification not available"
 
         # ── Hard rejection checks (apply before any size checks) ───────────────
-        # These are absolute — no exceptions in any grade category.
+        # These are absolute -- no exceptions in any grade category.
         if p.hard_rejection.get("rotten_always_rejected", True) and is_rotten:
             reasons.append("ROTTEN")
         if p.hard_rejection.get("sprouted_always_rejected", True) and is_sprouted:
@@ -133,7 +133,7 @@ class GradingEngine:
 
         # ── Size checks ────────────────────────────────────────────────────────
         size_mm = size_estimate.equivalent_diameter_mm if size_estimate is not None else None
-        size_note = "No size measurement available — calibration marker not detected."
+        size_note = "No size measurement available -- calibration marker not detected."
 
         if size_mm is not None:
             urs_min = p.size.urs_min_mm
@@ -167,7 +167,7 @@ class GradingEngine:
                 explanation=explanation,
             )
 
-        # ── No hard rejections — try for Grade A ───────────────────────────────
+        # ── No hard rejections -- try for Grade A ───────────────────────────────
         if size_mm is not None:
             ga_min, ga_max = p.size.grade_a_min_mm, p.size.grade_a_max_mm
             in_grade_a_range = ga_min <= size_mm <= ga_max
@@ -205,7 +205,7 @@ class GradingEngine:
                     explanation["grade_decision"] = (
                         f"URS criteria met: size_in_urs_range={urs_size_ok}, "
                         f"not_rotten={urs_rotten_ok}, not_sprouted={urs_sprouted_ok}. "
-                        f"Note: Grade A failed — "
+                        f"Note: Grade A failed -- "
                         f"size_in_grade_a={in_grade_a_range}, "
                         f"damaged={is_damaged}"
                     )
@@ -234,7 +234,7 @@ class GradingEngine:
                         explanation=explanation,
                     )
             else:
-                # URS not active — size outside Grade A = REJECTED
+                # URS not active -- size outside Grade A = REJECTED
                 explanation["grade_decision"] = (
                     f"URS category not active (policy.urs_active=False). "
                     f"Size {size_mm:.1f}mm outside Grade A range. → REJECTED"
@@ -248,11 +248,11 @@ class GradingEngine:
 
         # ── No size measurement → cannot determine Grade A ──────────────────────
         explanation["grade_decision"] = (
-            "Size measurement unavailable. Cannot determine Grade A or URS eligibility."
+            "unscaled, needs review (no calibration marker detected)"
         )
         return BulbGradingResult(
             grade="NEEDS_REVIEW",
             confidence_tier="NEEDS_REVIEW",
-            rejection_reasons=["SIZE_UNKNOWN"],
+            rejection_reasons=["SIZE_UNKNOWN", "UNSCALED_NO_CALIBRATION_MARKER"],
             explanation=explanation,
         )

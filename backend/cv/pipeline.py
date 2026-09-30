@@ -317,43 +317,19 @@ def run_pipeline(
         for i, vd in enumerate(valid_detections)
     ]
 
-    # Refine autonomous scale with empirical bulb population prior.
-    # Pile/background blobs have already been filtered above, so the remaining
-    # detections are valid candidate bulbs.  We estimate the physical mm/px scale
-    # by assuming the median detected bulb diameter in pixels corresponds to the
-    # Indian APMC typical adult onion median diameter of 52.5mm.
-    #
-    # Weight: 75% empirical bulb-size prior + 25% FOV geometric prior.
-    # The 700mm FOV geometric prior is calibrated for a ~65cm overhead bench shot
-    # and is wildly wrong for close-up phone photos.  The empirical prior dominates.
-    if calibration.is_estimated and len(detections) >= 1:
-        bulb_diameters_px = []
-        for d in detections:
-            area_px = float(np.count_nonzero(d.mask))
-            if area_px > 0:
-                diam_px = 2.0 * np.sqrt(area_px / np.pi)
-                # Only include plausible single-bulb pixel diameters (20px-2000px)
-                if 20.0 < diam_px < 2000.0:
-                    bulb_diameters_px.append(diam_px)
-
-        if bulb_diameters_px:
-            med_diam_px = float(np.median(bulb_diameters_px))
-            # Indian APMC typical adult onion median equatorial diameter is 52.5mm
-            if med_diam_px > 25.0:
-                empirical_scale = 52.5 / med_diam_px
-                # 75% bulb prior + 25% FOV geometric prior
-                blended_scale = 0.25 * (calibration.scale_mm_per_px or 0.36) + 0.75 * empirical_scale
-                blended_scale = float(np.clip(
-                    blended_scale,
-                    settings.scale_min_mm_per_px,
-                    settings.scale_max_mm_per_px,
-                ))
-                calibration.scale_mm_per_px = blended_scale
-                result.scale_mm_per_px = blended_scale
-                logger.info(
-                    "Refined autonomous scale with bulb prior (75%%/25%%): med_px=%.1f -> scale=%.4f mm/px",
-                    med_diam_px, blended_scale,
-                )
+    # Honest metrology policy: If no physical calibration marker (ChArUco) was detected,
+    # we NEVER fabricate a mm/px scale from circular bulb priors (e.g. 52.5mm median assumption).
+    # Doing so falsely forces small or large bulbs toward 52.5mm Grade A.
+    # Without a physical marker, scale is set to None. Downstream physical size estimation is skipped,
+    # and all bulbs are graded as "NEEDS_REVIEW" (unscaled, needs review).
+    if calibration.is_estimated or not calibration.perspective_valid:
+        calibration.scale_mm_per_px = None
+        result.scale_mm_per_px = None
+        result.calibration_method = "UNSCALED"
+        result.quality_flags.append("unscaled_no_marker")
+        logger.info(
+            "No physical calibration marker detected. Scale set to None; bulbs will be marked 'unscaled, needs review'."
+        )
 
     # Post-processing quality checks
     n_border = sum(1 for d in detections if d.touches_border)

@@ -85,14 +85,15 @@ class YOLO11SegmentationProvider(SegmentationProvider):
                     self._target_class_ids = onion_ids
                     logger.info("Loaded custom onion segmentation weights (classes: %s)", self._target_class_ids)
                 else:
-                    # COCO pretrained fallback classes resembling bulbous produce
-                    proxy_classes = {"apple", "orange", "sports ball", "bowl"}
+                    # COCO pretrained fallback: strictly restrict to circular produce items only
+                    # Never allow person (class 0 in COCO), clothing, sacks, hands, or background objects
+                    proxy_classes = {"apple", "orange"}
                     self._target_class_ids = {k for k, v in names.items() if str(v).lower() in proxy_classes}
-                    logger.info("Loaded COCO weights with produce proxies: %s", self._target_class_ids)
+                    logger.warning("Loaded COCO weights without onion class. Restricted to produce proxies: %s", self._target_class_ids)
             else:
                 self._target_class_ids = {0}
 
-            logger.info("YOLO11 model loaded from %s", self._model_path)
+            logger.info("YOLO11 model loaded from %s (target classes: %s)", self._model_path, self._target_class_ids)
         except Exception:
             logger.exception("Failed to load YOLO11 model from %s", self._model_path)
             self._model = None
@@ -108,6 +109,7 @@ class YOLO11SegmentationProvider(SegmentationProvider):
     def detect(self, image: np.ndarray) -> SegmentationResult:
         """
         Run YOLO11-seg on the given BGR image with morphological mask refinement.
+        Strictly segments only target onion/produce classes.
         """
         if not self.is_ready:
             logger.warning("YOLO11 model not ready, returning empty detections")
@@ -120,12 +122,14 @@ class YOLO11SegmentationProvider(SegmentationProvider):
 
         # Sensitive base threshold for dual-confidence recovery
         base_conf = min(0.20, self._conf)
+        target_classes_list = list(self._target_class_ids) if self._target_class_ids else None
 
         try:
             results = self._model.predict(
                 source=image,
                 conf=base_conf,
                 iou=self._iou,
+                classes=target_classes_list,
                 device=self._device,
                 verbose=False,
             )

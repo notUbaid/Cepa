@@ -5,7 +5,7 @@ Estimates physical size, equatorial caliper diameter, polar axis length,
 bulb shape index, and volumetric weight from segmentation masks and mm/pixel scale.
 
 Conforms to:
-- BIS IS 17912:2022 (Supply Chain of Onions — Guidelines for Grading and Handling)
+- BIS IS 17912:2022 (Supply Chain of Onions -- Guidelines for Grading and Handling)
 - NAFED & APMC Mandi Sizing Specs (Goli, Madhyam, Super, Jumbo)
 - ICAR-DOGR (Directorate of Onion and Garlic Research) onion density standards
 
@@ -22,7 +22,7 @@ Primary metrics:
 6. mandi_size_grade:
    - GOLI (< 35 mm)
    - MADHYAM (35 - 45 mm)
-   - SUPER (45 - 65 mm — NAFED Grade A)
+   - SUPER (45 - 65 mm -- NAFED Grade A)
    - JUMBO (> 65 mm)
 """
 from __future__ import annotations
@@ -119,22 +119,25 @@ def _detect_stem_and_root_poles(
     med_k = float(np.median(curvatures)) + 1e-5
     has_curvature_spike = (max_k / med_k) > 4.0
 
-    # Decision: Oblate vs Torpedo/Globular
-    # In Indian onions (Nashik Red, Bellary), flat/oblate varieties have the stem and root
-    # along the MINOR axis and the equatorial caliper along the MAJOR axis (S < 0.82).
-    if aspect < 0.82:
-        # Oblate bulb: Polar axis is along minor axis, Equator is along major axis
+    # Decision: Oblate / Globular vs Torpedo / Spurred
+    # In APMC mandi sorting (Nashik Red, Bellary Pink, Mahuva White), onions rest flat
+    # with the equator along the widest dimension (major axis).
+    # When aspect < 0.82, the bulb is OBLATE (polar axis is along minor axis, equator is major axis).
+    # When 0.82 <= aspect <= 1.15, the bulb is GLOBULAR (polar axis is minor axis, equator is major axis).
+    # Only when a prominent pointed neck/sprout spike is detected on a strongly elongated bulb
+    # (has_curvature_spike with aspect < 0.50) is the polar axis aligned with the major axis.
+    if has_curvature_spike and aspect < 0.50:
+        # For elongated torpedo or spurred bulbs with distinct pointed apex, polar axis is along major axis
+        p1 = (int(cx + (ax_major / 2.0) * u_maj[0]), int(cy + (ax_major / 2.0) * u_maj[1]))
+        p2 = (int(cx - (ax_major / 2.0) * u_maj[0]), int(cy - (ax_major / 2.0) * u_maj[1]))
+        polar_len_px = float(ax_major)
+        eq_diam_px = float(ax_minor)
+    else:
+        # Oblate & Globular: Equator is along major axis, Polar axis is along minor axis
         p1 = (int(cx + (ax_minor / 2.0) * u_min[0]), int(cy + (ax_minor / 2.0) * u_min[1]))
         p2 = (int(cx - (ax_minor / 2.0) * u_min[0]), int(cy - (ax_minor / 2.0) * u_min[1]))
         polar_len_px = float(ax_minor)
         eq_diam_px = float(ax_major)
-        return p1, p2, max(1.0, polar_len_px), max(1.0, eq_diam_px)
-
-    # For elongated or spurred bulbs, polar axis is along major axis
-    p1 = (int(cx + (ax_major / 2.0) * u_maj[0]), int(cy + (ax_major / 2.0) * u_maj[1]))
-    p2 = (int(cx - (ax_major / 2.0) * u_maj[0]), int(cy - (ax_major / 2.0) * u_maj[1]))
-    polar_len_px = float(ax_major)
-    eq_diam_px = float(ax_minor)
 
     return p1, p2, max(1.0, polar_len_px), max(1.0, eq_diam_px)
 
