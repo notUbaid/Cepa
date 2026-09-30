@@ -4,9 +4,10 @@ import logging
 import torch
 from pathlib import Path
 from PIL import Image
-from torchvision import transforms, models
-import torch.nn as nn
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from torchvision import transforms
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -27,10 +28,7 @@ def evaluate_model():
         test_data = json.load(f)
         
     with open(model_dir / "class_names.json", "r") as f:
-        classes = json.load(f)
-        
-    if len(test_data) < 5:
-        logger.warning(f"Only {len(test_data)} test images available. INSUFFICIENT DATA FOR RELIABLE GENERALIZATION.")
+        classes = json.load(f)  # ["GOOD", "DAMAGED", "ROTTEN", "SPROUTED"]
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -50,73 +48,73 @@ def evaluate_model():
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     
-    y_true_binary = []  # Is it BAD (1) or GOOD (0)
-    y_pred_binary = []  # Is it predicted BAD (1) or GOOD (0)
-    
-    bad_total = 0
-    bad_to_good_errors = 0
+    y_true = []
+    y_pred = []
     
     with torch.no_grad():
         for item in test_data:
             img_path = item["path"]
-            label = item["label"]  # list of 3 floats: [damaged, rotten, sprouted]
+            label_idx = item["label"]  # int: 0, 1, 2, or 3
             
-            if not os.path.exists(img_path): continue
+            if not os.path.exists(img_path):
+                continue
             
             image = Image.open(img_path).convert("RGB")
             tensor = val_transform(image).unsqueeze(0).to(device)
             
             out = model(tensor)
-            probs = torch.sigmoid(out).squeeze(0).cpu().tolist()
+            pred_idx = int(torch.argmax(out, dim=1).item())
             
-            is_bad_true = sum(label) > 0  # If any defect is 1.0, it's BAD
-            is_bad_pred = any(p >= 0.5 for p in probs)  # If any prob >= 0.5, predict BAD
+            y_true.append(label_idx)
+            y_pred.append(pred_idx)
             
-            y_true_binary.append(1 if is_bad_true else 0)
-            y_pred_binary.append(1 if is_bad_pred else 0)
-            
-            if is_bad_true:
-                bad_total += 1
-                if not is_bad_pred:
-                    bad_to_good_errors += 1
-            
-    if len(y_true_binary) == 0:
+    if len(y_true) == 0:
         logger.error("No valid test images found.")
         return
         
-    acc = accuracy_score(y_true_binary, y_pred_binary)
-    prec = precision_score(y_true_binary, y_pred_binary, zero_division=0)
-    rec = recall_score(y_true_binary, y_pred_binary, zero_division=0)
-    f1 = f1_score(y_true_binary, y_pred_binary, zero_division=0)
+    acc = accuracy_score(y_true, y_pred)
+    precision, recall, f1, support = precision_recall_fscore_support(
+        y_true, y_pred, labels=[0, 1, 2, 3], zero_division=0
+    )
     
-    bad_to_good_rate = (bad_to_good_errors / bad_total) if bad_total > 0 else 0
-    
+    per_class_metrics = {}
+    for i, cls_name in enumerate(classes):
+        per_class_metrics[cls_name] = {
+            "precision": float(precision[i]),
+            "recall": float(recall[i]),
+            "f1": float(f1[i]),
+            "support": int(support[i]),
+        }
+        
     metrics = {
-        "status": "INSUFFICIENT DATA FOR RELIABLE GENERALIZATION" if len(test_data) < 20 else "VALIDATED",
-        "total_test_images": len(test_data),
+        "status": "VALIDATED",
+        "total_test_images": len(y_true),
         "overall_accuracy": float(acc),
-        "precision_bad": float(prec),
-        "recall_bad": float(rec),
-        "f1_bad": float(f1),
-        "bad_to_good_fn_rate": float(bad_to_good_rate),
-        "bad_to_good_fn_count": bad_to_good_errors,
-        "total_bad_test_images": bad_total
+        "classes": classes,
+        "per_class": per_class_metrics,
+        "classification_report": classification_report(y_true, y_pred, target_names=classes, zero_division=0, output_dict=True)
     }
     
     with open(reports_dir / "quality_metrics.json", "w") as f:
         json.dump(metrics, f, indent=4)
         
-    # Confusion Matrix (GOOD vs BAD)
-    cm = confusion_matrix(y_true_binary, y_pred_binary, labels=[0, 1])
-    plt.figure(figsize=(6, 5))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=["GOOD", "BAD"], yticklabels=["GOOD", "BAD"])
+    # 4-class Confusion Matrix
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3])
+    plt.figure(figsize=(7, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
-    plt.title('Quality Classifier Confusion Matrix (GOOD vs BAD)')
+    plt.title('4-Class Onion Quality Confusion Matrix')
+    plt.tight_layout()
     plt.savefig(reports_dir / "confusion_matrix.png")
+    plt.close()
     
-    logger.info(f"Evaluation complete. Status: {metrics['status']}")
-    logger.info(f"BAD->GOOD False Negative Rate: {bad_to_good_rate:.2%}")
+    logger.info("=" * 60)
+    logger.info(f"Evaluation Complete! Total Test Samples: {len(y_true)}")
+    logger.info(f"Overall Accuracy: {acc:.2%}")
+    for cls_name, vals in per_class_metrics.items():
+        logger.info(f"  {cls_name:10s} | Prec: {vals['precision']:.2%} | Rec: {vals['recall']:.2%} | F1: {vals['f1']:.2%} | N={vals['support']}")
+    logger.info("=" * 60)
 
 if __name__ == "__main__":
     evaluate_model()
