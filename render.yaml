@@ -12,7 +12,19 @@ services:
         value: production
       - key: ACTIVE_GRADING_POLICY
         value: DEMO_ASSUMPTION_v1
+      # Exact localhost origins only — Vercel wildcard is matched via allow_origin_regex in main.py
       - key: CORS_ORIGINS
-        value: "http://localhost:8081,https://*.vercel.app,http://localhost:3000"
+        value: "http://localhost:8081,http://localhost:3000"
+      # IMPORTANT: Replace with your actual Render service URL before deploying
+      - key: REPORT_BASE_URL
+        value: "https://cepa-backend.onrender.com"
+      - key: SHARE_LINK_BASE_URL
+        value: "https://cepa-backend.onrender.com/api/v1/reports/share"
+      # Set true in production to require X-Officer-Token on all protected routes
+      - key: ENFORCE_OFFICER_AUTH
+        value: "true"
+      # Set to false when real defect_classifier.pt weights are deployed
+      - key: DEF_USE_MOCK
+        value: "true"
       - key: GROQ_API_KEY
         sync: false

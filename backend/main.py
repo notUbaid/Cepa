@@ -75,10 +75,14 @@ app = FastAPI(
 )
 
 # CORS Middleware
+# allow_origins handles exact origins (localhost dev).
+# allow_origin_regex handles the Vercel wildcard (*.vercel.app) — Starlette
+# does NOT glob-match origins in allow_origins, so a regex is required.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

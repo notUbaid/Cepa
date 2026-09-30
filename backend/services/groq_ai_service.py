@@ -119,18 +119,16 @@ def analyze_inspection_with_ai(image_bgr: np.ndarray) -> dict[str, Any]:
 
         parsed = json.loads(content)
         parsed["powered_by"] = f"Groq AI ({GROQ_VISION_MODEL})"
+        parsed["available"] = True
         logger.info("Groq Vision AI successfully appraised inspection image.")
         return parsed
 
     except Exception as e:
-        logger.warning("Groq Vision AI fallback activated: %s", e)
+        logger.warning("Groq Vision AI unavailable: %s", e)
         return {
-            "quality_rating": "GOOD",
-            "summary_verdict": "Onion lot analyzed. Majority of bulbs show standard shape and color with intact papery skins.",
-            "defects_observed": ["Minor superficial skin abrasions; no severe soft rot detected."],
-            "storage_advice": "Store in a well-ventilated, dry storage structure (Kanda Chawl). Avoid direct sunlight.",
-            "fair_market_note": "Consignment eligible for standard APMC Mandi commercial settlement.",
-            "powered_by": "Cepa Heuristic Agronomist (Offline Mode)",
+            "available": False,
+            "powered_by": "Cepa Offline (Groq unavailable)",
+            "error": "AI agronomist is not available. Configure GROQ_API_KEY to enable real-time analysis.",
         }
 
 

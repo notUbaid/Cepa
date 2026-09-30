@@ -7,11 +7,17 @@ scanned QR codes on printed mandi slips and reports.
 from __future__ import annotations
 
 import hashlib
+import html as _html
 import json
 from typing import Any
 
 from config import settings
 from services.report_generator import _get_policy_verified
+
+
+def _e(value: object) -> str:
+    """HTML-escape a value for safe interpolation into the certificate template."""
+    return _html.escape(str(value) if value is not None else "")
 
 
 def render_certificate_html(report_detail: Any, inspection: Any) -> str:
@@ -35,7 +41,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
           <div style="font-weight: 700; color: #f87171; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
             <span>[WARN]</span> PROVISIONAL RECORD -- UNVERIFIED INPUTS
           </div>
-          <div>This certificate was evaluated under working policy <strong>{policy_version}</strong> (verified: {is_policy_verified}) and rule-based mock defect scores (DEF_USE_MOCK={is_mock}). It is an academic prototype artifact and <strong>not legally binding for commercial APMC settlement</strong>.</div>
+          <div>This certificate was evaluated under working policy <strong>{_e(policy_version)}</strong> (verified: {_e(is_policy_verified)}) and rule-based mock defect scores (DEF_USE_MOCK={_e(is_mock)}). It is an academic prototype artifact and <strong>not legally binding for commercial APMC settlement</strong>.</div>
         </div>
         """
 
@@ -60,9 +66,9 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     scale_mm = ""
     for s in inspection.samples:
         if s.processed_image_path:
-            annotated_img_url = f"/api/v1/storage/{s.processed_image_path}?token={r.share_token}"
+            annotated_img_url = f"/api/v1/storage/{_e(s.processed_image_path)}?token={_e(r.share_token)}"
         elif s.image_path:
-            annotated_img_url = f"/api/v1/storage/{s.image_path}?token={r.share_token}"
+            annotated_img_url = f"/api/v1/storage/{_e(s.image_path)}?token={_e(r.share_token)}"
         if s.scale_mm_per_px:
             scale_mm = f"{s.scale_mm_per_px:.4f} mm/px (ChArUco 7x5 locked)"
         if annotated_img_url:
@@ -78,14 +84,25 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         )
     )
 
+    # Escaped versions of user-controlled report/inspection fields
+    lot_id_safe = _e(r.lot_id or "N/A")
+    centre_safe = _e(r.procurement_centre or "N/A")
+    officer_name_safe = _e(r.officer_name or "N/A")
+    officer_id_safe = _e(r.officer_id or "ID: --")
+    ruleset_safe = _e(r.ruleset_version)
+    policy_version_safe = _e(policy_version)
+    storage_rec_safe = _e(storage_rec)
+    storage_risk_safe = _e(storage_risk)
+    storage_action_safe = _e(storage_action)
+    tier_safe = _e(tier)
 
-    # Format dockage rows
+    # Format dockage rows — escape the user-supplied title field
     dockage_rows_html = ""
     if dockage_items:
         for it in dockage_items:
             dockage_rows_html += f"""
             <tr>
-              <td>{it.get('title', '')}</td>
+              <td>{_e(it.get('title', ''))}</td>
               <td style="text-align:center">{it.get('measured_pct', 0.0):.1f}%</td>
               <td style="text-align:center">{it.get('permissible_limit_pct', 0.0):.1f}%</td>
               <td style="text-align:right; color:#ef4444; font-weight:600">-₹{it.get('deduction_inr_per_qtl', 0.0):.1f}</td>
@@ -100,7 +117,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </tr>
         """
 
-    pdf_href = f"/api/v1/inspections/{inspection.id}/reports/pdf"
+    pdf_href = f"/api/v1/inspections/{_e(inspection.id)}/reports/pdf"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -436,19 +453,19 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
       <div class="data-grid">
         <div class="data-item">
           <span class="data-label">Lot Identifier · लॉट क्र.</span>
-          <span class="data-value">{r.lot_id or 'N/A'}</span>
+          <span class="data-value">{lot_id_safe}</span>
         </div>
         <div class="data-item">
           <span class="data-label">APMC Mandi / Centre · कृषी उत्पन्न बाजार समिती</span>
-          <span class="data-value">{r.procurement_centre or 'N/A'}</span>
+          <span class="data-value">{centre_safe}</span>
         </div>
         <div class="data-item">
           <span class="data-label">Authorized Grading Officer · तपासणी अधिकारी</span>
-          <span class="data-value">{r.officer_name or 'N/A'} ({r.officer_id or 'ID: --'})</span>
+          <span class="data-value">{officer_name_safe} ({officer_id_safe})</span>
         </div>
         <div class="data-item">
           <span class="data-label">Grading Specification Standard · निकष</span>
-          <span class="data-value-mono">{r.ruleset_version} (BIS IS 17912:2022)</span>
+          <span class="data-value-mono">{ruleset_safe} (BIS IS 17912:2022)</span>
         </div>
         <div class="data-item">
           <span class="data-label">Sample Bulbs Assessed · मोजलेले कांदे</span>
@@ -456,11 +473,11 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </div>
         <div class="data-item">
           <span class="data-label">Optical Scale Calibration · प्रमाणन</span>
-          <span class="data-value-mono">{scale_mm or 'ChArUco 7x5 Active'}</span>
+          <span class="data-value-mono">{_e(scale_mm) or 'ChArUco 7x5 Active'}</span>
         </div>
         <div class="data-item">
           <span class="data-label">Device-Reported Location (Unverified GNSS) · साधन-नोंदणीकृत स्थान</span>
-          <span class="data-value">{location_str}</span>
+          <span class="data-value">{_e(location_str)}</span>
         </div>
       </div>
     </div>
@@ -494,7 +511,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         <div class="storage-score-row">
           <div>
             <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Storageability Score · साठवणूक निर्देशांक</div>
-            <div style="font-size:15px; font-weight:600; color:#fff;">{storage_rec}</div>
+            <div style="font-size:15px; font-weight:600; color:#fff;">{storage_rec_safe}</div>
           </div>
           <div class="storage-score-num">{storage_score:.0f}<span style="font-size:13px; color:var(--text-dim);">/100</span></div>
         </div>
@@ -504,12 +521,12 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
             <span class="data-value" style="color:var(--accent);">Up to {storage_days} Days (दिवस)</span>
           </div>
           <div class="data-item">
-            <span class="data-label">Respiration & Spoilage Risk · सडण्याचा धोका</span>
-            <span class="data-value">{storage_risk}</span>
+            <span class="data-label">Respiration &amp; Spoilage Risk · सडण्याचा धोका</span>
+            <span class="data-value">{storage_risk_safe}</span>
           </div>
         </div>
         <div class="advisory-text" style="border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">
-          <b>NAFED Directive (मार्गदर्शक सूचना):</b> {storage_action}
+          <b>NAFED Directive (मार्गदर्शक सूचना):</b> {storage_action_safe}
         </div>
       </div>
     </div>
@@ -525,7 +542,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         <div style="text-align:right;">
           <div style="font-size:11px; color:var(--text-dim);">Est. Payout (50 qtl) · अंदाजे एकूण रक्कम</div>
           <div class="payout-total-val">₹{net_payout:,.0f}</div>
-          <div style="font-size:10px; color:var(--accent);">{tier}</div>
+          <div style="font-size:10px; color:var(--accent);">{tier_safe}</div>
         </div>
       </div>
 

@@ -294,6 +294,7 @@ def _onion_to_detail(inst) -> OnionInstanceDetail:
 @router.post("/inspections", status_code=status.HTTP_201_CREATED)
 async def create_inspection(
     body: InspectionCreate,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> InspectionDetail:
     inspection = inspection_service.create_inspection(db, body)
@@ -302,8 +303,9 @@ async def create_inspection(
 
 @router.get("/inspections")
 async def list_inspections(
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Pagination offset (must be ≥ 0)"),
+    limit: int = Query(20, ge=1, le=200, description="Max records to return (1–200)"),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> list[InspectionSummary]:
     inspections = inspection_service.get_all_inspections(db, skip=skip, limit=limit)
@@ -327,6 +329,7 @@ async def list_inspections(
 @router.get("/inspections/{inspection_id}")
 async def get_inspection(
     inspection_id: str,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> InspectionDetail:
     inspection = inspection_service.get_inspection(db, inspection_id)
@@ -339,11 +342,17 @@ async def get_inspection(
 async def update_inspection(
     inspection_id: str,
     body: InspectionUpdate,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> InspectionDetail:
     inspection = inspection_service.get_inspection(db, inspection_id)
     if inspection is None:
         raise HTTPException(status_code=404, detail="Inspection not found")
+    if inspection.status == "FINALIZED":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot modify a FINALIZED inspection. Records are immutable after certification.",
+        )
     if body.lot_id is not None:
         inspection.lot_id = body.lot_id
     if body.procurement_centre is not None:
@@ -479,25 +488,33 @@ def _sample_to_detail(sample) -> SampleDetail:
 
     ai_verdict = None
     if sample.image_path:
-        cache_path = settings.storage_dir / f"{sample.image_path}.ai.json"
-        if cache_path.exists():
-            try:
-                ai_verdict = json.loads(cache_path.read_text(encoding="utf-8"))
-            except Exception:
-                pass
-        if not ai_verdict:
-            full_img_path = settings.storage_dir / sample.image_path
-            if full_img_path.exists():
+        try:
+            cache_path = settings.storage_dir / f"{sample.image_path}.ai.json"
+            if cache_path.is_file():
                 try:
-                    import cv2
-                    img = cv2.imread(str(full_img_path))
-                    if img is not None:
-                        from services.groq_ai_service import analyze_inspection_with_ai
-                        ai_verdict = analyze_inspection_with_ai(img)
-                        cache_path.parent.mkdir(parents=True, exist_ok=True)
-                        cache_path.write_text(json.dumps(ai_verdict), encoding="utf-8")
-                except Exception as e:
-                    logger.warning("Error generating AI verdict: %s", e)
+                    cached = json.loads(cache_path.read_text(encoding="utf-8"))
+                    # Discard cached fallbacks (available=False) so next real call overwrites them
+                    if cached.get("available") is not False:
+                        ai_verdict = cached
+                except Exception:
+                    pass
+            if not ai_verdict:
+                full_img_path = settings.storage_dir / sample.image_path
+                if full_img_path.is_file():
+                    try:
+                        import cv2
+                        img = cv2.imread(str(full_img_path))
+                        if img is not None:
+                            from services.groq_ai_service import analyze_inspection_with_ai
+                            ai_verdict = analyze_inspection_with_ai(img)
+                            # C5: Never persist fallback responses to disk
+                            if ai_verdict.get("available") is not False:
+                                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                                cache_path.write_text(json.dumps(ai_verdict), encoding="utf-8")
+                    except Exception as e:
+                        logger.warning("Error generating AI verdict: %s", e)
+        except (OSError, Exception) as e:
+            logger.warning("Error checking cache_path/full_img_path: %s", e)
 
     return SampleDetail(
         id=sample.id,
@@ -553,11 +570,20 @@ async def correct_onion(
     inspection_id: str,
     instance_id: str,
     body: OnionCorrectionRequest,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> OnionInstanceDetail:
     inst = inspection_service.get_onion_instance(db, instance_id)
     if inst is None or inst.sample.inspection_id != inspection_id:
         raise HTTPException(status_code=404, detail="Onion instance not found")
+
+    # C4: Certified lots are immutable
+    inspection = inspection_service.get_inspection(db, inspection_id)
+    if inspection and inspection.status == "FINALIZED":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot correct bulb grades on a FINALIZED inspection. Records are immutable after certification.",
+        )
 
     updated = inspection_service.apply_officer_correction(
         db=db,
@@ -640,6 +666,7 @@ async def analyze_acoustic_endpoint(
     inspection_id: str,
     file: UploadFile = File(..., description="Acoustic tap audio recording (WAV format)"),
     bulb_mass_g: float | None = Form(None, description="Optional bulb mass in grams for Elasticity Index"),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """
@@ -656,6 +683,11 @@ async def analyze_acoustic_endpoint(
     inspection = inspection_service.get_inspection(db, inspection_id)
     if inspection is None:
         raise HTTPException(status_code=404, detail="Inspection not found")
+    if inspection.status == "FINALIZED":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot append acoustic data to a FINALIZED inspection. Records are immutable after certification.",
+        )
 
     wav_bytes = await file.read()
     if len(wav_bytes) == 0:
@@ -731,12 +763,17 @@ async def ask_ai_endpoint(
             context["net_rate_inr"] = sample_detail.commercial_settlement.get("net_rate_inr", 2410)
             context["avg_diameter_mm"] = sample_detail.commercial_settlement.get("mean_equatorial_diameter_mm", 52.0)
 
-    from services.groq_ai_service import ask_ai_agronomist
+    from services.groq_ai_service import ask_ai_agronomist, _get_groq_api_key
     answer = ask_ai_agronomist(body.question, context)
+    powered_by = (
+        f"Groq AI ({getattr(__import__('config', fromlist=['settings']).settings, 'groq_vision_model', 'qwen/qwen3.8-27b')})"
+        if _get_groq_api_key()
+        else "Cepa Offline (Groq unavailable — configure GROQ_API_KEY)"
+    )
     return {
         "answer": answer,
         "inspection_id": inspection_id,
-        "powered_by": "Groq AI (qwen/qwen3.8-27b)",
+        "powered_by": powered_by,
     }
 
 

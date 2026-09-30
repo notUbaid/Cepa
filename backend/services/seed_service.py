@@ -77,11 +77,12 @@ def seed_demo_data_if_empty() -> None:
         sample = Sample(
             id=DEMO_SAMPLE_ID,
             inspection_id=inspection.id,
+            sample_index=1,
             image_path="demo_onion_spread.jpg",
             processed_image_path="demo_onion_spread.jpg",
             scale_mm_per_px=0.6836,
             perspective_valid=False,
-            is_estimated=True,
+            is_estimated_scale=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
             created_at=now,
         )
@@ -133,7 +134,7 @@ def seed_demo_data_if_empty() -> None:
 
             meas = Measurement(
                 id=f"meas-{inst.id}",
-                instance_id=inst.id,
+                onion_instance_id=inst.id,
                 equivalent_diameter_mm=eq_d,
                 equatorial_diameter_mm=eq_d,
                 polar_length_mm=pol_l,
@@ -146,17 +147,18 @@ def seed_demo_data_if_empty() -> None:
 
             defect = DefectObservation(
                 id=f"def-{inst.id}",
-                instance_id=inst.id,
+                onion_instance_id=inst.id,
                 damaged_prob=p_dmg,
                 rotten_prob=p_rot,
                 sprouted_prob=p_spr,
+                model_version="mock-defect-classifier:v1",
                 is_mock=True,
             )
             db.add(defect)
 
             clf = ClassificationResult(
                 id=f"clf-{inst.id}",
-                instance_id=inst.id,
+                onion_instance_id=inst.id,
                 grade=grade,
                 confidence_tier="HIGH" if grade == "GRADE_A" else "NEEDS_REVIEW",
                 ruleset_version="DEMO_ASSUMPTION_v1",
@@ -172,13 +174,12 @@ def seed_demo_data_if_empty() -> None:
             grade_a_count=16,
             urs_count=3,
             rejected_count=1,
-            grade_a_pct=80.0,
-            urs_pct=15.0,
-            rejected_pct=5.0,
             ruleset_version="DEMO_ASSUMPTION_v1",
             model_version="yolo11n-seg:mandi-onion-v1",
             share_token=DEMO_SHARE_TOKEN,
             pdf_path=f"reports/{DEMO_REPORT_ID}.pdf",
+            report_id=DEMO_REPORT_ID,
+            sampling_note="Seeded demo lot: 1 sample photo (20 bulbs). Does not represent a real consignment.",
             created_at=now,
         )
         db.add(report)
