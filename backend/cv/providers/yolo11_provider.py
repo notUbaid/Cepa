@@ -6,9 +6,10 @@ Model is loaded once at startup and reused across all requests.
 Inference runs in a thread pool (see pipeline.py) to avoid blocking
 the FastAPI async event loop.
 
-License note: Ultralytics YOLO11 is AGPL-3.0. This is acceptable for
-an open-source hackathon project. For any closed commercial use, an
-Ultralytics Enterprise License is required.
+Enhanced with:
+  1. Dynamic class awareness (supports custom fine-tuned 'onion' class and COCO proxy classes).
+  2. Dual-confidence recovery (retains borderline detections with convex globular morphology).
+  3. Morphological mask refinement (seals specular highlights and dry tunic cracks).
 """
 from __future__ import annotations
 
@@ -16,15 +17,13 @@ import logging
 import time
 from pathlib import Path
 
+import cv2
 import numpy as np
 
 from cv.providers.base import OnionDetection, SegmentationProvider, SegmentationResult
 
 logger = logging.getLogger(__name__)
 
-# Lazy import: only import ultralytics when this provider is actually used.
-# This allows the application to start without ultralytics/torch installed
-# (the mock provider will be used instead).
 try:
     from ultralytics import YOLO as _YOLO
     _ULTRALYTICS_AVAILABLE = True
@@ -37,16 +36,14 @@ class YOLO11SegmentationProvider(SegmentationProvider):
     """
     YOLO11-seg instance segmentation provider.
 
-    Preferred model: yolo11s-seg (small, 20 MB) — better occlusion handling
-    via C2PSA spatial attention than yolo11n-seg.
-
-    CPU fallback: yolo11n-seg (nano, 6 MB) — faster on CPU-only machines.
+    Preferred model: yolo11s-seg (small, 20 MB) or fine-tuned yolo11n-seg.
+    CPU fallback: yolo11n-seg (nano, 6 MB) for low-latency CPU operation.
     """
 
     def __init__(
         self,
         model_path: str | Path,
-        conf_threshold: float = 0.35,
+        conf_threshold: float = 0.30,
         iou_threshold: float = 0.45,
         device: str = "cpu",
     ) -> None:
@@ -56,27 +53,45 @@ class YOLO11SegmentationProvider(SegmentationProvider):
         self._device = device
         self._model = None
         self._version_str: str = "yolo11-seg:not_loaded"
+        self._target_class_ids: set[int] = set()
         self._load_model()
 
     def _load_model(self) -> None:
         if not _ULTRALYTICS_AVAILABLE:
-            logger.error("ultralytics not installed — YOLO11 provider cannot load.")
+            logger.error("ultralytics not installed - YOLO11 provider cannot load.")
             return
         if not self._model_path.exists():
-            logger.warning(
-                "YOLO11 model weights not found at %s. "
-                "Run: python -c \"from ultralytics import YOLO; YOLO('yolo11n-seg.pt')\" "
-                "to download. Using mock provider until weights are available.",
-                self._model_path,
-            )
-            return
+            # Try alternate fallback weights path
+            fallback_path = self._model_path.parent / "yolo11n-seg-coco.pt"
+            if fallback_path.exists():
+                logger.info("Primary weights %s not found; falling back to %s", self._model_path, fallback_path)
+                self._model_path = fallback_path
+            else:
+                logger.warning("YOLO11 model weights not found at %s.", self._model_path)
+                return
+
         try:
             self._model = _YOLO(str(self._model_path))
-            # Ultralytics version is embedded in the model metadata after loading
             import ultralytics
             self._version_str = (
                 f"yolo11-seg:{self._model_path.stem}:{ultralytics.__version__}"
             )
+
+            # Detect class schema
+            names = getattr(self._model, "names", {})
+            if isinstance(names, dict):
+                onion_ids = {k for k, v in names.items() if "onion" in str(v).lower()}
+                if onion_ids:
+                    self._target_class_ids = onion_ids
+                    logger.info("Loaded custom onion segmentation weights (classes: %s)", self._target_class_ids)
+                else:
+                    # COCO pretrained fallback classes resembling bulbous produce
+                    proxy_classes = {"apple", "orange", "sports ball", "bowl"}
+                    self._target_class_ids = {k for k, v in names.items() if str(v).lower() in proxy_classes}
+                    logger.info("Loaded COCO weights with produce proxies: %s", self._target_class_ids)
+            else:
+                self._target_class_ids = {0}
+
             logger.info("YOLO11 model loaded from %s", self._model_path)
         except Exception:
             logger.exception("Failed to load YOLO11 model from %s", self._model_path)
@@ -92,20 +107,24 @@ class YOLO11SegmentationProvider(SegmentationProvider):
 
     def detect(self, image: np.ndarray) -> SegmentationResult:
         """
-        Run YOLO11-seg on the given BGR image.
-
-        Returns empty SegmentationResult if the model is not loaded.
-        Never raises — all exceptions are caught and logged.
+        Run YOLO11-seg on the given BGR image with morphological mask refinement.
         """
         if not self.is_ready:
             logger.warning("YOLO11 model not ready, returning empty detections")
             return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
 
         start = time.perf_counter()
+        h, w = image.shape[:2]
+        if h < 20 or w < 20:
+            return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
+
+        # Sensitive base threshold for dual-confidence recovery
+        base_conf = min(0.20, self._conf)
+
         try:
             results = self._model.predict(
                 source=image,
-                conf=self._conf,
+                conf=base_conf,
                 iou=self._iou,
                 device=self._device,
                 verbose=False,
@@ -115,7 +134,7 @@ class YOLO11SegmentationProvider(SegmentationProvider):
             return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
 
         elapsed_ms = (time.perf_counter() - start) * 1000
-        result = results[0]  # single-image prediction
+        result = results[0]
 
         detections: list[OnionDetection] = []
 
@@ -127,26 +146,56 @@ class YOLO11SegmentationProvider(SegmentationProvider):
                 inference_time_ms=elapsed_ms,
             )
 
-        h, w = image.shape[:2]
         boxes = result.boxes
-        masks_data = result.masks.data  # (N, H, W) float32 tensor 0-1
+        masks_data = result.masks.data
+        close_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
         for idx in range(len(boxes)):
-            # Bounding box: xyxy format → convert to xywh
-            x1, y1, x2, y2 = boxes.xyxy[idx].tolist()
-            bbox_x = int(x1)
-            bbox_y = int(y1)
-            bbox_w = int(x2 - x1)
-            bbox_h = int(y2 - y1)
-            conf = float(boxes.conf[idx])
+            cls_id = int(boxes.cls[idx])
+            if self._target_class_ids and cls_id not in self._target_class_ids:
+                continue
 
-            # Convert mask from model output space to image space
-            # masks_data is already resized to match the input image by ultralytics
-            import cv2
-            mask_float = masks_data[idx].cpu().numpy()  # (H_out, W_out) float32
-            # Resize mask to match input image dimensions
+            conf = float(boxes.conf[idx])
+            x1, y1, x2, y2 = boxes.xyxy[idx].tolist()
+            bbox_x = max(0, int(x1))
+            bbox_y = max(0, int(y1))
+            bbox_w = min(w - bbox_x, int(x2 - x1))
+            bbox_h = min(h - bbox_y, int(y2 - y1))
+
+            if bbox_w < 15 or bbox_h < 15:
+                continue
+
+            # Mask extraction and scaling
+            mask_float = masks_data[idx].cpu().numpy()
             mask_resized = cv2.resize(mask_float, (w, h), interpolation=cv2.INTER_LINEAR)
-            binary_mask = (mask_resized > 0.5).astype(np.uint8) * 255
+            binary_mask = (mask_resized > 0.50).astype(np.uint8) * 255
+
+            # Morphological mask refinement: seal specular reflection holes and dry tunic voids
+            binary_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, close_kernel)
+            cnts, hier = cv2.findContours(binary_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+            if hier is not None:
+                for c_idx, h_info in enumerate(hier[0]):
+                    if h_info[3] >= 0 and cv2.contourArea(cnts[c_idx]) < 10000:
+                        cv2.drawContours(binary_mask, cnts, c_idx, 255, -1)
+
+            # Dual-confidence geometric verification for borderline detections
+            if conf < self._conf:
+                mask_cnts, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if not mask_cnts:
+                    continue
+                c_max = max(mask_cnts, key=cv2.contourArea)
+                c_area = cv2.contourArea(c_max)
+                if c_area < 800:
+                    continue
+                hull = cv2.convexHull(c_max)
+                hull_area = max(1.0, float(cv2.contourArea(hull)))
+                solidity = float(c_area) / hull_area
+                aspect_ratio = float(bbox_w) / max(1.0, float(bbox_h))
+
+                # Borderline detections must have convex globular shape
+                if solidity < 0.65 or aspect_ratio < 0.40 or aspect_ratio > 2.5:
+                    logger.debug("Rejected borderline detection (conf=%.2f, sol=%.2f, ar=%.2f)", conf, solidity, aspect_ratio)
+                    continue
 
             # Detect border touch
             touches_border = bool(
@@ -165,7 +214,7 @@ class YOLO11SegmentationProvider(SegmentationProvider):
                     mask=binary_mask,
                     confidence=conf,
                     touches_border=touches_border,
-                    instance_index=idx,
+                    instance_index=len(detections),
                 )
             )
 

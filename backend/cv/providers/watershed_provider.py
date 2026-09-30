@@ -1,21 +1,25 @@
 """
 Industrial Watershed Instance Segmentation Provider
 
-Implements marker-controlled distance-transform watershed segmentation for
-closely clustered, touching, and partially overlapping onion bulbs.
+Implements multi-cue marker-controlled distance-transform watershed segmentation for
+closely clustered, touching, and partially overlapping onion bulbs across authentic
+mandi backgrounds (weathered wood, woven burlap jute, blue poly tarps, dusty concrete,
+and white/gray sorting trays).
 
-This algorithm is standard in packhouse optical sorting machinery:
-  1. Chromatic background segmentation (HSV / LAB color distance)
-  2. Euclidean Distance Transform (L2 distance to nearest background pixel)
-  3. Peak local maxima extraction (identifies individual bulb centroids)
-  4. Meyer Watershed flooding (splits touching bulbs along physical contact seams)
-  5. Per-instance binary mask extraction, bounding box, and border touch check
+Algorithm:
+  1. Multi-cue foreground saliency extraction (CIELAB color difference, neutral chroma,
+     red-blue channel contrast, and bilateral edge preservation).
+  2. Euclidean Distance Transform (L2 distance to nearest background pixel).
+  3. Peak local maxima extraction with adaptive dynamic NMS radius.
+  4. Meyer Watershed flooding (splits touching bulbs along physical contact seams).
+  5. Per-instance binary mask extraction, solidity authenticity check, and debris filtering.
 
-Runs in < 30ms on standard CPU, zero cold-start latency, zero external weights required.
+Runs in < 40ms on standard CPU, zero cold-start latency, zero external weights required.
 """
 from __future__ import annotations
 
 import logging
+import time
 import cv2
 import numpy as np
 
@@ -36,7 +40,7 @@ class WatershedSegmentationProvider(SegmentationProvider):
         self.min_bulb_area_px = min_bulb_area_px
         self.max_bulb_area_px = max_bulb_area_px
         self.peak_threshold_ratio = peak_threshold_ratio
-        self._version = "watershed-industrial:v1"
+        self._version = "watershed-industrial:v2"
 
     @property
     def model_version(self) -> str:
@@ -50,105 +54,120 @@ class WatershedSegmentationProvider(SegmentationProvider):
         """
         Segment all onion bulbs in the image using marker-controlled watershed.
         """
+        start_time = time.perf_counter()
         h, w = image.shape[:2]
 
-        # 1. Color space transformation & foreground extraction
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-        L, A, B = cv2.split(lab)
-        sat = hsv[:, :, 1]
-
-        # Estimate background color & luminance from perimeter border strip (15px border)
-        border_strip_gray = np.concatenate([
-            gray[:15, :].ravel(),
-            gray[-15:, :].ravel(),
-            gray[:, :15].ravel(),
-            gray[:, -15:].ravel(),
-        ])
-        bg_gray = float(np.median(border_strip_gray))
-
-        border_strip_A = np.concatenate([
-            A[:15, :].ravel(),
-            A[-15:, :].ravel(),
-            A[:, :15].ravel(),
-            A[:, -15:].ravel(),
-        ])
-        bg_A = float(np.median(border_strip_A))
-
-        border_strip_B = np.concatenate([
-            B[:15, :].ravel(),
-            B[-15:, :].ravel(),
-            B[:, :15].ravel(),
-            B[:, -15:].ravel(),
-        ])
-        bg_B = float(np.median(border_strip_B))
-
-        # Chromatic difference in CIELAB space (robust to shadows / luminance shifts)
-        chroma_dist_sq = (A.astype(np.float32) - bg_A) ** 2 + (B.astype(np.float32) - bg_B) ** 2
-
-        # Background luminance thresholding
-        if bg_gray > 140:
-            # Light inspection tables / white linen
-            is_contrast = gray < (bg_gray - 22)
-        else:
-            # Dark conveyor / table
-            is_contrast = gray > (bg_gray + 22)
-
-        # Onions possess distinct chromatic saturation (red/yellow/purple chroma) or luminance contrast
-        is_chromatic = (chroma_dist_sq > 16.0 ** 2) | (sat > 45)
-        fg_mask = (is_chromatic | is_contrast).astype(np.uint8) * 255
-
-        # Clean noise with morphological opening and closing
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        fg_clean = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel, iterations=2)
-        fg_clean = cv2.morphologyEx(fg_clean, cv2.MORPH_CLOSE, kernel, iterations=2)
-
-        # Fill internal contour holes (root plates, specular highlights, skin seams)
-        cnts, hier = cv2.findContours(fg_clean, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-        if hier is not None:
-            for idx, h_info in enumerate(hier[0]):
-                if h_info[3] >= 0:
-                    if cv2.contourArea(cnts[idx]) < 30000:
-                        cv2.drawContours(fg_clean, cnts, idx, 255, -1)
-
-        # 2. Euclidean Distance Transform
-        dist_transform = cv2.distanceTransform(fg_clean, cv2.DIST_L2, 5)
-        max_dist = float(dist_transform.max())
-        if max_dist <= 5.0:
+        if h < 50 or w < 50:
             return SegmentationResult(
                 detections=[],
+                provider_name="watershed",
                 model_version=self._version,
                 inference_time_ms=0.0,
             )
 
-        # Smooth distance transform to suppress micro-peaks on skin folds
-        dist_smooth = cv2.GaussianBlur(dist_transform, (9, 9), 0)
+        # 1. Sample perimeter border strip to estimate background characteristics
+        b_size = max(10, min(25, h // 15, w // 15))
+        border_bgr = np.concatenate([
+            image[:b_size, :, :].reshape(-1, 3),
+            image[-b_size:, :, :].reshape(-1, 3),
+            image[:, :b_size, :].reshape(-1, 3),
+            image[:, -b_size:, :].reshape(-1, 3),
+        ], axis=0)
+        bg_bgr = np.median(border_bgr, axis=0)
 
-        # 3. Regional Peak Local Maxima Extraction
-        ksize = max(21, min(45, int(max_dist * 0.35)) | 1)
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB).astype(np.float32)
+        border_lab = cv2.cvtColor(border_bgr.reshape(1, -1, 3).astype(np.uint8), cv2.COLOR_BGR2LAB)[0].astype(np.float32)
+        bg_lab = np.median(border_lab, axis=0)
+
+        # 2. Multi-cue saliency extraction
+        # CIELAB color distance from perimeter background
+        dE = np.sqrt(
+            0.30 * (lab[:, :, 0] - bg_lab[0]) ** 2
+            + (lab[:, :, 1] - bg_lab[1]) ** 2
+            + (lab[:, :, 2] - bg_lab[2]) ** 2
+        )
+
+        # Chromatic distance from neutral gray
+        chroma = np.sqrt((lab[:, :, 1] - 128.0) ** 2 + (lab[:, :, 2] - 128.0) ** 2)
+
+        # Red-to-blue difference (distinguishes organic onion pigments from blue/cyan tarps and neutral concrete)
+        b_ch, _, r_ch = cv2.split(image.astype(np.float32))
+        rb_diff = np.maximum(0.0, r_ch - b_ch)
+
+        # Adaptive background cue weighting
+        bg_chroma = np.sqrt((bg_lab[1] - 128.0) ** 2 + (bg_lab[2] - 128.0) ** 2)
+        if bg_bgr[0] > bg_bgr[2] + 20.0:
+            # Blue poly tarp background
+            saliency_raw = rb_diff * 0.70 + dE * 0.30
+        elif bg_chroma > 20.0:
+            # Saturated background (weathered wood table, burlap jute sack)
+            saliency_raw = dE * 0.65 + chroma * 0.35
+        else:
+            # Neutral background (concrete floor, white tray, gray sorting table)
+            saliency_raw = chroma * 0.60 + dE * 0.40
+
+        saliency = cv2.normalize(saliency_raw, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+        # Bilateral filter preserves sharp bulb boundaries while smoothing wood grain and jute weave
+        saliency_smooth = cv2.bilateralFilter(saliency, 9, 75, 75)
+
+        # Otsu automatic thresholding
+        _, fg_mask = cv2.threshold(saliency_smooth, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        # Morphological opening and closing
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        fg_clean = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        fg_clean = cv2.morphologyEx(fg_clean, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+        # Fill internal holes (roots, specular highlights, stem scars)
+        cnts, hier = cv2.findContours(fg_clean, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        if hier is not None:
+            max_hole_area = float(h * w * 0.05)
+            for idx, h_info in enumerate(hier[0]):
+                if h_info[3] >= 0:
+                    if cv2.contourArea(cnts[idx]) < max_hole_area:
+                        cv2.drawContours(fg_clean, cnts, idx, 255, -1)
+
+        # 3. Euclidean Distance Transform
+        dist_transform = cv2.distanceTransform(fg_clean, cv2.DIST_L2, 5)
+        max_dist = float(dist_transform.max())
+        if max_dist < 6.0:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            return SegmentationResult(
+                detections=[],
+                provider_name="watershed",
+                model_version=self._version,
+                inference_time_ms=elapsed_ms,
+            )
+
+        dist_smooth = cv2.GaussianBlur(dist_transform, (7, 7), 0)
+
+        # Regional Peak Local Maxima Extraction
+        ksize = max(15, min(55, int(max_dist * 0.32)) | 1)
         kernel_peak = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
         dist_dilated = cv2.dilate(dist_smooth, kernel_peak)
 
-        peak_threshold = max(15.0, 0.22 * max_dist)
-        peaks = (dist_smooth == dist_dilated) & (dist_smooth > peak_threshold)
+        peak_thresh = max(10.0, 0.18 * max_dist)
+        peaks = (dist_smooth == dist_dilated) & (dist_smooth > peak_thresh)
         peaks_u8 = peaks.astype(np.uint8) * 255
 
-        num_peaks, peak_markers, stats, centroids = cv2.connectedComponentsWithStats(peaks_u8)
+        num_peaks, _, _, centroids = cv2.connectedComponentsWithStats(peaks_u8)
 
         candidate_peaks: list[tuple[float, int, int]] = []
+        margin = max(10, min(25, int(max_dist * 0.15)))
         for i in range(1, num_peaks):
             cx, cy = int(centroids[i][0]), int(centroids[i][1])
-            val = float(dist_smooth[cy, cx])
-            if cx < 20 or cy < 20 or cx > w - 20 or cy > h - 20:
+            if cx < margin or cy < margin or cx > w - margin or cy > h - margin:
                 continue
+            val = float(dist_smooth[cy, cx])
             candidate_peaks.append((val, cx, cy))
 
         # Sort descending by dome height
         candidate_peaks.sort(reverse=True, key=lambda p: p[0])
 
-        # Suppress redundant peaks that are too close (NMS with 38px radius)
-        nms_radius_sq = 38.0 ** 2
+        # Dynamic NMS peak suppression scaled by bulb radius
+        nms_r = max(20.0, min(85.0, 0.30 * max_dist))
+        nms_radius_sq = nms_r ** 2
         filtered_peaks: list[tuple[float, int, int]] = []
         for val, cx, cy in candidate_peaks:
             if any((cx - fx) ** 2 + (cy - fy) ** 2 < nms_radius_sq for _, fx, fy in filtered_peaks):
@@ -179,8 +198,9 @@ class WatershedSegmentationProvider(SegmentationProvider):
             )
             markers[sure_bg == 0] = 1
             # Seed markers are 2, 3, ...
+            marker_radius = max(3, int(nms_r * 0.15))
             for idx, (val, cx, cy) in enumerate(filtered_peaks):
-                cv2.circle(markers, (cx, cy), 8, idx + 2, -1)
+                cv2.circle(markers, (cx, cy), marker_radius, idx + 2, -1)
 
         # Run watershed with Gaussian smoothed image for clean boundary adherence
         blurred = cv2.GaussianBlur(image, (5, 5), 1.5)
@@ -190,20 +210,19 @@ class WatershedSegmentationProvider(SegmentationProvider):
         detections: list[OnionDetection] = []
         inst_idx = 0
         unique_markers = np.unique(markers)
+        max_allowed_area = min(self.max_bulb_area_px, int(h * w * 0.65))
 
         for m_id in unique_markers:
             if m_id <= 1:
-                continue  # ignore background and boundary
+                continue
 
-            # Create binary mask for this bulb instance
             inst_mask = (markers == m_id).astype(np.uint8) * 255
             area = int(np.count_nonzero(inst_mask))
 
-            # Filter out noise specks or huge full-canvas artifacts
-            if area < self.min_bulb_area_px or area > self.max_bulb_area_px:
+            if area < self.min_bulb_area_px or area > max_allowed_area:
                 continue
 
-            # Morphological bulb authenticity check (filter out loose skins, peels, crescent debris)
+            # Morphological bulb authenticity check
             cnts, _ = cv2.findContours(inst_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if not cnts:
                 continue
@@ -219,13 +238,12 @@ class WatershedSegmentationProvider(SegmentationProvider):
             circularity = (4.0 * np.pi * c_area) / max(1.0, peri * peri)
 
             # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.70)
-            # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.70)
             if solidity < 0.70:
                 logger.debug("Watershed: discarded peel/skin debris (solidity=%.2f)", solidity)
                 continue
 
-            # Crescent slices or elongated peel strips
-            if circularity < 0.35 and solidity < 0.80:
+            # Reject elongated peel strips
+            if circularity < 0.30 and solidity < 0.80:
                 logger.debug("Watershed: discarded non-bulb strip (circ=%.2f, sol=%.2f)", circularity, solidity)
                 continue
 
@@ -239,7 +257,7 @@ class WatershedSegmentationProvider(SegmentationProvider):
             bbox_w = x_max - x_min + 1
             bbox_h = y_max - y_min + 1
 
-            if bbox_w < 35 or bbox_h < 35:
+            if bbox_w < 30 or bbox_h < 30:
                 continue
 
             # Check if mask touches image border
@@ -251,7 +269,6 @@ class WatershedSegmentationProvider(SegmentationProvider):
             if touches_border and area < 3500:
                 continue
 
-            # High confidence for clean watershed instances
             conf = 0.94 if not touches_border else 0.65
 
             detections.append(OnionDetection(
@@ -266,13 +283,15 @@ class WatershedSegmentationProvider(SegmentationProvider):
             ))
             inst_idx += 1
 
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
         logger.info(
-            "Watershed segmentation: %d onion bulbs isolated (max_dist=%.1fpx)",
-            len(detections), max_dist,
+            "Watershed segmentation: %d onion bulbs isolated (max_dist=%.1fpx) in %.1fms",
+            len(detections), max_dist, elapsed_ms,
         )
 
         return SegmentationResult(
             detections=detections,
+            provider_name="watershed",
             model_version=self._version,
-            inference_time_ms=25.0,
+            inference_time_ms=elapsed_ms,
         )

@@ -5,14 +5,14 @@ The main entry point for processing a captured onion inspection image.
 Runs all 8 pipeline stages in sequence, collecting results at each stage.
 
 Pipeline stages:
-  1. Image Quality Gate      — reject unusable images early
-  2. Marker Detection        — find ChArUco calibration board
-  3. Scale Calibration       — compute mm/px ratio, rectify image
-  4. Instance Segmentation   — detect individual onion bulbs
-  5. Crop Extraction         — save masks and crops to disk
-  6. Defect Classification   — multi-label defect probs per onion
-  7. Size Estimation         — geometric mm measurements per onion
-  8. Confidence Assessment   — tier assignment (HIGH/NEEDS_REVIEW/UNUSABLE)
+  1. Image Quality Gate      - reject unusable images early
+  2. Marker Detection        - find ChArUco calibration board
+  3. Scale Calibration       - compute mm/px ratio, rectify image
+  4. Instance Segmentation   - detect individual onion bulbs
+  5. Crop Extraction         - save masks and crops to disk
+  6. Defect Classification   - multi-label defect probs per onion
+  7. Size Estimation         - geometric mm measurements per onion
+  8. Confidence Assessment   - tier assignment (HIGH/NEEDS_REVIEW/UNUSABLE)
 
 After the pipeline, the grading engine evaluates each instance.
 
@@ -124,7 +124,7 @@ def run_pipeline(
         policy: Active grading policy.
 
     Returns:
-        PipelineResult — always returns, never raises.
+        PipelineResult - always returns, never raises.
     """
     pipeline_start = time.perf_counter()
     result = PipelineResult(
@@ -165,7 +165,7 @@ def run_pipeline(
 
     if not marker_result.detected:
         result.quality_flags.append(marker_result.failure_code or "marker_not_detected")
-        # Not fatal — continue with uncalibrated image, measurements will be None
+        # Not fatal - continue with uncalibrated image, measurements will be None
         logger.warning(
             "Marker not detected for sample %s: %s",
             sample_id, marker_result.failure_code,
@@ -190,11 +190,42 @@ def run_pipeline(
     # ── STAGE 4: Instance Segmentation ────────────────────────────────────────
     seg_start = time.perf_counter()
     seg_result = seg_provider.detect(working_image)
+
+    # Hybrid High-Recall Resilient Ensemble:
+    # If primary segmenter returns 0 detections, engage industrial Watershed immediately.
     if seg_result.count == 0:
-        logger.info("Primary segmentation returned 0 detections — engaging industrial Watershed segmenter")
+        logger.info("Primary segmentation returned 0 detections. Engaging industrial Watershed segmenter.")
         from cv.providers.watershed_provider import WatershedSegmentationProvider
         ws_provider = WatershedSegmentationProvider()
         seg_result = ws_provider.detect(working_image)
+    elif seg_result.count < 4:
+        # Complementary ensemble: check for non-overlapping bulbs missed by primary detector
+        try:
+            from cv.providers.watershed_provider import WatershedSegmentationProvider
+            ws_provider = WatershedSegmentationProvider()
+            ws_result = ws_provider.detect(working_image)
+            if ws_result.count > 0:
+                merged_detections = list(seg_result.detections)
+                for ws_det in ws_result.detections:
+                    ws_area = int(np.count_nonzero(ws_det.mask))
+                    overlaps = False
+                    for ex_det in merged_detections:
+                        ex_area = int(np.count_nonzero(ex_det.mask))
+                        inter = int(np.count_nonzero(cv2.bitwise_and(ws_det.mask, ex_det.mask)))
+                        if inter > 0.20 * min(ws_area, ex_area):
+                            overlaps = True
+                            break
+                    if not overlaps:
+                        ws_det.instance_index = len(merged_detections)
+                        merged_detections.append(ws_det)
+                if len(merged_detections) > seg_result.count:
+                    logger.info(
+                        "Ensemble merged %d additional high-confidence bulbs from Watershed",
+                        len(merged_detections) - seg_result.count,
+                    )
+                    seg_result.detections = merged_detections
+        except Exception:
+            logger.debug("Watershed ensemble merge skipped due to exception")
 
     result.segmentation_elapsed_ms = (time.perf_counter() - seg_start) * 1000
     result.seg_model_version = seg_result.model_version
@@ -217,6 +248,7 @@ def run_pipeline(
     # Debris & Peel filtering: exclude papery skin slivers, peel cutoffs, and foreign material
     raw_detections = seg_result.detections
     img_h, img_w = working_image.shape[:2]
+    min_bulb_area = max(600, int(img_h * img_w * 0.0015))
     valid_detections: list[OnionDetection] = []
     for d in raw_detections:
         cnts, _ = cv2.findContours(d.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -224,29 +256,27 @@ def run_pipeline(
             continue
         c = max(cnts, key=cv2.contourArea)
         c_area = cv2.contourArea(c)
-        if c_area < 1200:
+        if c_area < min_bulb_area:
             continue
 
         # ── Pile/background blob guard ─────────────────────────────────────────
-        # A single onion bulb cannot span more than 70% of the image dimension.
-        # When YOLO segments the entire background pile as one region, its
-        # bounding box is nearly as large as the full image.  Reject these early,
-        # before the solidity test (which a convex pile easily passes).
+        # A single onion bulb cannot span more than 88% of the image dimension.
+        # This rejects entire-background pile floods while preserving genuine close-up shots.
         bbox_w_frac = d.bbox_w / max(1, img_w)
         bbox_h_frac = d.bbox_h / max(1, img_h)
-        if bbox_w_frac > 0.70 or bbox_h_frac > 0.70:
+        if bbox_w_frac > 0.88 or bbox_h_frac > 0.88:
             logger.info(
-                "Pipeline: rejected over-sized detection (bbox %.0f×%.0f = %.0f%%×%.0f%% of image) — likely pile/background blob.",
+                "Pipeline: rejected over-sized detection (bbox %.0fx%.0f = %.0f%%x%.0f%% of image) - likely pile/background blob.",
                 d.bbox_w, d.bbox_h, bbox_w_frac * 100, bbox_h_frac * 100,
             )
             continue
 
         # ── Mask area guard ────────────────────────────────────────────────────
-        # No single onion can occupy more than 50% of the image pixel area.
+        # No single onion can occupy more than 65% of the image pixel area.
         mask_frac = float(np.count_nonzero(d.mask)) / max(1, img_w * img_h)
-        if mask_frac > 0.50:
+        if mask_frac > 0.65:
             logger.info(
-                "Pipeline: rejected detection with mask coverage %.1f%% — likely pile/background blob.",
+                "Pipeline: rejected detection with mask coverage %.1f%% - likely pile/background blob.",
                 mask_frac * 100,
             )
             continue
@@ -257,12 +287,12 @@ def run_pipeline(
         peri = cv2.arcLength(c, True)
         circ = (4.0 * np.pi * c_area) / max(1.0, peri * peri)
 
-        # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.70)
-        # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.70)
-        if solidity < 0.70:
+        # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.68)
+        # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.68)
+        if solidity < 0.68:
             logger.debug("Pipeline: filtered out peel/skin debris (solidity=%.2f)", solidity)
             continue
-        if circ < 0.35 and solidity < 0.80:
+        if circ < 0.30 and solidity < 0.78:
             logger.debug("Pipeline: filtered out non-bulb strip (circ=%.2f, sol=%.2f)", circ, solidity)
             continue
         valid_detections.append(d)
@@ -302,7 +332,7 @@ def run_pipeline(
             area_px = float(np.count_nonzero(d.mask))
             if area_px > 0:
                 diam_px = 2.0 * np.sqrt(area_px / np.pi)
-                # Only include plausible single-bulb pixel diameters (20px–2000px)
+                # Only include plausible single-bulb pixel diameters (20px-2000px)
                 if 20.0 < diam_px < 2000.0:
                     bulb_diameters_px.append(diam_px)
 
@@ -382,7 +412,7 @@ def run_pipeline(
             wt = size_est.estimated_weight_grams or 0.0
             if eq_diam > 200.0 or wt > 5000.0:
                 logger.warning(
-                    "Instance %d: physically impossible size (D=%.1fmm, W=%.0fg) — "
+                    "Instance %d: physically impossible size (D=%.1fmm, W=%.0fg) - "
                     "likely background pile segment.  Nulling size_est.",
                     idx, eq_diam, wt,
                 )

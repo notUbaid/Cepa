@@ -79,6 +79,12 @@ demo/sample_images/*.png
 cv_tools/dataset/images/
 cv_tools/dataset/labels/
 cv_tools/dataset/real_onions/
+cv_tools/dataset/cutouts/
+cv_tools/dataset/clean_cutouts/
+cv_tools/dataset/onion_seg_real/
+cv_tools/dataset/onion_seg/
+scratch/
+backend/test_images/
 
 # Secrets
 *.pem
