@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <Text style={styles.mandiPillText}>APMC TERMINAL</Text>
               </View>
             </View>
-            <Text style={styles.subtitle}>Autonomous Optical &amp; AI Quality Suite</Text>
+            <Text style={styles.subtitle}>Autonomous Optical & AI Quality Suite</Text>
           </View>
         </View>
 

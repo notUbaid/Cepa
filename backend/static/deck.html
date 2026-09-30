@@ -10,26 +10,32 @@
   <style>
     :root {
       --bg: #09090b;
-      --surface-1: #121215;
-      --surface-2: #18181b;
-      --surface-3: #27272a;
-      --border: #27272a;
-      --border-strong: #3f3f46;
-      --text: #f4f4f5;
+      --surface-1: #111116;
+      --surface-2: #16161c;
+      --surface-3: #202028;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #f4f4f6;
       --text-muted: #a1a1aa;
       --text-dim: #71717a;
-      --accent: #10b981;
-      --accent-dim: rgba(16, 185, 129, 0.15);
-      --accent-glow: rgba(16, 185, 129, 0.25);
+      --accent: #bd284f;
+      --accent-light: #e46f88;
+      --accent-dim: rgba(189, 40, 79, 0.15);
+      --accent-glow: rgba(189, 40, 79, 0.35);
+      --emerald: #10b981;
+      --emerald-dim: rgba(16, 185, 129, 0.15);
+      --sky: #0ea5e9;
       --urs: #f59e0b;
-      --reject: #ef4444;
+      --reject: #f43f5e;
       --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       --mono: 'JetBrains Mono', monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: var(--bg);
+      background: radial-gradient(1200px 450px at 50% 0px, rgba(189, 40, 79, 0.06), transparent 70%),
+                  radial-gradient(900px 400px at 100% 100%, rgba(14, 165, 233, 0.03), transparent 60%),
+                  var(--bg);
       color: var(--text);
       font-family: var(--font);
       height: 100vh;
@@ -42,9 +48,11 @@
 
     /* Top Presentation Bar */
     header {
-      height: 54px;
-      background: var(--surface-1);
-      border-bottom: 1px solid var(--border);
+      height: 56px;
+      background: rgba(13, 13, 17, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -57,31 +65,32 @@
       align-items: center;
       gap: 12px;
     }
-    .brand-logo {
-      height: 26px;
-      width: 26px;
-      border-radius: 6px;
-      background: var(--accent);
+    .brand-logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(189, 40, 79, 0.25), rgba(112, 26, 50, 0.15));
+      border: 1px solid rgba(228, 111, 136, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 12px rgba(189, 40, 79, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      color: #000;
-      font-size: 14px;
+      color: var(--accent-light);
     }
     .brand-title {
       font-weight: 800;
-      font-size: 15px;
+      font-size: 16px;
       letter-spacing: -0.02em;
     }
     .brand-tag {
       font-family: var(--mono);
       font-size: 10px;
-      background: var(--surface-2);
-      border: 1px solid var(--border-strong);
-      padding: 2px 7px;
-      border-radius: 4px;
-      color: var(--accent);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      color: var(--accent-light);
+      margin-left: 6px;
     }
     .nav-controls {
       display: flex;
@@ -94,36 +103,45 @@
       color: var(--text-dim);
     }
     .slide-btn {
-      background: var(--surface-2);
-      border: 1px solid var(--border-strong);
+      background: linear-gradient(180deg, rgba(28, 28, 36, 0.8) 0%, rgba(18, 18, 22, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
       color: var(--text);
-      padding: 5px 12px;
-      border-radius: 5px;
+      padding: 6px 14px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 4px;
-      transition: background 0.15s;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .slide-btn:hover { background: var(--surface-3); }
+    .slide-btn:hover {
+      background: linear-gradient(180deg, rgba(38, 38, 48, 0.9) 0%, rgba(26, 26, 32, 0.95) 100%);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
     .live-app-btn {
-      background: var(--accent);
-      color: #000;
+      background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent) 100%);
+      color: #ffffff;
       font-weight: 700;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 8px rgba(189, 40, 79, 0.4);
+      padding: 7px 16px;
+      border-radius: 9999px;
       font-size: 12px;
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: opacity 0.15s;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .live-app-btn:hover { opacity: 0.9; }
+    .live-app-btn:hover {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 14px rgba(189, 40, 79, 0.55);
+      transform: translateY(-1px);
+    }
 
     /* Slide Deck Viewport */
     .deck-viewport {
@@ -196,16 +214,24 @@
     }
 
     .card {
-      background: var(--surface-1);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(24, 24, 32, 0.75) 0%, rgba(14, 14, 18, 0.9) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 20px rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
       padding: 22px;
       display: flex;
       flex-direction: column;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 30px rgba(0, 0, 0, 0.45);
     }
     .card-highlight {
-      border-color: var(--accent);
-      background: rgba(16, 185, 129, 0.04);
+      border-color: rgba(228, 111, 136, 0.4);
+      background: linear-gradient(180deg, rgba(38, 18, 26, 0.7) 0%, rgba(20, 10, 15, 0.85) 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 24px rgba(189, 40, 79, 0.25);
     }
     .card-label {
       font-family: var(--mono);
@@ -253,7 +279,7 @@
       color: var(--text-muted);
     }
     .comp-table tr.highlight-row {
-      background: rgba(16, 185, 129, 0.06);
+      background: rgba(189, 40, 79, 0.08);
     }
     .comp-table tr.highlight-row td {
       color: var(--text);
@@ -284,8 +310,8 @@
       width: 18px;
       border-radius: 9px;
       background: var(--accent-dim);
-      border: 1px solid var(--accent);
-      color: var(--accent);
+      border: 1px solid var(--accent-light);
+      color: var(--accent-light);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -303,9 +329,9 @@
     }
     .timeline-bar {
       height: 100%;
-      background: var(--accent);
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
       width: 12.5%;
-      transition: width 0.3s ease;
+      transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
   </style>
 </head>
@@ -314,10 +340,18 @@
   <!-- Top Bar -->
   <header>
     <div class="brand-wrap">
-      <div class="brand-logo">C</div>
+      <div class="brand-logo-badge">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C7.5 2 3 7 3 13a9 9 0 0 0 18 0c0-6-4.5-11-9-11z" />
+          <path d="M12 6c-3 0-5 3.5-5 7a5 5 0 0 0 10 0c0-3.5-2-7-5-7z" />
+          <circle cx="12" cy="13" r="1.5" fill="currentColor" />
+          <line x1="12" y1="1" x2="12" y2="4" />
+          <line x1="12" y1="20" x2="12" y2="23" />
+        </svg>
+      </div>
       <div>
-        <span class="brand-title">Cepa</span>
-        <span class="brand-tag">SMART INDIA HACKATHON · SIH26031</span>
+        <span class="brand-title">CEPA</span>
+        <span class="brand-tag">SIH26031 · Mandi Assaying Intelligence</span>
       </div>
     </div>
     <div class="nav-controls">

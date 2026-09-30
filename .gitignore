@@ -18,6 +18,7 @@ env/
 
 # Storage & databases
 storage/
+cepa_storage/
 backend/storage/
 *.db
 *.db-shm
