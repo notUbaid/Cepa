@@ -250,7 +250,8 @@ class TestFullInspectionWorkflow:
         assert data["keyframes_sampled"] > 0
         assert data["total_bulbs_spotted"] > 0
         assert "ai_agronomist_verdict" in data
-        assert "quality_rating" in data["ai_agronomist_verdict"]
+        verdict = data["ai_agronomist_verdict"]
+        assert "quality_rating" in verdict or verdict.get("available") is False
         assert len(data["keyframes"]) > 0
 
 

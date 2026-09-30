@@ -444,6 +444,16 @@ class RealAcousticAnalyzer(AcousticAnalyzer):
                 f"minimum is {_MIN_DURATION_MS:.0f} ms"
             )
 
+        # ── Signal validity gate (H9): Silence & low-energy rejection ──────────
+        rms = float(np.sqrt(np.mean(pcm_array ** 2)))
+        peak_amp = float(np.max(np.abs(pcm_array)))
+        if rms < 0.001 or peak_amp < 0.005:
+            logger.warning("Acoustic signal rejected: low energy (RMS=%.5f, peak=%.5f)", rms, peak_amp)
+            return _invalid_reading(
+                f"Signal energy too low (RMS={rms:.5f}, peak={peak_amp:.5f}). "
+                "No acoustic tap detected (silence or microphone muted). Please record a crisp bulb tap."
+            )
+
         try:
             # ── 1. Hanning window ───────────────────────────────────────────
             window = np.hanning(n_samples)
@@ -469,10 +479,34 @@ class RealAcousticAnalyzer(AcousticAnalyzer):
             spectrum_band = spectrum[band_mask]
             freqs_band = freqs[band_mask]
 
-            # ── 5. Dominant peak in band ────────────────────────────────────
+            # ── 5. Dominant peak in band & Prominence / SNR check ────────────
             peak_idx_band = int(np.argmax(spectrum_band))
             dominant_freq_hz: float = float(freqs_band[peak_idx_band])
             peak_power: float = float(spectrum_band[peak_idx_band])
+            mean_band_power: float = float(np.mean(spectrum_band))
+            std_band_power: float = float(np.std(spectrum_band))
+
+            # Statistical prominence (z-score) above noise floor
+            z_score = (peak_power - mean_band_power) / (std_band_power + 1e-9)
+
+            # Energy concentration: a true mechanical tap concentrates > 10% of band energy
+            # in the resonant peak and its immediate spectral neighbors (±3 bins)
+            total_band_energy = float(np.sum(spectrum_band ** 2))
+            peak_neighborhood = spectrum_band[max(0, peak_idx_band - 3) : min(len(spectrum_band), peak_idx_band + 4)]
+            peak_neighborhood_energy = float(np.sum(peak_neighborhood ** 2))
+            peak_energy_frac = peak_neighborhood_energy / (total_band_energy + 1e-9)
+
+            # Rejection of flat ambient noise (white/pink noise or diffuse ambient room noise)
+            if z_score < 6.0 or peak_energy_frac < 0.10:
+                logger.warning(
+                    "Acoustic signal rejected: no distinct resonance (z=%.2f, energy_frac=%.3f)",
+                    z_score, peak_energy_frac,
+                )
+                return _invalid_reading(
+                    f"No distinct mechanical resonance peak detected (z={z_score:.1f}, "
+                    f"energy_frac={peak_energy_frac:.1%}). Audio appears to be ambient background "
+                    "noise rather than a clear mechanical bulb tap."
+                )
 
             # ── 6. Q factor from −3 dB (half-power) bandwidth ──────────────
             quality_factor_q: float | None = None

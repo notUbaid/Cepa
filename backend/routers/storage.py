@@ -47,7 +47,8 @@ def _verify_storage_access(
         return
 
     # Officer authentication header
-    if x_officer_token and x_officer_token == settings.officer_api_key:
+    import hmac
+    if x_officer_token and hmac.compare_digest(x_officer_token, settings.officer_api_key):
         return
 
     # Public share token validation
@@ -90,24 +91,37 @@ async def serve_stored_file(
     Authorized endpoint to fetch inspection media and generated certificates.
     Guarded against path traversal and unauthorized bulk access.
     """
-    base_dir = settings.storage_dir.resolve()
-    target = (settings.storage_dir / file_path).resolve()
+    import os
+    base_dir = os.path.abspath(str(settings.storage_dir))
+    target_path = os.path.abspath(os.path.join(base_dir, file_path))
 
     # Guard against directory traversal attacks (e.g., ../../etc/passwd)
     try:
-        target.relative_to(base_dir)
-    except ValueError:
-        logger.warning("Directory traversal attempt blocked: %s", file_path)
+        if os.path.commonpath([base_dir, target_path]) != base_dir:
+            logger.warning("Directory traversal attempt blocked: %s", file_path)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Security: Invalid file path traversal blocked.",
+            )
+    except (ValueError, OSError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Security: Invalid file path traversal blocked.",
         )
 
-    if not target.is_file():
+    try:
+        if not (os.path.exists(target_path) and os.path.isfile(target_path)):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Requested file not found.",
+            )
+    except OSError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Requested file not found.",
         )
+
+    target = Path(target_path)
 
     _verify_storage_access(file_path=file_path, token=token, x_officer_token=x_officer_token, db=db)
 

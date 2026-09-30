@@ -147,6 +147,20 @@ def aggregate_from_db_instances(
     """
     import json as _json
 
+    # Load policy defect thresholds dynamically so aggregator does not hardcode them (H7)
+    dmg_thresh = 0.80
+    rot_thresh = 0.50
+    spr_thresh = 0.50
+    try:
+        from grading.policy_loader import load_policy
+        p = load_policy(ruleset_version)
+        if p and hasattr(p, "defect"):
+            dmg_thresh = p.defect.damaged_threshold
+            rot_thresh = p.defect.rotten_threshold
+            spr_thresh = p.defect.sprouted_threshold
+    except Exception:
+        pass
+
     summaries: list[_BulbSummary] = []
     for inst in instances:
         defect = inst.defect_observation
@@ -159,9 +173,9 @@ def aggregate_from_db_instances(
         if defect and defect.final_decision:
             try:
                 fd = _json.loads(defect.final_decision)
-                is_rotten = fd.get("rotten_prob", 0) >= 0.5
-                is_damaged = fd.get("damaged_prob", 0) >= 0.5
-                is_sprouted = fd.get("sprouted_prob", 0) >= 0.5
+                is_rotten = fd.get("rotten_prob", 0) >= rot_thresh
+                is_damaged = fd.get("damaged_prob", 0) >= dmg_thresh
+                is_sprouted = fd.get("sprouted_prob", 0) >= spr_thresh
             except Exception:
                 pass
 

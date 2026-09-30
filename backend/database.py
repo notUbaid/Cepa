@@ -27,9 +27,12 @@ def _sqlite_connect_listener(dbapi_connection, connection_record):  # noqa: ANN0
     cursor.close()
 
 
+is_sqlite = settings.database_url.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite else {}
+
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False},  # required for SQLite + threading
+    connect_args=connect_args,
     echo=(settings.backend_env == "development"),
 )
 

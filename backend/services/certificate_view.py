@@ -74,21 +74,27 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         if annotated_img_url:
             break
 
+    # H6 privacy: Public share links should not broadcast exact meter-level GPS or raw officer credentials
+    raw_officer_id = str(r.officer_id or "").strip()
+    if len(raw_officer_id) > 4:
+        masked_officer_id = f"***-{raw_officer_id[-4:]}"
+    elif raw_officer_id:
+        masked_officer_id = "***"
+    else:
+        masked_officer_id = "--"
+
+    # Truncate to ~1.1km precinct resolution (2 decimal places) for public privacy
     location_str = (
-        f"{inspection.geo_lat:.4f} N, {inspection.geo_lon:.4f} E (accuracy: +-{inspection.location_accuracy:.0f}m)"
-        if (inspection.geo_lat is not None and inspection.geo_lon is not None and inspection.location_accuracy)
-        else (
-            f"{inspection.geo_lat:.4f} N, {inspection.geo_lon:.4f} E"
-            if (inspection.geo_lat is not None and inspection.geo_lon is not None)
-            else "Location unrecorded"
-        )
+        f"{inspection.geo_lat:.2f}° N, {inspection.geo_lon:.2f}° E (APMC Mandi Precinct)"
+        if (inspection.geo_lat is not None and inspection.geo_lon is not None)
+        else "Location unrecorded"
     )
 
     # Escaped versions of user-controlled report/inspection fields
     lot_id_safe = _e(r.lot_id or "N/A")
     centre_safe = _e(r.procurement_centre or "N/A")
     officer_name_safe = _e(r.officer_name or "N/A")
-    officer_id_safe = _e(r.officer_id or "ID: --")
+    officer_id_safe = _e(masked_officer_id)
     ruleset_safe = _e(r.ruleset_version)
     policy_version_safe = _e(policy_version)
     storage_rec_safe = _e(storage_rec)

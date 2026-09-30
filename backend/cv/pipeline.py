@@ -297,10 +297,13 @@ def run_pipeline(
             continue
         valid_detections.append(d)
 
-    # If all detections were filtered out as debris, keep the largest raw detection rather than failing
-    if not valid_detections and raw_detections:
-        logger.warning("All detections filtered by morphology; retaining largest detection as fallback.")
-        valid_detections = [max(raw_detections, key=lambda d: cv2.countNonZero(d.mask))]
+    # H5: Do not promote peel debris to a valid bulb if all detections were filtered out
+    if not valid_detections:
+        result.quality_passed = False
+        result.failure_message = "No authentic onion bulbs detected (all detections filtered out as debris/peels)."
+        result.quality_flags = ["no_valid_bulbs_detected"]
+        logger.warning("Pipeline sample=%s: all detections filtered out as non-bulb debris", sample_id)
+        return result
 
     # Re-index valid detections
     detections = [

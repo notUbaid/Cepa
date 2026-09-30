@@ -10,8 +10,11 @@ Usage:
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger("cepa.config")
 
 
 class Settings(BaseSettings):
@@ -35,8 +38,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./cepa.db"
 
     # ── Storage ──────────────────────────────────────────────────────────────
-    storage_dir: Path = Path("./storage")
-    weights_dir: Path = Path("./weights")
+    storage_dir: Path = Path(__file__).resolve().parent.parent / "cepa_storage"
+    weights_dir: Path = Path(__file__).resolve().parent.parent / "weights"
 
     # ── Grading policy ───────────────────────────────────────────────────────
     active_grading_policy: str = "DEMO_ASSUMPTION_v1"
@@ -63,8 +66,13 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_vision_model: str = "qwen/qwen3.8-27b"
 
+    # ── Bhashini Multilingual Speech Synthesis (NLTM) ────────────────────────
+    bhashini_api_key: str = ""
+    bhashini_user_id: str = ""
+    bhashini_inference_api_key: str = ""
+
     # ── Segmentation model ───────────────────────────────────────────────────
-    seg_model_path: Path = Path("./weights/yolo11n-seg.pt")
+    seg_model_path: Path = Path(__file__).resolve().parent / "weights" / "yolo11n-seg.pt"
     seg_confidence_threshold: float = 0.35
     seg_iou_threshold: float = 0.45
 
@@ -78,8 +86,8 @@ class Settings(BaseSettings):
     max_audio_upload_mb: int = 10
 
     # ── Defect classifier ────────────────────────────────────────────────────
-    def_model_path: Path = Path("./weights/defect_classifier.pt")
-    def_use_mock: bool = True          # Default: mock mode (no trained weights shipped in repo)
+    def_model_path: Path = Path(__file__).resolve().parent / "weights" / "defect_classifier.pt"
+    def_use_mock: bool = True          # Default: mock mode (set to False when real weights active)
 
     # ── ChArUco calibration board ────────────────────────────────────────────
     charuco_square_length_mm: float = 40.0
@@ -117,7 +125,10 @@ class Settings(BaseSettings):
             self.storage_dir / "reports",
             self.storage_dir / "images",
         ]:
-            d.mkdir(parents=True, exist_ok=True)
+            try:
+                d.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logger.warning("Could not ensure directory %s: %s", d, e)
 
 
 # Module-level singleton -- import this everywhere

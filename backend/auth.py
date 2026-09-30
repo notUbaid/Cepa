@@ -43,8 +43,10 @@ def verify_officer_token(
             headers={"WWW-Authenticate": "ApiKey"},
         )
 
-    if x_officer_token != settings.officer_api_key:
-        logger.warning("Rejected invalid officer token: %s...", x_officer_token[:4])
+    import hmac
+
+    if not hmac.compare_digest(x_officer_token, settings.officer_api_key):
+        logger.warning("Rejected request with invalid officer token")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="DPDP Security: Invalid officer credential.",

@@ -355,6 +355,10 @@ async def update_inspection(
         )
     if body.lot_id is not None:
         inspection.lot_id = body.lot_id
+    if body.farmer_id is not None:
+        inspection.farmer_id = body.farmer_id
+    if body.farmer_name is not None:
+        inspection.farmer_name = body.farmer_name
     if body.procurement_centre is not None:
         inspection.procurement_centre = body.procurement_centre
     if body.officer_name is not None:
@@ -387,17 +391,23 @@ async def add_sample(
     if inspection.status == "FINALIZED":
         raise HTTPException(status_code=400, detail="Cannot add samples to a finalized inspection")
 
-    # Read image bytes
-    image_bytes = await file.read()
-    if len(image_bytes) == 0:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    # Validate and stream image bytes with memory-safe chunked limit (H1)
+    image_bytes = await validate_and_read_upload(
+        upload_file=file,
+        allowed_types=ALLOWED_IMAGE_TYPES,
+        max_mb=settings.max_image_upload_mb,
+        label="Inspection image",
+    )
 
-    # Read optional acoustic audio bytes
+    # Validate optional acoustic audio bytes
     acoustic_bytes: bytes | None = None
-    if acoustic_file is not None:
-        raw_audio = await acoustic_file.read()
-        if len(raw_audio) > 0:
-            acoustic_bytes = raw_audio
+    if acoustic_file is not None and acoustic_file.filename:
+        acoustic_bytes = await validate_and_read_upload(
+            upload_file=acoustic_file,
+            allowed_types=ALLOWED_AUDIO_TYPES,
+            max_mb=settings.max_audio_upload_mb,
+            label="Acoustic tap recording",
+        )
 
     # Run pipeline (async — blocks in thread pool internally)
     sample = await inspection_service.process_sample_image(
@@ -410,6 +420,13 @@ async def add_sample(
         acoustic_bytes=acoustic_bytes,
         bulb_mass_g=bulb_mass_g,
     )
+
+    if sample.processing_status == "FAILED":
+        # H2: Do not return 201 Created for failed sample processing
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Sample processing failed: {sample.processing_error or 'Image failed quality validation check'}",
+        )
 
     return _sample_to_detail(sample)
 
@@ -592,6 +609,7 @@ async def correct_onion(
         rotten_prob=body.rotten_prob,
         sprouted_prob=body.sprouted_prob,
         corrected_by=body.corrected_by,
+        notes=body.notes,
     )
     if updated is None:
         raise HTTPException(status_code=500, detail="Failed to apply correction")
@@ -613,6 +631,15 @@ async def finalize_inspection(
             status_code=400,
             detail=f"Cannot finalize inspection with status '{inspection.status}'"
         )
+
+    # H3: Cannot finalize an empty lot without bulb instances
+    total_bulbs = sum(len(s.onion_instances) for s in inspection.samples)
+    if total_bulbs == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot finalize empty inspection: at least 1 verified onion bulb sample is required.",
+        )
+
     updated = inspection_service.finalize_inspection(db, inspection_id)
     # Auto-generate the official report and PDF so certificates and downloads are immediately available
     from routers.reports import create_or_update_report
@@ -620,6 +647,7 @@ async def finalize_inspection(
         create_or_update_report(updated, db)
     except Exception as exc:
         logger.exception("Failed to auto-generate report during finalize: %s", exc)
+    db.refresh(updated)
     return _inspection_to_detail(updated, db)
 
 
@@ -641,9 +669,12 @@ async def process_video_endpoint(
     if inspection.status == "FINALIZED":
         raise HTTPException(status_code=400, detail="Cannot add video to a finalized inspection")
 
-    video_bytes = await file.read()
-    if len(video_bytes) == 0:
-        raise HTTPException(status_code=400, detail="Uploaded video file is empty")
+    video_bytes = await validate_and_read_upload(
+        upload_file=file,
+        allowed_types=ALLOWED_VIDEO_TYPES,
+        max_mb=settings.max_video_upload_mb,
+        label="Recorded video sweep",
+    )
 
     from services.video_service import process_video_scan
     try:
@@ -689,9 +720,12 @@ async def analyze_acoustic_endpoint(
             detail="Cannot append acoustic data to a FINALIZED inspection. Records are immutable after certification.",
         )
 
-    wav_bytes = await file.read()
-    if len(wav_bytes) == 0:
-        raise HTTPException(status_code=400, detail="Uploaded audio file is empty")
+    wav_bytes = await validate_and_read_upload(
+        upload_file=file,
+        allowed_types=ALLOWED_AUDIO_TYPES,
+        max_mb=settings.max_audio_upload_mb,
+        label="Acoustic tap audio recording",
+    )
 
     from services.acoustic_service import get_analyzer, ACOUSTIC_LIMITATION_STATEMENT
     try:

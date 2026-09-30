@@ -245,6 +245,7 @@ async def process_sample_image(
     except Exception as e:
         logger.exception("Pipeline execution failed for sample %s", sample_id)
         _mark_sample_failed(db, sample_id, str(e))
+        _restore_inspection_status(db, inspection_id)
         return db.query(Sample).filter(Sample.id == sample_id).first()
 
     # Persist results to database
@@ -289,12 +290,24 @@ def _run_pipeline_sync(
     )
 
 
+def _restore_inspection_status(db: Session, inspection_id: str) -> None:
+    """Ensure inspection status is never stranded in PROCESSING after a failed sample."""
+    inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
+    if inspection and inspection.status == "PROCESSING":
+        has_completed_samples = any(
+            s.processing_status == "DONE" and len(s.onion_instances) > 0
+            for s in inspection.samples
+        )
+        inspection.status = "REVIEW" if has_completed_samples else "DRAFT"
+        db.commit()
+
+
 def _mark_sample_failed(db: Session, sample_id: str, error: str) -> None:
     sample = db.query(Sample).filter(Sample.id == sample_id).first()
     if sample:
         sample.processing_status = "FAILED"
         sample.processing_error = error
-        sample.processing_finished_at = datetime.utcnow()
+        sample.processing_finished_at = datetime.now(timezone.utc)
         db.commit()
 
 
@@ -323,9 +336,10 @@ def _persist_pipeline_results(
         pass  # Will get dimensions from quality gate metrics if needed
 
     if not result.quality_passed or not result.instances:
-        sample.processing_status = "DONE" if result.quality_passed else "FAILED"
-        sample.processing_error = result.failure_message or None
+        sample.processing_status = "DONE" if (result.quality_passed and result.instances) else "FAILED"
+        sample.processing_error = result.failure_message or ("No onion bulbs detected in image" if not result.instances else None)
         db.commit()
+        _restore_inspection_status(db, sample.inspection_id)
         logger.info(
             "Sample %s persisted: quality_passed=%s error=%s",
             sample_id, result.quality_passed, result.failure_message,
@@ -420,6 +434,7 @@ def apply_officer_correction(
     rotten_prob: float,
     sprouted_prob: float,
     corrected_by: str,
+    notes: str | None = None,
 ) -> OnionInstance | None:
     """
     Apply an officer's manual correction to a defect observation.
@@ -443,6 +458,8 @@ def apply_officer_correction(
         "rotten_prob": rotten_prob,
         "sprouted_prob": sprouted_prob,
     }
+    if notes:
+        correction["notes"] = notes
     defect_obs.human_correction = json.dumps(correction)
     defect_obs.final_decision = json.dumps(correction)
     defect_obs.corrected_by = corrected_by
@@ -486,6 +503,8 @@ def apply_officer_correction(
             clf.rejection_reasons = json.dumps(new_grading.rejection_reasons)
             explanation = new_grading.explanation.copy()
             explanation["human_correction_by"] = corrected_by
+            if notes:
+                explanation["officer_notes"] = notes
             clf.explanation = json.dumps(explanation)
 
     db.commit()

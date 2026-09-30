@@ -107,9 +107,16 @@ class MockDefectClassifier(DefectClassifier):
         return True
 
     def classify(self, crop_image: np.ndarray) -> DefectPrediction:
-        # Hash the crop content for deterministic seeding
-        # Use first 2000 bytes to limit hashing time on large crops
-        img_bytes = crop_image.tobytes()[:2000]
+        # Hash the actual visual content of the bulb crop (downsampled to 32x32 thumbnail).
+        # This samples the entire bulb interior and pigmentation rather than reading only
+        # the first bytes which are constant background padding.
+        if crop_image is not None and crop_image.size > 0:
+            import cv2
+            thumb = cv2.resize(crop_image, (32, 32), interpolation=cv2.INTER_AREA)
+            img_bytes = thumb.tobytes()
+        else:
+            img_bytes = b"empty_bulb_crop"
+
         h = hashlib.md5(img_bytes).hexdigest()
         seed = int(h[:8], 16) % (2**31)
         rng = np.random.RandomState(seed)
@@ -140,12 +147,21 @@ class MockDefectClassifier(DefectClassifier):
         )
 
 
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+    _TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = object
+    _TORCH_AVAILABLE = False
 
 
-class OnionDefectClassifierNet(nn.Module):
+class OnionDefectClassifierNet(nn.Module if _TORCH_AVAILABLE else object):
     """MobileNetV3-Small backbone with multi-label sigmoid classifier."""
     def __init__(self) -> None:
+        if not _TORCH_AVAILABLE:
+            raise RuntimeError("PyTorch is required for OnionDefectClassifierNet")
         super().__init__()
         import torchvision.models as models
         backbone = models.mobilenet_v3_small(weights=None)
@@ -158,7 +174,7 @@ class OnionDefectClassifierNet(nn.Module):
         )
         self.net = backbone
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: "torch.Tensor") -> "torch.Tensor":
         return self.net(x)
 
 

@@ -1,6 +1,7 @@
 """Health check router."""
 from __future__ import annotations
 
+import logging
 import platform
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,6 +10,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from services.inspection_service import get_cv_status
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["health"])
 
