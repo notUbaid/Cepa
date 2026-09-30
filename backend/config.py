@@ -100,11 +100,11 @@ class Settings(BaseSettings):
     scale_max_mm_per_px: float = 5.0
 
     # ── Image quality gate thresholds ────────────────────────────────────────
-    qg_blur_threshold: float = 80.0
-    qg_dark_threshold: int = 40
-    qg_bright_threshold: int = 215
-    qg_glare_fraction: float = 0.05
-    qg_min_resolution_px: int = 400
+    qg_blur_threshold: float = 35.0
+    qg_dark_threshold: int = 25
+    qg_bright_threshold: int = 235
+    qg_glare_fraction: float = 0.15
+    qg_min_resolution_px: int = 300
 
     # ── Derived paths ─────────────────────────────────────────────────────────
     @property

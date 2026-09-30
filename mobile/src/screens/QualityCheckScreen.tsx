@@ -94,11 +94,35 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
         }
       }, 700);
 
-      const sample = await ApiClient.uploadSample(inspection.id, targetUri, {
-        lat: inspection.geo_lat ?? undefined,
-        lon: inspection.geo_lon ?? undefined,
-        accuracy: inspection.location_accuracy ?? undefined,
-      });
+      let currentInspectionId = inspection.id;
+      let sample: SampleDetail;
+      try {
+        sample = await ApiClient.uploadSample(currentInspectionId, targetUri, {
+          lat: inspection.geo_lat ?? undefined,
+          lon: inspection.geo_lon ?? undefined,
+          accuracy: inspection.location_accuracy ?? undefined,
+        });
+      } catch (uploadErr: any) {
+        if (
+          uploadErr.message?.includes('Inspection not found') ||
+          uploadErr.message?.includes('404')
+        ) {
+          // Re-create inspection seamlessly and retry upload
+          const newInsp = await ApiClient.createInspection({
+            lot_id: inspection.lot_id || `LOT-${Date.now().toString(36).toUpperCase()}`,
+            procurement_centre: inspection.procurement_centre || 'APMC Mandi Terminal',
+            officer_name: inspection.officer_name || 'Field Officer',
+          });
+          currentInspectionId = newInsp.id;
+          sample = await ApiClient.uploadSample(currentInspectionId, targetUri, {
+            lat: inspection.geo_lat ?? undefined,
+            lon: inspection.geo_lon ?? undefined,
+            accuracy: inspection.location_accuracy ?? undefined,
+          });
+        } else {
+          throw uploadErr;
+        }
+      }
 
       if (!isMounted) return;
       setSampleResult(sample);
