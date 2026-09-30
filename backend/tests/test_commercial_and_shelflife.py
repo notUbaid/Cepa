@@ -117,3 +117,32 @@ def test_commercial_settlement_hard_rejection():
     assert slip.settlement_tier == "REJECTED_NO_PAYOUT"
     assert slip.procurement_decision == "CONSIGNMENT_REJECTED"
     assert slip.net_payout_rate_inr_per_qtl == 0.0
+
+
+def test_commercial_settlement_configurable_tender_parameters():
+    from grading.commercial import TenderParameters
+    custom_params = TenderParameters(
+        benchmark_rate_inr_per_qtl=2600.0,
+        undersize_dockage_per_pct=20.0,
+        free_undersize_tolerance_pct=3.0,
+        rot_rejection_limit_pct=4.0,
+    )
+    # 20 bulbs, 2 undersized = 10% (exceeds 3% tolerance by 7%)
+    slip = calculate_mandi_settlement(
+        total_bulbs=20,
+        grade_a_count=18,
+        urs_count=2,
+        rejected_count=0,
+        rotten_count=0,
+        sprouted_count=0,
+        undersized_count=2,
+        oversized_count=0,
+        storageability_score=80.0,
+        tender_params=custom_params,
+    )
+    assert slip.is_illustrative is True
+    assert "no statutory MSP" in slip.disclaimer
+    assert slip.benchmark_rate_inr_per_qtl == 2600.0
+    assert slip.total_dockage_inr_per_qtl == 140.0  # 7% * 20 INR
+    assert slip.net_payout_rate_inr_per_qtl == 2460.0  # 2600 - 140
+

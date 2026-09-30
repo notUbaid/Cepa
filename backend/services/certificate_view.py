@@ -60,13 +60,24 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     scale_mm = ""
     for s in inspection.samples:
         if s.processed_image_path:
-            annotated_img_url = f"/static/{s.processed_image_path}"
+            annotated_img_url = f"/api/v1/storage/{s.processed_image_path}?token={r.share_token}"
         elif s.image_path:
-            annotated_img_url = f"/static/{s.image_path}"
+            annotated_img_url = f"/api/v1/storage/{s.image_path}?token={r.share_token}"
         if s.scale_mm_per_px:
-            scale_mm = f"{s.scale_mm_per_px:.4f} mm/px (ChArUco 7×5 locked)"
+            scale_mm = f"{s.scale_mm_per_px:.4f} mm/px (ChArUco 7x5 locked)"
         if annotated_img_url:
             break
+
+    location_str = (
+        f"{inspection.geo_lat:.4f} N, {inspection.geo_lon:.4f} E (accuracy: +-{inspection.location_accuracy:.0f}m)"
+        if (inspection.geo_lat is not None and inspection.geo_lon is not None and inspection.location_accuracy)
+        else (
+            f"{inspection.geo_lat:.4f} N, {inspection.geo_lon:.4f} E"
+            if (inspection.geo_lat is not None and inspection.geo_lon is not None)
+            else "Location unrecorded"
+        )
+    )
+
 
     # Format dockage rows
     dockage_rows_html = ""
@@ -445,7 +456,11 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </div>
         <div class="data-item">
           <span class="data-label">Optical Scale Calibration · प्रमाणन</span>
-          <span class="data-value-mono">{scale_mm or 'ChArUco 7×5 Active'}</span>
+          <span class="data-value-mono">{scale_mm or 'ChArUco 7x5 Active'}</span>
+        </div>
+        <div class="data-item">
+          <span class="data-label">Device-Reported Location (Unverified GNSS) · साधन-नोंदणीकृत स्थान</span>
+          <span class="data-value">{location_str}</span>
         </div>
       </div>
     </div>
@@ -501,10 +516,10 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
 
     <!-- Commercial Mandi Settlement Slip -->
     <div class="section-card">
-      <div class="section-title">NAFED Mandi Commercial Settlement Voucher · बाजार भाव व हिशोब पावती</div>
+      <div class="section-title">NAFED Mandi Commercial Settlement Voucher (Illustrative Simulation) · बाजार भाव व हिशोब पावती</div>
       <div class="payout-highlight">
         <div class="payout-rate-box">
-          <span class="payout-rate-lbl">Net Procurement Rate · निव्वळ खरेदी दर</span>
+          <span class="payout-rate-lbl">Net Procurement Rate (Illustrative) · निव्वळ खरेदी दर</span>
           <span class="payout-rate-val">₹{net_rate:.1f} <span style="font-size:14px; font-weight:400; color:var(--text-muted);">/ quintal (प्रति क्विंटल)</span></span>
         </div>
         <div style="text-align:right;">
@@ -528,7 +543,7 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
           <tbody>
             {dockage_rows_html}
             <tr style="border-top: 1px solid rgba(255,255,255,0.1); font-weight:600;">
-              <td>Base Benchmark MSP (Nashik FAQ) · आधारभूत हमीभाव</td>
+              <td>Benchmark Procurement Rate (PSF/Market-Linked) [Illustrative] · आधारभूत खरेदी दर (प्रतीकात्मक)</td>
               <td colspan="2"></td>
               <td style="text-align:right">₹{base_msp:.1f}/qtl</td>
             </tr>
@@ -539,6 +554,9 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
             </tr>
           </tbody>
         </table>
+        <div style="font-size:10.5px; color:var(--text-dim); margin-top:8px; line-height:1.4;">
+          * Illustrative simulation based on configurable tender parameters. Onion has no statutory Minimum Support Price (MSP); procurement operates under the Price Stabilisation Fund (PSF) at market-linked benchmark rates.
+        </div>
       </div>
     </div>
 

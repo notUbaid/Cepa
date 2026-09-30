@@ -181,4 +181,5 @@ class TestInteractiveInspectorEndpoint:
         response = client.get("/inspector")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
-        assert "CEPA — SIH26031 Mandi Inspection Studio" in response.text
+        assert "CEPA -- SIH26031 Mandi Inspection Studio" in response.text
+

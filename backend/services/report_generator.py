@@ -153,7 +153,7 @@ def generate_pdf_report(
         ["Officer ID", inspection.officer_id or "Not specified"],
         ["Procurement Centre", inspection.procurement_centre or "Not specified"],
         ["Lot ID", inspection.lot_id or "Not specified"],
-        ["Location", _format_location(inspection)],
+        ["Location (Device-Reported, Unverified GNSS)", _format_location(inspection)],
         ["Grading Policy", f"{report.ruleset_version} (verified: {is_verified})"],
         ["Defect Classifier", "Mock / Rule-Based (DEF_USE_MOCK=true)" if is_mock_defect else "MobileNetV3 PyTorch"],
         ["Segmentation Model", str(report.model_version)],
@@ -320,7 +320,7 @@ def generate_pdf_report(
 
     pricing_data = [
         ["Commercial Metric", "Appraisal Value"],
-        ["Benchmark Mandi MSP Base Rate", f"Rs. {pricing.benchmark_mandi_rate_inr_per_qtl:.0f} / quintal"],
+        ["Benchmark PSF Procurement Rate (Illustrative)", f"Rs. {pricing.benchmark_mandi_rate_inr_per_qtl:.0f} / quintal"],
         ["Permissible Off-Grade Tolerance", f"{pricing.allowable_tolerance_pct:.1f}%"],
         ["Excess Off-Grade Variance", f"{pricing.excess_defects_pct:.1f}%"],
         ["Applicable FAQ Dockage Rate", f"Rs. {pricing.dockage_rate_inr_per_qtl:.1f} / quintal"],
@@ -348,6 +348,10 @@ def generate_pdf_report(
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
     story.append(pricing_table)
+    story.append(Paragraph(
+        "<font size=7 color='#7f8c8d'>* Note: Onion has no statutory MSP. Procurement operates under Price Stabilisation Fund (PSF) at market-linked benchmark rates. All rates shown are illustrative simulations based on tender parameters.</font>",
+        styles["Normal"]
+    ))
     story.append(Spacer(1, 0.4 * cm))
 
     # ── Post-Harvest Cold Storage Preservation Advisory ───────────────────────
