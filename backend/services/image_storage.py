@@ -54,8 +54,11 @@ def path_to_url(
     """
     if relative_path is None:
         return None
-    base = base_url or settings.report_base_url.rstrip("/")
-    url = f"{base}/api/v1/storage/{relative_path}"
+    clean_path = relative_path.replace("\\", "/").lstrip("/")
+    if base_url:
+        url = f"{base_url.rstrip('/')}/api/v1/storage/{clean_path}"
+    else:
+        url = f"/api/v1/storage/{clean_path}"
     if share_token:
         url += f"?token={share_token}"
     return url

@@ -1,7 +1,7 @@
 model:
   name: "mobilenet_v3_small"
-  num_classes: 3
-  weights_path: "ml/models/onion_quality/best.pt"
+  num_classes: 4
+  weights_path: "backend/weights/defect_classifier.pt"
   
 ram_plus_plus:
   enabled: true

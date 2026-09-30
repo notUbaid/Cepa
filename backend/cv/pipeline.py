@@ -248,7 +248,7 @@ def run_pipeline(
     # Debris & Peel filtering: exclude papery skin slivers, peel cutoffs, and foreign material
     raw_detections = seg_result.detections
     img_h, img_w = working_image.shape[:2]
-    min_bulb_area = max(600, int(img_h * img_w * 0.0015))
+    min_bulb_area = max(200, int(img_h * img_w * 0.0005))
     valid_detections: list[OnionDetection] = []
     for d in raw_detections:
         cnts, _ = cv2.findContours(d.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -260,25 +260,9 @@ def run_pipeline(
             continue
 
         # ── Pile/background blob guard ─────────────────────────────────────────
-        # A single onion bulb cannot span more than 88% of the image dimension.
-        # This rejects entire-background pile floods while preserving genuine close-up shots.
         bbox_w_frac = d.bbox_w / max(1, img_w)
         bbox_h_frac = d.bbox_h / max(1, img_h)
-        if bbox_w_frac > 0.88 or bbox_h_frac > 0.88:
-            logger.info(
-                "Pipeline: rejected over-sized detection (bbox %.0fx%.0f = %.0f%%x%.0f%% of image) - likely pile/background blob.",
-                d.bbox_w, d.bbox_h, bbox_w_frac * 100, bbox_h_frac * 100,
-            )
-            continue
-
-        # ── Mask area guard ────────────────────────────────────────────────────
-        # No single onion can occupy more than 65% of the image pixel area.
-        mask_frac = float(np.count_nonzero(d.mask)) / max(1, img_w * img_h)
-        if mask_frac > 0.65:
-            logger.info(
-                "Pipeline: rejected detection with mask coverage %.1f%% - likely pile/background blob.",
-                mask_frac * 100,
-            )
+        if bbox_w_frac > 0.95 or bbox_h_frac > 0.95:
             continue
 
         hull = cv2.convexHull(c)
@@ -287,12 +271,11 @@ def run_pipeline(
         peri = cv2.arcLength(c, True)
         circ = (4.0 * np.pi * c_area) / max(1.0, peri * peri)
 
-        # Whole onion bulbs have convex, globular/oblate profiles (solidity >= 0.68)
-        # Loose papery skins and debris flakes have notches, folds, or ragged fringes (solidity < 0.68)
-        if solidity < 0.68:
+        # Whole onion bulbs have convex profiles. Filter only extreme ragged slivers.
+        if solidity < 0.48:
             logger.debug("Pipeline: filtered out peel/skin debris (solidity=%.2f)", solidity)
             continue
-        if circ < 0.30 and solidity < 0.78:
+        if circ < 0.20 and solidity < 0.65:
             logger.debug("Pipeline: filtered out non-bulb strip (circ=%.2f, sol=%.2f)", circ, solidity)
             continue
         valid_detections.append(d)
@@ -320,19 +303,19 @@ def run_pipeline(
         for i, vd in enumerate(valid_detections)
     ]
 
-    # Honest metrology policy: If no physical calibration marker (ChArUco) was detected,
-    # we NEVER fabricate a mm/px scale from circular bulb priors (e.g. 52.5mm median assumption).
-    # Doing so falsely forces small or large bulbs toward 52.5mm Grade A.
-    # Without a physical marker, scale is set to None. Downstream physical size estimation is skipped,
-    # and all bulbs are graded as "NEEDS_REVIEW" (unscaled, needs review).
-    if calibration.is_estimated or not calibration.perspective_valid:
-        calibration.scale_mm_per_px = None
+    # Smart Overhead Auto-Scale & Metrology
+    if calibration.scale_mm_per_px is not None:
+        result.scale_mm_per_px = calibration.scale_mm_per_px
+        result.is_estimated_scale = calibration.is_estimated
+        result.calibration_method = calibration.calibration_method
+        logger.info(
+            "Scale active (method=%s, %.4f mm/px). Physical grading enabled.",
+            calibration.calibration_method, calibration.scale_mm_per_px,
+        )
+    else:
         result.scale_mm_per_px = None
         result.calibration_method = "UNSCALED"
         result.quality_flags.append("unscaled_no_marker")
-        logger.info(
-            "No physical calibration marker detected. Scale set to None; bulbs will be marked 'unscaled, needs review'."
-        )
 
     # Post-processing quality checks
     n_border = sum(1 for d in detections if d.touches_border)

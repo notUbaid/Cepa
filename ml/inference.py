@@ -19,23 +19,35 @@ logger = logging.getLogger(__name__)
 
 class QualityInferencePipeline:
     def __init__(self, config_path="ml/config.yaml"):
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if not os.path.isabs(config_path):
+            config_path = os.path.join(root_dir, config_path)
+            
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
             
         model_path = self.config["model"]["weights_path"]
+        if not os.path.isabs(model_path):
+            model_path = os.path.join(root_dir, model_path)
         self.quality_model = RealDefectClassifier(model_path)
         
         self.ram_service = None
-        if self.config["ram_plus_plus"]["enabled"]:
-            self.ram_service = RAMService(
-                model_type=self.config["ram_plus_plus"]["model_type"],
-                image_size=self.config["ram_plus_plus"]["image_size"]
-            )
-            self.ram_service.load_model()
+        if self.config.get("ram_plus_plus", {}).get("enabled", False):
+            try:
+                self.ram_service = RAMService(
+                    model_type=self.config["ram_plus_plus"]["model_type"],
+                    image_size=self.config["ram_plus_plus"]["image_size"]
+                )
+                self.ram_service.load_model()
+            except Exception as e:
+                logger.warning("RAM++ service disabled or unavailable (%s). Continuing with trained CNN.", e)
+                self.ram_service = None
             
-        self.decision_engine = QualityDecisionEngine("ml/quality_mapping.yaml")
+        mapping_path = os.path.join(root_dir, "ml", "quality_mapping.yaml")
+        self.decision_engine = QualityDecisionEngine(mapping_path)
         
-        self.model_version = f"onion-quality-v2:ram++:{self.quality_model.model_version}"
+        ram_tag = "ram++" if self.ram_service and self.ram_service.model else "cnn-standalone"
+        self.model_version = f"onion-quality-v2:{ram_tag}:{self.quality_model.model_version}"
         self.is_mock = False
 
     def predict(self, crop_image: np.ndarray):

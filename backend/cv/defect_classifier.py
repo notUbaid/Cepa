@@ -287,12 +287,17 @@ class PipelineDefectClassifier(DefectClassifier):
     def classify(self, crop_image: np.ndarray) -> DefectPrediction:
         try:
             result = self.pipeline.predict(crop_image)
-            probs = result["adjusted_probs"]
+            probs = result.get("probabilities", {})
+            good_p = float(probs.get("GOOD", probs.get("good_prob", 0.0)))
+            damaged_p = float(probs.get("DAMAGED", probs.get("damaged_prob", 0.0)))
+            rotten_p = float(probs.get("ROTTEN", probs.get("rotten_prob", 0.0)))
+            sprouted_p = float(probs.get("SPROUTED", probs.get("sprouted_prob", 0.0)))
             
             return DefectPrediction(
-                damaged_prob=probs["damaged_prob"],
-                rotten_prob=probs["rotten_prob"],
-                sprouted_prob=probs["sprouted_prob"],
+                good_prob=good_p,
+                damaged_prob=damaged_p,
+                rotten_prob=rotten_p,
+                sprouted_prob=sprouted_p,
                 model_version=self._version_str,
                 is_mock=False,
             )

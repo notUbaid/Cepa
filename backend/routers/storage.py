@@ -81,6 +81,7 @@ def _verify_storage_access(
 
 
 @router.get("/api/v1/storage/{file_path:path}")
+@router.head("/api/v1/storage/{file_path:path}")
 async def serve_stored_file(
     file_path: str,
     token: str | None = Query(None, description="Public inspection share token for authorized access"),

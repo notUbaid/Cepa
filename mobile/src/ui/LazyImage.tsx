@@ -11,6 +11,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { ApiClient } from '../api/client';
 import { SkeletonBox } from './Skeleton';
 import { Colors, Radius } from './Theme';
 
@@ -34,8 +35,18 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
+  let finalSource = source;
+  if (typeof source === 'object' && source !== null && 'uri' in source) {
+    const rawUri = (source as any).uri;
+    const resolvedUri = ApiClient.resolveMediaUrl(rawUri);
+    finalSource = { ...(source as any), uri: resolvedUri };
+  }
+
   const isUriEmpty =
-    typeof source === 'object' && 'uri' in source && (!source.uri || source.uri === '');
+    typeof finalSource === 'object' &&
+    finalSource !== null &&
+    'uri' in finalSource &&
+    (!(finalSource as any).uri || (finalSource as any).uri === '');
 
   if (error || isUriEmpty) {
     return (
@@ -75,7 +86,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
       {/* Primary Image with robust rendering */}
       <Image
-        source={source as any}
+        source={finalSource as any}
         resizeMode={resizeMode}
         onLoad={() => setLoaded(true)}
         onError={() => {

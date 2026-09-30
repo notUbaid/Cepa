@@ -41,6 +41,19 @@ export class ApiClient {
     }
   }
 
+  public static resolveMediaUrl(url: string | null | undefined): string | undefined {
+    if (!url) return undefined;
+    const baseUrl = getApiBaseUrl();
+    if (url.startsWith('/')) {
+      return `${baseUrl}${url}`;
+    }
+    const storageIdx = url.indexOf('/api/v1/storage/');
+    if (storageIdx !== -1) {
+      return `${baseUrl}${url.substring(storageIdx)}`;
+    }
+    return url;
+  }
+
   static async checkHealth(): Promise<{ status: string; service: string }> {
     return this.request<{ status: string; service: string }>('/api/v1/health');
   }
