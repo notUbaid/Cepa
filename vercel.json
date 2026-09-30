@@ -4,6 +4,14 @@
   "outputDirectory": "mobile/dist",
   "cleanUrls": true,
   "framework": null,
+  "build": {
+    "env": {
+      "EXPO_PUBLIC_API_URL": "https://cepa-backend.onrender.com"
+    }
+  },
+  "env": {
+    "EXPO_PUBLIC_API_URL": "https://cepa-backend.onrender.com"
+  },
   "rewrites": [
     {
       "source": "/(.*)",

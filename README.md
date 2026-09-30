@@ -147,7 +147,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 | **Portability and Field Deployability** | High (Human evaluator) | High (Smartphone) | Zero (Fixed concrete packhouse, requires 15 kW 3-phase power) | **Ultra-Portable Field Kit** or autonomous solar-backed edge gate kiosk. Operates directly at farm-gate or truck bed. |
 | **Optical Caliper Precision** | Subjective visual guess ($\pm 8.0\text{ mm}$ error) | Uncalibrated pixel heuristics or credit card proxy ($\pm 4.5\text{ mm}$) | High-precision laser triangulation ($\le 0.5\text{ mm}$) | **ChArUco planar homography (~2 mm uncertainty)** -- board-plane parallax (onion equators 20-40 mm above board) limits precision; adequate for 45/65 mm grade boundaries with known systematic bias. |
 | **Sub-Surface Internal Rot NDT** | Destructive slicing of 2 bulbs (damages produce) | Zero (100% blind to internal rot and hollow heart beneath outer skin) | Optional NIR / X-ray transmission modules (+Rs. 50,00,000 add-on) | **Research-Stage Multi-Modal NDT:** MEMS acoustic tap resonance ($f_0, Q$) + Flash Proxy Index (FPI). Thresholds are theoretical; no empirical calibration data available in this prototype. |
-| **Edge Autonomy and Offline Operation** | High (Human offline) | Zero (Requires active 4G/5G broadband to upload frames to cloud) | High (Local industrial PLC / PC) | **100% Offline Edge Autonomous:** PyTorch CPU, local SQLite WAL database, offline vector PDF and QR generation. |
+| **Edge Autonomy and Offline Operation** | High (Human offline) | Zero (Requires active 4G/5G broadband to upload frames to cloud) | High (Local industrial PLC / PC) | **On-Premise Local Server Capable:** PyTorch CPU backend, local SQLite WAL database, and vector PDF/QR generation run locally without cloud dependency; multi-modal Groq/Bhashini modules require internet access when enabled. |
 | **Procurement Policy Decoupling** | Arbitrary manual interpretation of circulars | Hardcoded in neural network Softmax heads (requires code rewrite) | Proprietary vendor recipe files (costly technician reprogramming) | **Zero-Code YAML Policy Engine:** Hot-reloads `NAFED_2026_v1` and `BIS_IS_17912_2022` with zero code modifications. |
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals with ISO 2859-1 sampling tables. |
 | **Volumetric Mass Estimation** | Physical weighbridge gross weight only | 2D silhouette area proxy without depth modeling | High-speed individual load cell cups ($\pm 1.0\text{ g}$) | **Triaxial Prolate Spheroid Model:** Calibrated with ICAR-DOGR bulk density ($0.985\text{ g/cm}^3$) and Grevsen factor ($K=0.93$). |
@@ -599,18 +599,20 @@ Buffer stock longevity is evaluated using empirical physiological decay models d
   - **Score $< 40$ (`CRITICAL`):** Imminent fungal rot propagation. Immediate rejection from warehouse intake.
 
 ### 7.5 Mandi Commercial Settlement and FAQ Dockage Calculator (`commercial.py`)
-- **Benchmark Minimum Support Price (MSP):** ₹2,410.0 per quintal.
+- **Policy Context:** Onion has no statutory Minimum Support Price (MSP); procurement by NAFED / NCCF operates under the Price Stabilisation Fund (PSF) or Market Intervention Scheme (MIS) based on dynamic, tender-specific benchmark procurement rates.
+- **Illustrative Benchmark Reference Rate:** ₹2,410.0 per quintal (configurable via `TenderParameters`).
 - **Consignment Rejection Gates:** Mandate `REJECT_LOT` order if:
   - Rotten bulbs $> 5.0\%$.
   - Sprouted bulbs $> 6.0\%$.
   - Total defective bulbs $> 25.0\%$.
-- **Itemized Dockage Schedule:**
-  - Excess undersized bulbs: ₹15/quintal per percentage point.
-  - Excess oversized bulbs: ₹10/quintal per percentage point.
-  - Rotten bulbs: ₹40/quintal per percentage point.
-  - Sprouted bulbs: ₹30/quintal per percentage point.
+- **Configurable Tender Dockage Schedule:**
+  - Excess undersized bulbs (<45 mm): ₹15/quintal per percentage point excess.
+  - Excess oversized bulbs (>65 mm): ₹10/quintal per percentage point excess.
+  - Rotten bulbs (2% to 5%): ₹40/quintal per percentage point excess.
+  - Sprouted bulbs (2% to 6%): ₹30/quintal per percentage point excess.
   - Storageability surcharge: ₹50/quintal deduction if $S < 65$.
-  - Statutory Ceiling: Total dockages are capped at 40% of the base MSP rate.
+  - Tender Ceiling: Total dockages are capped at 40% of the benchmark rate.
+- **Disclaimer:** All computed rupee settlement figures represent illustrative model simulations based on tender schedule parameters.
 
 ---
 
@@ -639,7 +641,8 @@ The mobile field application (`mobile/`) is designed for harsh APMC yard environ
 - **Viewfinder HUD with Target Alignment Boxes:** Real-time rectangular guide for aligning the ChArUco calibration board.
 - **Live Optical Controls:** Tap-to-focus lock, 1x/2x optical zoom toggles, front/rear lens switching, and exposure compensation.
 - **Real-Time Visual Processing Feedback:** Sweeping laser animation and telemetry checklist during inference.
-- **Offline Inspection Draft Queue:** Encrypted local SQLite draft queue that synchronizes automatically when network connectivity is restored.
+- **Live Server Connectivity Status:** Header status badge indicating backend API reachability with auto-reconnection polling; camera capture directly connects to local or cloud FastAPI gateway.
+
 
 ---
 
