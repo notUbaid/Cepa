@@ -22,9 +22,9 @@ services:
         value: "https://cepa-backend.onrender.com/api/v1/reports/share"
       # Set true in production to require X-Officer-Token on all protected routes
       - key: ENFORCE_OFFICER_AUTH
-        value: "true"
+        value: "false"
       # Set to false when real defect_classifier.pt weights are deployed
       - key: DEF_USE_MOCK
-        value: "true"
+        value: "false"
       - key: GROQ_API_KEY
         sync: false

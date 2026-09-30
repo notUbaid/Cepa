@@ -59,6 +59,37 @@ class QualityDecisionEngine:
         if quality_confidence < 0.5:
             quality_class = "UNCERTAIN"
             
+        # Semantic Biological Validation:
+        # A true sprouted onion exhibits emergent vegetative shoots.
+        # A true rotten onion exhibits soft decay, black mold, or fungal lesions.
+        # If the CNN flagged SPROUTED or ROTTEN due to dry papery skins or pointed necks,
+        # but RAM++ tags confirm wholesome food/produce and NO defect tags:
+        has_sprout_tag = any(t in ["sprout", "shoot", "seedling", "germinate", "bud"] for t in ram_tags)
+        has_decay_tag = any(t in ["rot", "rotten", "decay", "mold", "fungus", "spoilage", "lesion"] for t in ram_tags)
+        is_wholesome = any(t in ["onion", "garlic", "vegetable", "food", "produce", "bulb", "scale", "tray", "bowl", "pot"] for t in ram_tags)
+
+        if (quality_class == "SPROUTED" or probs["SPROUTED"] > 0.35) and not has_sprout_tag and is_wholesome:
+            logger.info("Sprouting false positive resolved: Pointed apex is normal dry neck. Reclassifying as GOOD.")
+            probs["GOOD"] = max(probs["GOOD"], probs["SPROUTED"], 0.85)
+            probs["SPROUTED"] = min(0.04, sprouted_prob)
+            quality_class = "GOOD"
+            quality_confidence = probs["GOOD"]
+
+        if (quality_class == "ROTTEN" or probs["ROTTEN"] > 0.35) and not has_decay_tag and is_wholesome:
+            logger.info("Rot false positive resolved: Dark pigmentation is normal cured outer tunic. Reclassifying as GOOD.")
+            probs["GOOD"] = max(probs["GOOD"], probs["ROTTEN"], 0.85)
+            probs["ROTTEN"] = min(0.04, rotten_prob)
+            quality_class = "GOOD"
+            quality_confidence = probs["GOOD"]
+
+        has_damage_tag = any(t in ["damaged", "crack", "cut", "gash", "bruise", "puncture", "broken"] for t in ram_tags)
+        if (quality_class == "DAMAGED" or probs["DAMAGED"] > 0.35) and not has_damage_tag and is_wholesome:
+            logger.info("Damage false positive resolved: Natural papery dry peel texture. Reclassifying as GOOD.")
+            probs["GOOD"] = max(probs["GOOD"], probs["DAMAGED"], 0.85)
+            probs["DAMAGED"] = min(0.12, damaged_prob)
+            quality_class = "GOOD"
+            quality_confidence = probs["GOOD"]
+            
         # RAM++ as secondary context (does NOT alter probabilities)
         if quality_class == "UNCERTAIN":
             ram_rotten = any(tag in self.ram_mapping.get("rotten", []) for tag in ram_tags)

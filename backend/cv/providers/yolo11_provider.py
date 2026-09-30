@@ -120,15 +120,15 @@ class YOLO11SegmentationProvider(SegmentationProvider):
         if h < 20 or w < 20:
             return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
 
-        # Sensitive base threshold for dual-confidence recovery
-        base_conf = min(0.20, self._conf)
+        effective_conf = max(0.35, self._conf)
+        effective_iou = min(0.25, self._iou)
         target_classes_list = list(self._target_class_ids) if self._target_class_ids else None
 
         try:
             results = self._model.predict(
                 source=image,
-                conf=base_conf,
-                iou=self._iou,
+                conf=effective_conf,
+                iou=effective_iou,
                 classes=target_classes_list,
                 device=self._device,
                 verbose=False,
@@ -154,11 +154,39 @@ class YOLO11SegmentationProvider(SegmentationProvider):
         masks_data = result.masks.data
         close_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
+        # Filter and rank candidate boxes
+        candidate_indices = []
         for idx in range(len(boxes)):
             cls_id = int(boxes.cls[idx])
             if self._target_class_ids and cls_id not in self._target_class_ids:
                 continue
+            conf = float(boxes.conf[idx])
+            if conf < effective_conf:
+                continue
+            candidate_indices.append(idx)
 
+        candidate_indices.sort(key=lambda i: float(boxes.conf[i]), reverse=True)
+
+        # Duplicate & containment suppression (suppress redundant nested/overlap boxes, flaps, hands)
+        kept_indices = []
+        for idx in candidate_indices:
+            x1, y1, x2, y2 = boxes.xyxy[idx].tolist()
+            area = max(1.0, (x2 - x1) * (y2 - y1))
+            is_dup = False
+            for k in kept_indices:
+                kx1, ky1, kx2, ky2 = boxes.xyxy[k].tolist()
+                k_area = max(1.0, (kx2 - kx1) * (ky2 - ky1))
+                ix1, iy1 = max(x1, kx1), max(y1, ky1)
+                ix2, iy2 = min(x2, kx2), min(y2, ky2)
+                if ix2 > ix1 and iy2 > iy1:
+                    inter = (ix2 - ix1) * (iy2 - iy1)
+                    if inter / min(area, k_area) > 0.22:
+                        is_dup = True
+                        break
+            if not is_dup:
+                kept_indices.append(idx)
+
+        for idx in kept_indices:
             conf = float(boxes.conf[idx])
             x1, y1, x2, y2 = boxes.xyxy[idx].tolist()
             bbox_x = max(0, int(x1))
@@ -166,8 +194,15 @@ class YOLO11SegmentationProvider(SegmentationProvider):
             bbox_w = min(w - bbox_x, int(x2 - x1))
             bbox_h = min(h - bbox_y, int(y2 - y1))
 
-            if bbox_w < 15 or bbox_h < 15:
+            if bbox_w < 25 or bbox_h < 25:
                 continue
+
+            # Edge sliver guard: reject small fragments cut off by the camera frame edge
+            touches_edge = (bbox_x <= 2 or bbox_y <= 2 or bbox_x + bbox_w >= w - 2 or bbox_y + bbox_h >= h - 2)
+            if touches_edge and (min(bbox_w, bbox_h) < 60 or (bbox_w * bbox_h) < 5000):
+                logger.debug("Filtered out edge sliver: %s", (bbox_x, bbox_y, bbox_w, bbox_h))
+                continue
+
 
             # Mask extraction and scaling
             mask_float = masks_data[idx].cpu().numpy()
@@ -181,6 +216,32 @@ class YOLO11SegmentationProvider(SegmentationProvider):
                 for c_idx, h_info in enumerate(hier[0]):
                     if h_info[3] >= 0 and cv2.contourArea(cnts[c_idx]) < 10000:
                         cv2.drawContours(binary_mask, cnts, c_idx, 255, -1)
+
+            # Produce Organic Chroma Gate (evaluated on mask pixels only, not the full bbox):
+            # Allium bulbs may be:
+            #   (a) Red/purple/golden — warm hue (0-35° or 145-180°) + moderate saturation
+            #   (b) White/cream/silver — very high brightness (V > 160) + low saturation (S < 60)
+            # Reject only clearly non-organic objects: dark electronic surfaces
+            # (keyboards, monitors, desks) which are uniformly low-value AND achromatic.
+            mask_crop = image[bbox_y : bbox_y + bbox_h, bbox_x : bbox_x + bbox_w]
+            mask_roi  = binary_mask[bbox_y : bbox_y + bbox_h, bbox_x : bbox_x + bbox_w]
+            if mask_crop.size > 0 and np.any(mask_roi > 0):
+                hsv_cand = cv2.cvtColor(mask_crop, cv2.COLOR_BGR2HSV)
+                hc, sc, vc = hsv_cand[:, :, 0], hsv_cand[:, :, 1], hsv_cand[:, :, 2]
+                obj_bool = mask_roi > 0  # boolean mask of object pixels
+                # Warm-pigmented onion pixels (red/purple/golden/yellow)
+                warm_mask = ((hc < 35) | (hc > 145)) & (sc > 30) & (vc > 40) & (vc < 252)
+                # White/cream onion pixels (high value, low-to-medium saturation)
+                white_mask = (vc > 160) & (sc < 80)
+                organic_in_obj = (warm_mask | white_mask) & obj_bool
+                chroma_ratio = float(np.sum(organic_in_obj)) / max(1, float(np.sum(obj_bool)))
+                if chroma_ratio < 0.15:
+                    logger.debug(
+                        "Filtered out non-organic detection via mask chroma gate (organic=%.2f): %s",
+                        chroma_ratio, (bbox_x, bbox_y, bbox_w, bbox_h)
+                    )
+                    continue
+
 
             # Dual-confidence geometric verification for borderline detections
             if conf < self._conf:

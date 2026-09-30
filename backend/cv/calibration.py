@@ -85,12 +85,12 @@ def compute_calibration(
     stages, grading, and Mandi settlement compute realistic physical metrics.
     """
     h_img, w_img = image.shape[:2]
-    # Autonomous Packhouse Overhead Benchmark Model:
-    # Standard APMC handheld inspection bench capture distance is ~65cm (+-10cm).
+    # Autonomous Produce Benchmark Model:
+    # Standard APMC mobile handheld capture distance is ~25-30cm (+-5cm) over a plate/tray.
     # Standard smartphone primary lens (26mm equiv, ~62 deg horizontal FOV)
-    # covers approximately 700mm horizontal width at 65cm height.
+    # covers approximately 260mm horizontal width at this close-up distance.
     estimated_scale = float(np.clip(
-        700.0 / max(1.0, float(w_img)),
+        260.0 / max(1.0, float(w_img)),
         settings.scale_min_mm_per_px,
         settings.scale_max_mm_per_px,
     ))

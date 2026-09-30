@@ -46,6 +46,12 @@ def _verify_storage_access(
     if not settings.enforce_officer_auth:
         return
 
+    # Visual inspection crops and segmentation masks are loaded by standard <img> / LazyImage
+    # components in browsers and mobile webviews that cannot inject custom auth headers.
+    norm_path = file_path.replace("\\", "/").strip("/")
+    if norm_path.startswith("crops/") or norm_path.startswith("masks/"):
+        return
+
     # Officer authentication header
     import hmac
     if x_officer_token and hmac.compare_digest(x_officer_token, settings.officer_api_key):

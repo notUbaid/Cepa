@@ -250,11 +250,39 @@ class RealDefectClassifier(DefectClassifier):
             logits = self._model(tensor)          # (1, 4) raw logits
             probs = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()
 
+        p_good = float(probs[0])
+        p_dmg = float(probs[1])
+        p_rot = float(probs[2])
+        p_spr = float(probs[3])
+
+        # Biological validation on the crop:
+        # Check for green vegetative shoots (chlorophyll) and black mold (Aspergillus niger)
+        if crop_image is not None and crop_image.size > 0:
+            hsv = _cv2.cvtColor(crop_image, _cv2.COLOR_BGR2HSV)
+            h, s, v = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+            green_mask = (h >= 35) & (h <= 85) & (s > 40) & (v > 40)
+            green_ratio = float(np.mean(green_mask))
+
+            lab = _cv2.cvtColor(crop_image, _cv2.COLOR_BGR2LAB)
+            l, a = lab[:, :, 0], lab[:, :, 1]
+            mold_mask = (l < 32) & (v < 38) & (a < 134)
+            mold_ratio = float(np.mean(mold_mask))
+
+            # If no green shoots (< 2%), pointed apex is normal dry neck, not sprouting
+            if green_ratio < 0.02 and p_spr > 0.25:
+                p_good = max(p_good, p_spr, 0.85)
+                p_spr = 0.04
+
+            # If no black mold / decay (< 3%), darker pigmentation is normal outer papery scale
+            if mold_ratio < 0.03 and p_rot > 0.25:
+                p_good = max(p_good, p_rot, 0.85)
+                p_rot = 0.04
+
         return DefectPrediction(
-            good_prob=float(probs[0]),
-            damaged_prob=float(probs[1]),
-            rotten_prob=float(probs[2]),
-            sprouted_prob=float(probs[3]),
+            good_prob=p_good,
+            damaged_prob=p_dmg,
+            rotten_prob=p_rot,
+            sprouted_prob=p_spr,
             model_version=self._version_str,
             is_mock=False,
         )

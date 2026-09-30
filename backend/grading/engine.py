@@ -132,7 +132,10 @@ class GradingEngine:
             reasons.append("SPROUTED")
 
         # ── Size checks ────────────────────────────────────────────────────────
-        size_mm = size_estimate.equivalent_diameter_mm if size_estimate is not None else None
+        # Onion grading (BIS IS 17912:2022 & NAFED) is based on equatorial projected diameter
+        size_mm = (
+            size_estimate.equatorial_diameter_mm or size_estimate.equivalent_diameter_mm
+        ) if size_estimate is not None else None
         size_note = "No size measurement available -- calibration marker not detected."
 
         if size_mm is not None:

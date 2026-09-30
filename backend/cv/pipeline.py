@@ -141,6 +141,21 @@ def run_pipeline(
         logger.error("Could not decode image for sample %s", sample_id)
         return result
 
+    # ── EXIF orientation correction ────────────────────────────────────────────
+    # Mobile cameras embed orientation in EXIF; cv2.imdecode ignores it.
+    # Use PIL to apply the correct rotation so the image is always right-side-up.
+    try:
+        import io
+        from PIL import Image as _PILImage, ExifTags as _ExifTags, ImageOps as _ImageOps
+        _pil_img = _PILImage.open(io.BytesIO(image_bytes))
+        _pil_img = _ImageOps.exif_transpose(_pil_img)
+        # Convert PIL RGB → OpenCV BGR numpy array
+        image = cv2.cvtColor(np.array(_pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
+        logger.debug("EXIF-transposed image to %dx%d", image.shape[1], image.shape[0])
+    except Exception as _exif_err:
+        logger.debug("EXIF transpose skipped (%s); using raw decode", _exif_err)
+
+
     logger.info(
         "Pipeline start: sample=%s image=%dx%d",
         sample_id, image.shape[1], image.shape[0],
@@ -191,41 +206,13 @@ def run_pipeline(
     seg_start = time.perf_counter()
     seg_result = seg_provider.detect(working_image)
 
-    # Hybrid High-Recall Resilient Ensemble:
-    # If primary segmenter returns 0 detections, engage industrial Watershed immediately.
+    # Resilient fallback:
+    # If primary deep neural segmenter returns 0 detections, engage industrial Watershed as fallback.
     if seg_result.count == 0:
         logger.info("Primary segmentation returned 0 detections. Engaging industrial Watershed segmenter.")
         from cv.providers.watershed_provider import WatershedSegmentationProvider
         ws_provider = WatershedSegmentationProvider()
         seg_result = ws_provider.detect(working_image)
-    elif seg_result.count < 4:
-        # Complementary ensemble: check for non-overlapping bulbs missed by primary detector
-        try:
-            from cv.providers.watershed_provider import WatershedSegmentationProvider
-            ws_provider = WatershedSegmentationProvider()
-            ws_result = ws_provider.detect(working_image)
-            if ws_result.count > 0:
-                merged_detections = list(seg_result.detections)
-                for ws_det in ws_result.detections:
-                    ws_area = int(np.count_nonzero(ws_det.mask))
-                    overlaps = False
-                    for ex_det in merged_detections:
-                        ex_area = int(np.count_nonzero(ex_det.mask))
-                        inter = int(np.count_nonzero(cv2.bitwise_and(ws_det.mask, ex_det.mask)))
-                        if inter > 0.20 * min(ws_area, ex_area):
-                            overlaps = True
-                            break
-                    if not overlaps:
-                        ws_det.instance_index = len(merged_detections)
-                        merged_detections.append(ws_det)
-                if len(merged_detections) > seg_result.count:
-                    logger.info(
-                        "Ensemble merged %d additional high-confidence bulbs from Watershed",
-                        len(merged_detections) - seg_result.count,
-                    )
-                    seg_result.detections = merged_detections
-        except Exception:
-            logger.debug("Watershed ensemble merge skipped due to exception")
 
     result.segmentation_elapsed_ms = (time.perf_counter() - seg_start) * 1000
     result.seg_model_version = seg_result.model_version
@@ -305,12 +292,23 @@ def run_pipeline(
 
     # Smart Overhead Auto-Scale & Metrology
     if calibration.scale_mm_per_px is not None:
-        result.scale_mm_per_px = calibration.scale_mm_per_px
+        effective_scale = calibration.scale_mm_per_px
+        if calibration.is_estimated and detections:
+            diam_px_list = [max(d.bbox_w, d.bbox_h) for d in detections if not d.touches_border] or [max(d.bbox_w, d.bbox_h) for d in detections]
+            if diam_px_list:
+                median_px = float(np.median(diam_px_list))
+                if median_px > 25.0:
+                    est_median_mm = median_px * effective_scale
+                    if est_median_mm > 70.0 or est_median_mm < 38.0:
+                        effective_scale = float(52.0 / median_px)
+                        logger.info("Auto-calibrated scale from bulb geometry: %.4f mm/px (median bulb = 52.0mm)", effective_scale)
+
+        result.scale_mm_per_px = effective_scale
         result.is_estimated_scale = calibration.is_estimated
         result.calibration_method = calibration.calibration_method
         logger.info(
             "Scale active (method=%s, %.4f mm/px). Physical grading enabled.",
-            calibration.calibration_method, calibration.scale_mm_per_px,
+            calibration.calibration_method, effective_scale,
         )
     else:
         result.scale_mm_per_px = None
@@ -357,7 +355,7 @@ def run_pipeline(
         try:
             size_est = estimate_size(
                 mask=det.mask,
-                scale_mm_per_px=calibration.scale_mm_per_px,
+                scale_mm_per_px=result.scale_mm_per_px,
                 thresholds_mm=size_thresholds,
             )
         except Exception:

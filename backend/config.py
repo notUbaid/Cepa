@@ -102,8 +102,12 @@ class Settings(BaseSettings):
     # ── Image quality gate thresholds ────────────────────────────────────────
     qg_blur_threshold: float = 35.0
     qg_dark_threshold: int = 25
-    qg_bright_threshold: int = 235
-    qg_glare_fraction: float = 0.15
+    # Raised from 235 → 245: white/cream onion surfaces are inherently high-luma
+    qg_bright_threshold: int = 245
+    # Raised from 0.15 → 0.45: onion outer tunics and white backgrounds
+    # naturally contain large fractions of near-white (>250) pixels.
+    # True specular glare causes >50% of pixels to be blown out.
+    qg_glare_fraction: float = 0.45
     qg_min_resolution_px: int = 300
 
     # ── Derived paths ─────────────────────────────────────────────────────────
