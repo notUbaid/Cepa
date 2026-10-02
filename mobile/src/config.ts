@@ -47,11 +47,9 @@ function resolveDefaultApiBaseUrl(): string {
     } catch {}
   }
 
-  // 4. Fallback for native devices
-  return Platform.select({
-    android: 'http://10.0.2.2:8001',
-    default: PRODUCTION_BACKEND_URL,
-  })!;
+  // 4. Default for native devices (Expo Go / standalone APK on Android & iOS)
+  // Always use the robust cloud backend so physical phones connect seamlessly without loopback failures
+  return PRODUCTION_BACKEND_URL;
 }
 
 export const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();

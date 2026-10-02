@@ -64,6 +64,35 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
   };
 
+  // Automatically trigger native camera permission dialog when camera tab mounts
+  useEffect(() => {
+    if (activeTab === 'CAMERA' && permission && !permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [permission, activeTab]);
+
+  // Direct 1-tap launcher for device native camera app via ImagePicker
+  const openSystemCamera = async () => {
+    Haptics.medium();
+    try {
+      const pic = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.95,
+      });
+      if (!pic.canceled && pic.assets && pic.assets.length > 0) {
+        Haptics.snap();
+        onPhotoCaptured(pic.assets[0].uri);
+      }
+    } catch (e: any) {
+      if (Platform.OS === 'web') {
+        triggerFileUpload(true);
+      } else {
+        alert(`Could not launch phone camera: ${e.message}`);
+      }
+    }
+  };
+
   // Real-time live sensor telemetry in viewfinder on web
   useEffect(() => {
     if (Platform.OS !== 'web' || activeTab !== 'CAMERA') return;
@@ -385,14 +414,18 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
       // 2. Native CameraView capture
       if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.95,
-          skipProcessing: false,
-        });
-        if (photo?.uri) {
-          Haptics.snap();
-          onPhotoCaptured(photo.uri);
-          return;
+        try {
+          const photo = await cameraRef.current.takePictureAsync({
+            quality: 0.95,
+            skipProcessing: false,
+          });
+          if (photo?.uri) {
+            Haptics.snap();
+            onPhotoCaptured(photo.uri);
+            return;
+          }
+        } catch (camErr: any) {
+          console.warn('Native CameraView snapshot error, launching system camera:', camErr.message);
         }
       }
 
@@ -400,16 +433,18 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       if (Platform.OS === 'web') {
         triggerFileUpload(true);
         return;
+      } else {
+        await openSystemCamera();
+        return;
       }
-
-      throw new Error('No image returned from camera sensor');
     } catch (err: any) {
       Haptics.error();
       if (Platform.OS === 'web') {
         console.warn('Camera sensor snapshot failed, triggering native camera:', err.message);
         triggerFileUpload(true);
       } else {
-        alert(`Camera capture error: ${err.message}`);
+        console.warn('Camera capture error, attempting system camera fallback:', err.message);
+        await openSystemCamera();
       }
     } finally {
       setCapturing(false);
@@ -453,6 +488,13 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.loadingText}>Initializing optical grading sensor...</Text>
+          <AnimatedPressable
+            haptic="medium"
+            style={[styles.permBtn, { backgroundColor: '#2563eb', marginTop: 24, paddingHorizontal: 28 }]}
+            onPress={openSystemCamera}
+          >
+            <Text style={styles.permBtnText}>Open Phone Camera</Text>
+          </AnimatedPressable>
         </View>
       );
     }
@@ -474,6 +516,14 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               onPress={requestPermission}
             >
               <Text style={styles.permBtnText}>Enable Optical Sensor</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="heavy"
+              style={[styles.permBtn, { backgroundColor: '#16a34a', marginTop: 10 }]}
+              onPress={openSystemCamera}
+            >
+              <Text style={styles.permBtnText}>Open Phone Camera Directly</Text>
             </AnimatedPressable>
 
             <AnimatedPressable
@@ -518,9 +568,17 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             <Text style={styles.permTitle}>Camera Hardware Stream Unavailable</Text>
             <Text style={styles.permDesc}>
               {Platform.OS === 'web'
-                ? 'Web browser camera stream could not be started. You can upload an onion spread photo directly or inspect the verified 24-bulb Mandi demo sample.'
+                ? 'Web browser camera stream could not be started. You can open your phone camera directly, upload an onion photo, or inspect the verified Mandi test lot.'
                 : cameraError}
             </Text>
+
+            <AnimatedPressable
+              haptic="heavy"
+              style={[styles.permBtn, { backgroundColor: '#16a34a', marginBottom: 10 }]}
+              onPress={openSystemCamera}
+            >
+              <Text style={styles.permBtnText}>Open Phone Camera Directly</Text>
+            </AnimatedPressable>
 
             <AnimatedPressable
               haptic="heavy"
@@ -650,7 +708,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             <AnimatedPressable
               haptic="heavy"
               style={styles.uploadDropzoneCard}
-              onPress={triggerFileUpload}
+              onPress={() => triggerFileUpload(false)}
             >
               <View style={styles.dropzoneIconCircle}>
                 <Feather name="upload-cloud" size={26} color="#0f172a" />
@@ -1185,7 +1243,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   <AnimatedPressable
                     haptic="light"
                     style={styles.deckSideBtn}
-                    onPress={triggerFileUpload}
+                    onPress={() => triggerFileUpload(false)}
                     disabled={capturing}
                     accessibilityLabel="Upload Image File"
                   >
@@ -1215,18 +1273,18 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     </View>
                   </AnimatedPressable>
 
-                  {/* Instant Mandi Demo Sample (Natural Produce) */}
+                  {/* Native Phone Camera Direct Launcher */}
                   <AnimatedPressable
                     haptic="medium"
                     style={styles.deckSideBtn}
-                    onPress={loadDemoSample}
+                    onPress={openSystemCamera}
                     disabled={capturing}
-                    accessibilityLabel="Load Natural Test Lot"
+                    accessibilityLabel="Launch Device Camera"
                   >
-                    <View style={[styles.sideBtnIconBox, styles.demoIconBox]}>
-                      <Text style={styles.demoBadge}>DEMO</Text>
+                    <View style={[styles.sideBtnIconBox, { backgroundColor: 'rgba(37, 99, 235, 0.4)' }]}>
+                      <Feather name="aperture" size={15} color="#60a5fa" />
                     </View>
-                    <Text style={styles.sideBtnLabel}>Test Lot</Text>
+                    <Text style={styles.sideBtnLabel}>Phone Cam</Text>
                   </AnimatedPressable>
                 </View>
               </View>

@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  LogBox,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+// Suppress yellowbox/logbox warning popups in mobile dev environments (e.g. Expo Go)
+LogBox.ignoreAllLogs(true);
 import { ApiClient } from './src/api/client';
 import { Header } from './src/components/Header';
 import { CaptureScreen } from './src/screens/CaptureScreen';
@@ -111,7 +115,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, currentScreen === 'CAPTURE' && styles.safeAreaCapture]}>
+    <SafeAreaProvider>
+      <SafeAreaView style={[styles.safeArea, currentScreen === 'CAPTURE' && styles.safeAreaCapture]}>
       <StatusBar
         barStyle={currentScreen === 'CAPTURE' ? 'light-content' : 'dark-content'}
         backgroundColor={currentScreen === 'CAPTURE' ? '#000000' : Colors.bg}
@@ -207,7 +212,8 @@ export default function App() {
           )}
         </Animated.View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
