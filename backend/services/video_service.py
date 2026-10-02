@@ -264,6 +264,42 @@ def process_video_scan(
     db.commit()
     db.refresh(sample)
 
+    # 7. Run full Deep Learning pipeline on the best frame to extract individual crops and get precise grades
+    if sharpest_frame is not None:
+        try:
+            from cv.pipeline import run_pipeline
+            from services.inspection_service import _seg_provider, _defect_classifier, _active_policy
+            pipeline_result = run_pipeline(
+                db=db,
+                sample=sample,
+                image=sharpest_frame,
+                seg_provider=_seg_provider,
+                defect_classifier=_defect_classifier,
+                policy=_active_policy
+            )
+            db.commit()
+            db.refresh(sample)
+            
+            # Override rudimentary video metrics with the high-accuracy deep learning results
+            dl_bad = sum(1 for i in pipeline_result.instances if i.classification_result and i.classification_result.grade != "GRADE_A")
+            total_onions_seen = len(pipeline_result.instances)
+            total_bad_onions = dl_bad
+            healthy_onions = max(0, total_onions_seen - dl_bad)
+            
+            if total_onions_seen > 0:
+                health_score = max(20, int(100 - (total_bad_onions / total_onions_seen) * 100))
+            if total_bad_onions == 0:
+                overall_status = "EXCELLENT"
+                status_label = "Clean & Sound Lot"
+            elif total_bad_onions <= 2:
+                overall_status = "GOOD"
+                status_label = "Minor Culling Needed"
+            else:
+                overall_status = "FAIR" if health_score >= 50 else "POOR"
+                status_label = "High Rot/Sprout Risk"
+        except Exception as e:
+            logger.exception("Failed to run deep learning pipeline on video frame: %s", e)
+
     logger.info(
         "Completed video scan for inspection %s: %d keyframes, %d total bulbs, %d bad",
         inspection_id, len(keyframes_analyzed), total_onions_seen, total_bad_onions,
