@@ -2,7 +2,7 @@
 
 > **Cepa** — Certified & Evidenced Produce Assessment  
 > **SIH 2026 Problem Statement:** SIH26031 — AI-powered Onion Quality Inspection at Procurement Centres  
-> **Status:** Production-ready prototype · 88/88 tests passing (100% green) · Zero mock fallbacks · All 7 Inspection Pipelines Active
+> **Status:** Engineering prototype · 154 tests passing · Real 4-class MobileNetV3 quality evaluation & deterministic CV active (mock fallback available via DEF_USE_MOCK)
 
 ---
 
@@ -248,7 +248,7 @@ FastAPI lifespan start
 
 **Architecture:** Pluggable `SegmentationProvider` ABC. Active provider is set at startup.
 
-**Primary:** `YOLO11SegmentationProvider` — YOLO11s-seg (94.8% mAP@50, 22ms TFLite). Filters detections by shape solidity ≥ 0.65 and circularity ≥ 0.28 to eliminate peel debris.
+**Primary:** `YOLO11SegmentationProvider` — YOLO11n-seg (shipped nano model, fine-tuned on onion bulbs with morphological Watershed fallback). Filters detections by shape solidity ≥ 0.65 and circularity ≥ 0.28 to eliminate peel debris.
 
 **Fallback 1:** `WatershedSegmentationProvider` — Industrial morphological watershed for dense heaps where YOLO under-segments.
 

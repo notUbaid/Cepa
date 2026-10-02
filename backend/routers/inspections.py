@@ -383,6 +383,7 @@ async def add_sample(
     geo_lat: float | None = Form(None),
     geo_lon: float | None = Form(None),
     location_accuracy: float | None = Form(None),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> SampleDetail:
     inspection = inspection_service.get_inspection(db, inspection_id)
@@ -635,6 +636,7 @@ async def correct_onion(
 @router.post("/inspections/{inspection_id}/finalize")
 async def finalize_inspection(
     inspection_id: str,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> InspectionDetail:
     inspection = inspection_service.get_inspection(db, inspection_id)
@@ -671,6 +673,7 @@ async def finalize_inspection(
 async def process_video_endpoint(
     inspection_id: str,
     file: UploadFile = File(..., description="Recorded video sweep of onion lot (MP4/MOV/WebM)"),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """
@@ -783,6 +786,7 @@ async def analyze_acoustic_endpoint(
 async def ask_ai_endpoint(
     inspection_id: str,
     body: AskAiRequest,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """
@@ -832,6 +836,7 @@ async def announce_grade_endpoint(
     inspection_id: str,
     language: str | None = None,
     state_or_city: str | None = None,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """
@@ -990,6 +995,7 @@ async def analyze_flash_proxy_endpoint(
     inspection_id: str,
     ambient_file: UploadFile = File(..., description="Image captured under ambient mandi illumination"),
     flash_file: UploadFile = File(..., description="Image captured under smartphone LED flash illumination"),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """

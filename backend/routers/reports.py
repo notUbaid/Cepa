@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from services.certificate_view import render_certificate_html
 
+from auth import verify_officer_token
 from config import settings
 from database import get_db
 from models.inspection import Inspection
@@ -197,6 +198,7 @@ def create_or_update_report(inspection: Inspection, db: Session) -> ReportDetail
 @router.post("/inspections/{inspection_id}/reports", status_code=201)
 async def generate_report(
     inspection_id: str,
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ) -> ReportDetail:
     """
@@ -257,7 +259,11 @@ async def get_shared_report(
         html_content = render_certificate_html(detail, inspection)
         return HTMLResponse(content=html_content)
 
-    return detail
+    return detail.model_copy(update={
+        "geo_lat": None,
+        "geo_lon": None,
+        "officer_id": None,
+    })
 
 
 @router.get("/inspections/{inspection_id}/reports/pdf")

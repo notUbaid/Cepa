@@ -133,7 +133,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 
 | Naive Approach | Mandi Ground Reality | Engineering Failure Mode | CEPA Calibrated Solution |
 |:---|:---|:---|:---|
-| **Bounding-Box Detectors**<br />*(YOLO / SSD bbox)* | Bulbs are irregular triaxial spheroids lying at random tilt angles with overlapping boundaries. | Rectangular boxes over-estimate equatorial caliper by 21% to 38%. Sizing based on bounding box width classifies 38 mm bulbs as 46 mm Grade A. | **Instance Polygon Masking**<br />`YOLO11s-seg` with C2PSA spatial attention. Calipers are computed exclusively from the interior mask manifold. |
+| **Bounding-Box Detectors**<br />*(YOLO / SSD bbox)* | Bulbs are irregular triaxial spheroids lying at random tilt angles with overlapping boundaries. | Rectangular boxes over-estimate equatorial caliper by 21% to 38%. Sizing based on bounding box width classifies 38 mm bulbs as 46 mm Grade A. | **Instance Polygon Masking**<br />`YOLO11n-seg` with C2PSA spatial attention. Calipers are computed exclusively from the interior mask manifold. |
 | **HSV / RGB Color Thresholding**<br />*(Otsu / Fixed Ranges)* | Indian red onions (*Nashik Red*, *Bellary Red*) possess high anthocyanin concentrations ($L^* < 42$). | Red onion tunic pigmentation overlaps directly with necrotic rot and black mold soot. Naive color thresholding misclassifies 34% of healthy prime red onions as rotten. | **CIELAB Chromaticity Barrier**<br />Enforces an anthocyanin chroma barrier ($A^* \ge 136$). High red-chroma pixels are protected from rot classification regardless of luminance. |
 | **Fixed Pixel-to-mm Conversion**<br />*(Hardcoded scale ratio)* | Handheld smartphone elevation varies by $\pm 15\text{ cm}$; camera tilt creates off-nadir keystone distortion. | A 10 cm height variance causes a 20% to 35% sizing error. Peripheral bulbs appear up to 18% larger or smaller than center bulbs. | **Sub-Pixel ChArUco Calibration**<br />Solves planar homography ($H$) via RANSAC with metric reprojection threshold $5.0\text{ px}$, achieving metric precision $\le 0.4\text{ mm}$. |
 | **Single-Image Lot Appraisal**<br />*(1 photo per truckload)* | A 15-tonne tractor trolley contains $\sim 150,000$ bulbs. Vibration during transit causes smaller bulbs to settle downward. | A single 15-bulb photo represents a $0.01\%$ sample, introducing severe bias and high sampling variance that violates APMC commercial arbitration standards. | **Hierarchical Sample Aggregation**<br />Groups multiple photo samples under a master inspection, computing 95% binomial confidence intervals via the Wilson score interval. |
@@ -204,7 +204,7 @@ graph TB
       QG["1. Image Quality Gate"]
       MD["2. ChArUco Marker Detection"]
       PR["3. Planar RANSAC Homography"]
-      IS["4. YOLO11s-seg Instance Masking"]
+      IS["4. YOLO11n-seg Instance Masking"]
       CE["5. Crop & Mask Alpha Extraction"]
       DC["6. MobileNetV3 Defect Classifier"]
       ME["7. Geometric Morphometry & Mass Sizing"]
@@ -350,7 +350,7 @@ flowchart TD
   QG -->|"Passes"| MK{"2. ChArUco Target Found?"}
   MK -->|"Yes"| HM["3. RANSAC Planar Homography: Exact mm/px Scale"]
   MK -->|"No: Occluded"| FB["3. Fallback: Overhead Prior Elevation Model"]
-  HM --> YOLO["4. YOLO11s-seg Instance Polygon Segmentation"]
+  HM --> YOLO["4. YOLO11n-seg Instance Polygon Segmentation"]
   FB --> YOLO
   YOLO --> CR["5. Alpha Crop Extraction: Blackout Background"]
   CR --> MOB["6. MobileNetV3 Multi-Label Defect Classifier"]
@@ -396,7 +396,7 @@ CEPA utilizes a standardized ChArUco 7x5 calibration board (`DICT_4X4_250`, 40 m
 4. **Scale Sanity Verification:** The extracted scale factor must satisfy $0.01 \le \text{scale} \le 5.0\text{ mm/pixel}$.
 
 ### Stage 4: Instance Segmentation (`yolo11_provider.py`)
-Instance segmentation is executed using Ultralytics YOLO11 (YOLO11s-seg with YOLO11n-seg CPU fallback):
+Instance segmentation is executed using Ultralytics YOLO11 (YOLO11n-seg nano model, 6 MB, with morphological Watershed CPU fallback):
 - Incorporates Cross-Stage Partial with Spatial Attention (C2PSA) blocks, enabling boundary delineation between touching, overlapping, or clustered bulbs.
 - Binary masks are checked for boundary intersection. If any mask pixel touches the outer frame boundary ($x=0, y=0, x=W-1, y=H-1$), `touches_border = True` is assigned, preventing truncated bulbs from generating false undersized measurements.
 - A fully pluggable morphological watershed provider (`watershed_provider.py`) is maintained as an offline CPU fallback.
@@ -408,18 +408,26 @@ Instance segmentation is executed using Ultralytics YOLO11 (YOLO11s-seg with YOL
 
 ### Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
 
-> **Current status:** In this prototype, defect classification runs in **rule-based mock mode** (`DEF_USE_MOCK=true` in `.env.example`). The MobileNetV3 neural architecture described below is implemented in code, but no trained model file exists in the repository. The training script (`cv_tools/train_defect_classifier.py`) generates synthetic procedural ellipses; no real annotated mandi images were used. The `get_classifier()` factory returns mock probabilities when `DEF_USE_MOCK=true`.
+> **Model Evaluation & Honest Metrics (`ml/reports/quality_metrics.json`):**
+> The model backbone is MobileNetV3-Small fine-tuned on multi-class onion samples (`backend/weights/defect_classifier.pt`). A deterministic mock fallback is available for offline testing (`DEF_USE_MOCK=true`).
+> On the 1,733-image evaluation dataset, while the **headline overall accuracy is 96.4%**, **88.7% (1,537 / 1,733) of the dataset consists of unblemished GOOD bulbs**. The macro-averaged F1 score across all 4 classes is **0.73**. Per-class performance directly reflects this agricultural class distribution:
+> - **GOOD:** Precision 99.7% · Recall 98.2% · F1 0.99 (support: 1,537)
+> - **ROTTEN:** Precision 93.4% · Recall 85.9% · F1 0.90 (support: 149)
+> - **DAMAGED:** Precision 44.4% · Recall 55.2% · **F1 0.49** (support: 29)
+> - **SPROUTED:** **Precision 37.0%** · Recall 94.4% · F1 0.53 (support: 18)
+>
+> *Engineering Note:* Rather than masking minority class performance behind the 96.4% headline accuracy, CEPA explicitly highlights the minority defect challenge (DAMAGED F1: 0.49, SPROUTED precision: 0.37). In production, borderline defect scores automatically trigger `ConfidenceTier.NEEDS_REVIEW` for mandatory human inspector arbitration.
 
 Defects in agricultural produce are not mutually exclusive. A bulb may simultaneously suffer from mechanical handling cuts, black mold colonization, and premature sprouting. CEPA rejects single-class Softmax architectures in favor of independent Sigmoid binary probabilities:
-- **Neural Backbone (implemented, not yet trained on real data):** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
+- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
 
-  $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.25) \longrightarrow \text{Linear}(128, 3)$$
+  $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.25) \longrightarrow \text{Linear}(128, 4)$$
 
 - **Output Vector:**
+  - $P(\text{good}) \in [0.0, 1.0]$: Intact, unblemished outer tunics, firm neck, zero visible lesions.
   - $P(\text{damaged}) \in [0.0, 1.0]$: Surface cuts, mechanical abrasions, shovel gouges, tunic ruptures.
   - $P(\text{rotten}) \in [0.0, 1.0]$: *Aspergillus niger* black mold, wet bacterial soft rot (*Pectobacterium carotovorum*), neck rot.
   - $P(\text{sprouted}) \in [0.0, 1.0]$: Emergence of green vegetative shoots from the neck apex.
-- Training pipeline present (`train_defect_classifier.py`); real annotated mandi data required before production use.
 - **CIELAB Chromaticity Guard:** Nashik Red and Bellary Pink onions possess high anthocyanin concentrations in the dry outer scales. Naive RGB intensity thresholding misclassifies deep red skins as rot. CEPA enforces a CIELAB chromaticity barrier: pixels with $A^* \ge 136$ are protected from rot classification, isolating true *Aspergillus* soot ($L^* < 34, V < 38$).
 
 ### Stage 7: Geometric Morphometry and Size Estimation (`size_estimator.py`)

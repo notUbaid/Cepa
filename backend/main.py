@@ -76,12 +76,11 @@ app = FastAPI(
 
 # CORS Middleware
 # allow_origins handles exact origins (localhost dev).
-# allow_origin_regex handles the Vercel wildcard (*.vercel.app) — Starlette
-# does NOT glob-match origins in allow_origins, so a regex is required.
+# allow_origin_regex restricts Vercel preview/production deployments to CEPA apps.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"https://cepa(-[a-zA-Z0-9_-]+)?\.vercel\.app",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -206,6 +206,78 @@ class TestPublicCertificatePrivacyH6:
         assert "20.15° N" in html or "20.14° N" in html
         assert "74.23° E" in html or "74.22° E" in html
 
+    def test_public_share_json_redacts_gps_and_officer_id(self, client: TestClient):
+        """Verifies H6: public share JSON endpoint redacts GPS coordinates and officer ID."""
+        import uuid
+        from models.report import Report
+        db = SessionLocal()
+        try:
+            insp_id = f"insp-privacy-{uuid.uuid4().hex[:8]}"
+            share_tok = f"token-privacy-{uuid.uuid4().hex[:8]}"
+            insp = Inspection(
+                id=insp_id,
+                lot_id="LOT-PRIVACY-JSON",
+                procurement_centre="Pimpalgaon APMC",
+                officer_name="Inspector Deshmukh",
+                officer_id="MH-OFFICER-CONFIDENTIAL-999",
+                geo_lat=19.9975,
+                geo_lon=73.7898,
+                status="FINALIZED",
+            )
+            db.add(insp)
+            db.commit()
+
+            rpt = Report(
+                inspection_id=insp.id,
+                share_token=share_tok,
+                ruleset_version="DEMO_ASSUMPTION_v1",
+                model_version="seg:watershed/def:mobilenetv3",
+                geo_lat=19.9975,
+                geo_lon=73.7898,
+                total_bulbs=5,
+                grade_a_count=5,
+                urs_count=0,
+                rejected_count=0,
+                review_count=0,
+            )
+            db.add(rpt)
+            db.commit()
+
+            resp = client.get(f"/api/v1/reports/share/{share_tok}", headers={"Accept": "application/json"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["geo_lat"] is None, "geo_lat must be None in public share JSON"
+            assert data["geo_lon"] is None, "geo_lon must be None in public share JSON"
+            assert data["officer_id"] is None, "officer_id must be None in public share JSON"
+            assert data["lot_id"] == "LOT-PRIVACY-JSON"
+            assert data["officer_name"] == "Inspector Deshmukh"
+        finally:
+            db.close()
+
+
+class TestOfficerAuthC2:
+    def test_protected_routes_require_token_when_enforced(self, client: TestClient, monkeypatch):
+        """Verifies C2: protected inspection routes enforce officer auth when enabled."""
+        monkeypatch.setattr(settings, "enforce_officer_auth", True)
+        monkeypatch.setattr(settings, "officer_api_key", "secret-key-42")
+
+        # finalize requires officer token
+        resp = client.post("/api/v1/inspections/some-id/finalize")
+        assert resp.status_code == 401
+        assert "Authentication required" in resp.json()["detail"]
+
+        # with invalid token
+        resp = client.post("/api/v1/inspections/some-id/finalize", headers={"X-Officer-Token": "wrong"})
+        assert resp.status_code == 403
+
+        # ask-ai requires officer token
+        resp = client.post("/api/v1/inspections/some-id/ask-ai", json={"question": "how are the bulbs?"})
+        assert resp.status_code == 401
+
+        # announce requires officer token
+        resp = client.post("/api/v1/inspections/some-id/announce")
+        assert resp.status_code == 401
+
 
 class TestBhashiniConfigH8:
     def test_bhashini_settings_bound(self, monkeypatch):
