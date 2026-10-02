@@ -59,20 +59,33 @@ export default function App() {
 
   // Poll health on startup and periodically
   useEffect(() => {
+    let active = true;
     const checkServer = async () => {
       try {
         const cv = await ApiClient.checkCvHealth();
+        if (!active) return;
         setServerOnline(true);
         if (cv.active_policy) setPolicyVersion(cv.active_policy);
         setIsMockActive(!!cv.warning);
       } catch {
-        setServerOnline(false);
+        // Fallback: test basic health endpoint in case CV is warming up
+        try {
+          await ApiClient.checkHealth();
+          if (!active) return;
+          setServerOnline(true);
+        } catch {
+          if (!active) return;
+          setServerOnline(false);
+        }
       }
     };
 
     checkServer();
-    const interval = setInterval(checkServer, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkServer, 6000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleSelectInspection = async (id: string) => {
