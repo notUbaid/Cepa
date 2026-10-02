@@ -105,6 +105,51 @@ export class ApiClient {
     return `${getApiBaseUrl()}/ui/charuco_board_7x5_40mm_A4_printable.pdf`;
   }
 
+  public static async uriToBlob(fileUri: string, defaultType: string = 'image/jpeg'): Promise<Blob> {
+    // 1. Base64 Data URI
+    if (fileUri.startsWith('data:')) {
+      const matchType = fileUri.match(/^data:([^;]+);base64,(.+)$/);
+      if (matchType) {
+        const type = matchType[1] || defaultType;
+        const byteCharacters = atob(matchType[2]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        return new Blob([new Uint8Array(byteNumbers)], { type });
+      }
+    }
+
+    // 2. Modern WinterCG fetch(fileUri).blob() (handles http, https, and many local URIs in Expo)
+    try {
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      if (blob && blob.size > 0) {
+        return blob;
+      }
+    } catch (fetchErr) {
+      console.warn('[ApiClient] fetch(fileUri).blob() failed, trying XHR fallback:', fetchErr);
+    }
+
+    // 3. React Native XMLHttpRequest blob reader (robust fallback for local file:// and content:// on Android/iOS)
+    return new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = () => {
+        if (xhr.response) {
+          resolve(xhr.response as Blob);
+        } else {
+          reject(new Error('XMLHttpRequest returned empty response for file URI'));
+        }
+      };
+      xhr.onerror = (e) => {
+        reject(new Error(`XMLHttpRequest failed to load file URI: ${e}`));
+      };
+      xhr.responseType = 'blob';
+      xhr.open('GET', fileUri, true);
+      xhr.send(null);
+    });
+  }
+
   static async uploadSample(
     inspectionId: string,
     fileUri: string,
@@ -113,52 +158,15 @@ export class ApiClient {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/samples`;
 
+    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
+    const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
+    const blob = await this.uriToBlob(fileUri, type);
+
     const formData = new FormData();
-    let uploadBlob: Blob | null = null;
-    let filename = 'sample.jpg';
-    let type = 'image/jpeg';
-
-    if (fileUri.startsWith('data:')) {
-      const matchType = fileUri.match(/^data:([^;]+);base64,(.+)$/);
-      if (matchType) {
-        type = matchType[1] || 'image/jpeg';
-        const ext = type.includes('png') ? 'png' : 'jpg';
-        filename = `capture_${Date.now()}.${ext}`;
-        const byteCharacters = atob(matchType[2]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        uploadBlob = new Blob([byteArray], { type });
-      }
-    } else {
-      const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
-      filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
-    }
-
-    if (Platform.OS === 'web') {
-      if (uploadBlob) {
-        formData.append('file', uploadBlob, filename);
-      } else {
-        try {
-          const fileRes = await fetch(fileUri);
-          const blob = await fileRes.blob();
-          formData.append('file', blob, filename);
-        } catch (blobErr) {
-          console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
-          formData.append('file', fileUri);
-        }
-      }
-    } else {
-      formData.append('file', {
-        uri: fileUri,
-        name: filename,
-        type,
-      } as any);
-    }
+    formData.append('file', blob, filename);
 
     if (location?.lat !== undefined) formData.append('geo_lat', location.lat.toString());
     if (location?.lon !== undefined) formData.append('geo_lon', location.lon.toString());
@@ -202,41 +210,16 @@ export class ApiClient {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/video`;
 
-    const formData = new FormData();
     const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sweep.mp4';
     const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.mp4`;
     const match = /\.(\w+)$/.exec(filename);
     const ext = match ? match[1].toLowerCase() : 'mp4';
     const type = ext === 'mov' ? 'video/quicktime' : ext === 'webm' ? 'video/webm' : 'video/mp4';
 
-    if (Platform.OS === 'web') {
-      try {
-        const fileRes = await fetch(fileUri);
-        const blob = await fileRes.blob();
-        formData.append('file', blob, filename);
-      } catch (blobErr) {
-        console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
-        const base64Match = fileUri.match(/^data:([^;]+);base64,(.+)$/);
-        if (base64Match) {
-          const byteCharacters = atob(base64Match[2]);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: base64Match[1] });
-          formData.append('file', blob, filename);
-        } else {
-          formData.append('file', fileUri);
-        }
-      }
-    } else {
-      formData.append('file', {
-        uri: fileUri,
-        name: filename,
-        type,
-      } as any);
-    }
+    const blob = await this.uriToBlob(fileUri, type);
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
 
     const response = await fetch(url, {
       method: 'POST',
