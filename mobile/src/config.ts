@@ -1,41 +1,56 @@
 import { Platform } from 'react-native';
 
-const PRODUCTION_BACKEND_URL = 'https://cepa-backend.onrender.com';
+export const PRODUCTION_BACKEND_URL = 'https://cepa-backend.onrender.com';
 
-function resolveDefaultApiBaseUrl(): string {
-  // 1. If running in browser on a remote domain (e.g. Vercel) or over HTTPS,
-  // we MUST use the production HTTPS backend. Calling http://localhost from an HTTPS site
-  // is blocked by browser Mixed Content security rules and is unreachable on phones.
+function isHostedEnvironment(): boolean {
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
     const protocol = window.location.protocol;
-    if ((host && host !== 'localhost' && host !== '127.0.0.1') || protocol === 'https:') {
-      return PRODUCTION_BACKEND_URL;
+    // Any HTTPS connection or non-localhost domain is production/hosted
+    if (protocol === 'https:' || (host && host !== 'localhost' && host !== '127.0.0.1')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function resolveDefaultApiBaseUrl(): string {
+  // 1. If on hosted domain (Vercel, Render, or HTTPS), strictly enforce production backend
+  if (isHostedEnvironment()) {
+    // Purge any stale localhost URLs saved in browser localStorage from earlier sessions
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const saved = window.localStorage.getItem('cepa_api_base_url');
+        if (saved && (saved.includes('localhost') || saved.includes('127.0.0.1') || saved.startsWith('http:'))) {
+          window.localStorage.removeItem('cepa_api_base_url');
+        }
+      } catch {}
+    }
+    return PRODUCTION_BACKEND_URL;
+  }
+
+  // 2. Localhost web development
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8001';
     }
   }
 
-  // 2. User override from localStorage if set (local dev only)
+  // 3. User override from localStorage if set (local dev only)
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const saved = window.localStorage.getItem('cepa_api_base_url');
       if (saved && saved.trim() && !saved.includes('localhost:8000')) {
         return saved.trim().replace(/\/+$/, '');
       }
-    } catch {
-      // localStorage may be disabled in restricted iframe/browser modes
-    }
+    } catch {}
   }
 
-  // 3. Environment variable (only if not an insecure localhost URL on a remote host)
-  const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (configuredUrl) {
-    return configuredUrl.replace(/\/+$/, '');
-  }
-
-  // 4. Default local development backend
+  // 4. Fallback for native devices
   return Platform.select({
     android: 'http://10.0.2.2:8001',
-    default: 'http://localhost:8001',
+    default: PRODUCTION_BACKEND_URL,
   })!;
 }
 
@@ -43,16 +58,10 @@ export const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
 
 let currentBaseUrl = DEFAULT_API_BASE_URL;
 
-export const getApiBaseUrl = () => {
-  // Runtime guard: if page is on HTTPS or non-localhost, never allow an insecure http://localhost URL
-  if (typeof window !== 'undefined' && window.location) {
-    const host = window.location.hostname;
-    const protocol = window.location.protocol;
-    if ((host && host !== 'localhost' && host !== '127.0.0.1') || protocol === 'https:') {
-      if (currentBaseUrl.includes('localhost') || currentBaseUrl.includes('127.0.0.1') || currentBaseUrl.startsWith('http:')) {
-        currentBaseUrl = PRODUCTION_BACKEND_URL;
-      }
-    }
+export const getApiBaseUrl = (): string => {
+  // Strict runtime guard: hosted/HTTPS browser MUST NEVER call http://localhost
+  if (isHostedEnvironment()) {
+    return PRODUCTION_BACKEND_URL;
   }
   return currentBaseUrl;
 };
@@ -62,9 +71,6 @@ export const setApiBaseUrl = (url: string) => {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem('cepa_api_base_url', currentBaseUrl);
-    } catch {
-      // Ignore localStorage errors
-    }
+    } catch {}
   }
 };
-

@@ -3,10 +3,12 @@ import {
   Animated,
   Image,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { getApiBaseUrl } from '../config';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../ui';
 
 interface HeaderProps {
@@ -68,7 +70,11 @@ export const Header: React.FC<HeaderProps> = ({
           </View>
         </View>
 
-        <View
+        <Pressable
+          onPress={() => {
+            const endpoint = getApiBaseUrl();
+            alert(`Cepa Grading Engine:\nStatus: ${serverConnected ? 'ONLINE (Connected)' : 'OFFLINE (Connecting)'}\nEndpoint: ${endpoint}`);
+          }}
           style={[
             styles.statusIndicator,
             serverConnected ? styles.statusIndicatorOnline : styles.statusIndicatorOffline,
@@ -91,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {serverConnected ? 'ONLINE' : 'OFFLINE'}
           </Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );

@@ -11,6 +11,17 @@
   "env": {
     "EXPO_PUBLIC_API_URL": "https://cepa-backend.onrender.com"
   },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
