@@ -11,12 +11,12 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { ApiClient } from '../api/client';
+import { resolveMediaUrl, getOfficerToken } from '../config';
 import { SkeletonBox } from './Skeleton';
 import { Colors, Radius } from './Theme';
 
 interface LazyImageProps {
-  source: ImageSourcePropType | { uri: string | null | undefined };
+  source: ImageSourcePropType | { uri: string | null | undefined; headers?: Record<string, string> };
   style?: StyleProp<ImageStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   resizeMode?: ImageResizeMode;
@@ -35,18 +35,33 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
-  let finalSource = source;
-  if (typeof source === 'object' && source !== null && 'uri' in source) {
-    const rawUri = (source as any).uri;
-    const resolvedUri = ApiClient.resolveMediaUrl(rawUri);
-    finalSource = { ...(source as any), uri: resolvedUri };
-  }
+  // Automatically normalize URIs using active API base URL and attach officer auth header if needed
+  const resolvedSource = React.useMemo(() => {
+    if (typeof source === 'object' && source !== null && 'uri' in source) {
+      const rawUri = (source as { uri?: string | null }).uri;
+      const normalizedUri = resolveMediaUrl(rawUri);
+      if (!normalizedUri) {
+        return { uri: undefined };
+      }
+      const existingHeaders = (source as any).headers || {};
+      const officerToken = getOfficerToken();
+      return {
+        ...source,
+        uri: normalizedUri,
+        headers: {
+          ...existingHeaders,
+          ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
+        },
+      };
+    }
+    return source;
+  }, [source]);
 
   const isUriEmpty =
-    typeof finalSource === 'object' &&
-    finalSource !== null &&
-    'uri' in finalSource &&
-    (!(finalSource as any).uri || (finalSource as any).uri === '');
+    typeof resolvedSource === 'object' &&
+    resolvedSource !== null &&
+    'uri' in resolvedSource &&
+    (!resolvedSource.uri || resolvedSource.uri === '');
 
   if (error || isUriEmpty) {
     return (
@@ -86,10 +101,12 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
       {/* Primary Image with robust rendering */}
       <Image
-        source={finalSource as any}
+        source={resolvedSource as any}
         resizeMode={resizeMode}
         onLoad={() => setLoaded(true)}
-        onError={() => {
+        onError={(e: any) => {
+          const failedUri = (resolvedSource as any)?.uri;
+          console.warn('[LazyImage] Failed to render image from URI:', failedUri, e?.nativeEvent?.error);
           setError(true);
           setLoaded(true);
         }}

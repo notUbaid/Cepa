@@ -155,10 +155,23 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
       let cleanMsg = 'Verification could not be completed.';
       if (err.message) {
         const raw = String(err.message);
-        if (raw.includes('Sample processing failed:')) {
+        if (
+          raw.toLowerCase().includes('onion not detected') ||
+          raw.includes('no_onions_detected') ||
+          raw.includes('authentic onion')
+        ) {
+          cleanMsg =
+            'Onion not detected. The camera detected objects, but they do not match authentic onion bulb characteristics (e.g. other fruit/vegetable or non-produce item). Please ensure genuine onion bulbs are visible on the inspection surface.';
+          setFailureCodes((prev) => (prev.includes('no_onions_detected') ? prev : [...prev, 'no_onions_detected']));
+        } else if (raw.includes('Sample processing failed:')) {
           cleanMsg = raw.split('Sample processing failed:')[1].trim();
-        } else if (raw.includes('Expected UploadFile')) {
-          cleanMsg = 'Image file could not be read. Please try capturing or selecting another photo.';
+        } else if (raw.includes('Upload failed') || raw.includes('422') || raw.includes('Expected UploadFile')) {
+          const stripped = raw
+            .replace(/^HTTP \d+:\s*/, '')
+            .replace(/^Sample processing failed:\s*/, '')
+            .replace(/\{.*\}/g, '')
+            .trim();
+          cleanMsg = stripped || 'Image could not be processed. Please try capturing or selecting another photo.';
         } else if (raw.includes('Network') || raw.includes('Failed to fetch') || raw.includes('connect')) {
           cleanMsg = 'Cannot reach the Mandi verification service. Please check your network connection.';
         } else {
@@ -272,11 +285,25 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
             </View>
           ) : (
             <View style={styles.failureContainer}>
-              <View style={styles.failBadge}>
-                <Feather name="alert-triangle" size={32} color="#dc2626" />
-              </View>
-              <Text style={styles.failureTitle}>Quality Gate Verification Failed</Text>
-              <Text style={styles.failureDesc}>{errorMessage}</Text>
+              {errorMessage?.toLowerCase().includes('onion not detected') || failureCodes.includes('no_onions_detected') ? (
+                <>
+                  <View style={[styles.failBadge, { backgroundColor: '#fef3c7' }]}>
+                    <Feather name="slash" size={32} color="#d97706" />
+                  </View>
+                  <Text style={[styles.failureTitle, { color: '#92400e' }]}>
+                    Onion Not Detected (प्याज नहीं मिला)
+                  </Text>
+                  <Text style={styles.failureDesc}>{errorMessage}</Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.failBadge}>
+                    <Feather name="alert-triangle" size={32} color="#dc2626" />
+                  </View>
+                  <Text style={styles.failureTitle}>Quality Gate Verification Failed</Text>
+                  <Text style={styles.failureDesc}>{errorMessage}</Text>
+                </>
+              )}
 
               {failureCodes.length > 0 && (
                 <View style={styles.flagsList}>
@@ -309,7 +336,11 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                   style={styles.retakeBtn}
                   onPress={onRetake}
                 >
-                  <Text style={styles.retakeBtnText}>Retake Photograph</Text>
+                  <Text style={styles.retakeBtnText}>
+                    {errorMessage?.toLowerCase().includes('onion not detected')
+                      ? 'Point Camera at Onions & Recapture (दोबारा फोटो लें)'
+                      : 'Retake Photograph'}
+                  </Text>
                 </AnimatedPressable>
 
                 <AnimatedPressable

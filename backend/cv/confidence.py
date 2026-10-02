@@ -45,6 +45,7 @@ def assess_confidence(
     touches_border: bool,
     size_estimate: SizeEstimate | None,
     defect_prediction: DefectPrediction | None,
+    is_estimated_scale: bool = False,
 ) -> ConfidenceAssessment:
     """
     Determine confidence tier for a single onion instance.
@@ -57,6 +58,7 @@ def assess_confidence(
         touches_border: True if mask touches the image edge.
         size_estimate: Geometric measurement result (may be None).
         defect_prediction: Defect classifier output (may be None).
+        is_estimated_scale: True if scale was estimated without physical ChArUco board.
     """
     reasons: list[str] = []
     worst_tier = "HIGH"
@@ -83,7 +85,7 @@ def assess_confidence(
     if size_estimate is not None and size_estimate.uncertainty_flag:
         _downgrade(
             "NEEDS_REVIEW",
-            f"Size ({size_estimate.equivalent_diameter_mm:.1f} mm) is near a grading threshold.",
+            f"Size ({size_estimate.equivalent_diameter_mm:.1f} mm) has estimated scale or is near a grading boundary.",
         )
 
     # ── Borderline defect probabilities ────────────────────────────────────────
@@ -99,11 +101,16 @@ def assess_confidence(
                     f"{name} probability ({prob:.0%}) is borderline — manual inspection recommended.",
                 )
 
-    # ── No size estimate ───────────────────────────────────────────────────────
+    # ── No physical size estimate ──────────────────────────────────────────────
     if size_estimate is None:
         _downgrade(
             "NEEDS_REVIEW",
             "Size could not be measured (calibration marker not detected).",
+        )
+    elif is_estimated_scale:
+        _downgrade(
+            "NEEDS_REVIEW",
+            "Size is estimated via autonomous overhead camera prior (calibration card not detected).",
         )
 
     return ConfidenceAssessment(tier=worst_tier, reasons=reasons)

@@ -128,12 +128,10 @@ def analyze_bulb_morphology(
                     s_idx, e_idx, f_idx, d_val = int(d_row[0]), int(d_row[1]), int(d_row[2]), float(d_row[3])
                     depth = d_val / 256.0
                     max_depth = max(max_depth, depth)
-                    # True twin bulb cleft occurs along the equatorial waist between twin lobes,
-                    # NOT between a pointed neck apex (stalk) and bulb shoulder.
                     s_y = main_contour[s_idx][0][1]
                     e_y = main_contour[e_idx][0][1]
                     if min(s_y, e_y) > 0.15 * h_crop and max(s_y, e_y) < 0.85 * h_crop:
-                        if equiv_diam_px > 0 and (depth / equiv_diam_px) > 0.25 and aspect_ratio < 0.70:
+                        if equiv_diam_px > 0 and (depth / equiv_diam_px) > 0.12 and aspect_ratio < 0.75:
                             is_double = True
                             logger.debug(
                                 "Double bulb detected: concavity depth %.1fpx / equiv diam %.1fpx = %.2f (aspect=%.2f)",

@@ -100,7 +100,8 @@ async def serve_stored_file(
     """
     import os
     base_dir = os.path.abspath(str(settings.storage_dir))
-    target_path = os.path.abspath(os.path.join(base_dir, file_path))
+    norm_file_path = file_path.replace("\\", "/").lstrip("/")
+    target_path = os.path.abspath(os.path.join(base_dir, norm_file_path))
 
     # Guard against directory traversal attacks (e.g., ../../etc/passwd)
     try:

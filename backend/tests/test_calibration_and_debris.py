@@ -27,9 +27,8 @@ class TestDualModeCalibration:
         assert calib is not None
         assert calib.is_estimated is True
         assert calib.calibration_method == "AUTONOMOUS_OVERHEAD_HEURISTIC"
-        assert calib.scale_mm_per_px is not None
-        # 700mm FOV / 1920px ≈ 0.3646 mm/px
-        assert pytest.approx(calib.scale_mm_per_px, rel=0.05) == (700.0 / 1920.0)
+        # 260mm FOV / 1920px ≈ 0.1354 mm/px (mobile close-up benchmark prior)
+        assert pytest.approx(calib.scale_mm_per_px, rel=0.05) == (260.0 / 1920.0)
         assert calib.uncertainty_mm == 3.5
 
     def test_autonomous_scale_produces_valid_size_and_mandi_grade(self):

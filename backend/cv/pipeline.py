@@ -275,6 +275,39 @@ def run_pipeline(
         logger.warning("Pipeline sample=%s: all detections filtered out as non-bulb debris", sample_id)
         return result
 
+    # ── STAGE 4.5: Onion Authenticity Verification & Non-Onion Produce Rejection ─
+    # Evaluates every candidate detection against botanical Allium cepa criteria.
+    # Strictly rejects apples, oranges, tomatoes, lemons, bananas, cucumbers, tennis balls, mugs, etc.
+    from cv.onion_validator import OnionAuthenticityValidator
+    authenticated_onions, rejected_objects = OnionAuthenticityValidator.filter_detections(
+        working_image, valid_detections
+    )
+
+    if rejected_objects:
+        logger.info(
+            "Pipeline sample=%s: filtered out %d non-onion candidate objects (%s)",
+            sample_id,
+            len(rejected_objects),
+            [reason for _, reason in rejected_objects[:5]],
+        )
+
+    if not authenticated_onions:
+        result.quality_passed = False
+        result.failure_message = (
+            "Onion not detected. The camera detected objects, but they do not match "
+            "authentic onion bulb characteristics (e.g. other fruit/vegetable or non-produce item). "
+            "Please ensure genuine onion bulbs are visible on the inspection surface."
+        )
+        result.quality_flags = ["no_onions_detected"]
+        logger.warning(
+            "Pipeline sample=%s: all %d candidate objects rejected by OnionAuthenticityValidator",
+            sample_id,
+            len(valid_detections),
+        )
+        return result
+
+    valid_detections = authenticated_onions
+
     # Re-index valid detections
     detections = [
         OnionDetection(
@@ -305,10 +338,14 @@ def run_pipeline(
 
         result.scale_mm_per_px = effective_scale
         result.is_estimated_scale = calibration.is_estimated
-        result.calibration_method = calibration.calibration_method
+        if calibration.is_estimated or not calibration.perspective_valid:
+            result.calibration_method = "AUTONOMOUS_OVERHEAD_HEURISTIC"
+            result.quality_flags.append("estimated_overhead_scale")
+        else:
+            result.calibration_method = calibration.calibration_method
         logger.info(
             "Scale active (method=%s, %.4f mm/px). Physical grading enabled.",
-            calibration.calibration_method, effective_scale,
+            result.calibration_method, effective_scale,
         )
     else:
         result.scale_mm_per_px = None
@@ -358,6 +395,8 @@ def run_pipeline(
                 scale_mm_per_px=result.scale_mm_per_px,
                 thresholds_mm=size_thresholds,
             )
+            if size_est is not None and (calibration.is_estimated or not calibration.perspective_valid):
+                size_est.uncertainty_flag = True
         except Exception:
             logger.exception("Size estimation failed for instance %d", idx)
 
@@ -384,6 +423,7 @@ def run_pipeline(
             touches_border=det.touches_border,
             size_estimate=size_est,
             defect_prediction=defect_pred,
+            is_estimated_scale=bool(calibration.is_estimated or not calibration.perspective_valid),
         )
 
         # ── Grading Engine ───────────────────────────────────────────────────

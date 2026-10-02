@@ -53,6 +53,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       const insp = await ApiClient.createInspection({
         lot_id: 'MANDI-DEMO-VERIFIED-01',
+        farmer_name: 'Devidas Sonawane',
+        farmer_id: 'MH-NSK-2026-084',
         procurement_centre: 'Lasalgaon APMC Yard, Nashik',
         officer_name: 'Senior Grader S. Patil',
         officer_id: 'NAFED-MH-084',
@@ -387,7 +389,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <View style={styles.cardLocationRow}>
                       <Feather name="map-pin" size={11} color="#64748b" style={{ marginRight: 5 }} />
                       <Text style={styles.procurementCentreText} numberOfLines={1}>
-                        {item.procurement_centre || 'Mandi Yard, Lasalgaon APMC'}
+                        {item.farmer_name ? `${item.farmer_name} · ` : ''}{item.procurement_centre || 'Mandi Yard, Lasalgaon APMC'}
                       </Text>
                     </View>
 

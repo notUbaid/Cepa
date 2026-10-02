@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
+import { resolveMediaUrl } from '../config';
 import { EvidenceDrilldownModal } from '../components/EvidenceDrilldownModal';
 import {
   InspectionDetail,
@@ -78,7 +79,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
 
   type ViewMode = 'grid' | 'ai_agronomist' | 'video_sweep' | 'storage' | 'settlement' | 'overlay';
   const [viewMode, setViewMode] = useState<ViewMode>(videoResult ? 'video_sweep' : 'grid');
-  const [gradeFilter, setGradeFilter] = useState<'ALL' | 'GRADE_A' | 'URS' | 'REJECTED'>('ALL');
+  const [gradeFilter, setGradeFilter] = useState<'ALL' | 'GRADE_A' | 'URS' | 'REJECTED' | 'NEEDS_REVIEW'>('ALL');
   const [aiQuestion, setAiQuestion] = useState('');
   const [askingAi, setAskingAi] = useState(false);
   const [chatMessages, setChatMessages] = useState<
@@ -168,6 +169,9 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
     if (gradeFilter === 'GRADE_A') return o.grade === 'GRADE_A';
     if (gradeFilter === 'URS') return o.grade === 'URS';
     if (gradeFilter === 'REJECTED') return o.grade === 'REJECTED';
+    if (gradeFilter === 'NEEDS_REVIEW') {
+      return o.grade === 'NEEDS_REVIEW' || o.confidence_tier === 'NEEDS_REVIEW' || !o.grade;
+    }
     return true;
   });
 
@@ -188,15 +192,10 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   const netPayout = commercial.estimated_net_payout_inr ?? (netRate * 50);
   const dockageItems: any[] = commercial.dockage_items ?? [];
 
-  // Multimodal Generative AI Agronomist Verdict
-  const aiVerdict = currentSample.ai_agronomist_verdict || videoResult?.ai_agronomist_verdict || {
-    quality_rating: 'GOOD',
-    summary_verdict: 'Optical grading and physical size analysis completed. Bulbs show good uniformity with sound tunics and low risk of transit decay.',
-    defects_observed: [],
-    storage_advice: 'Store in ventilated crates or mesh bags at 25-30°C and <65% RH. Prevent damp stacking.',
-    fair_market_note: 'Uniform medium-large caliber satisfies standard Mandi APMC Grade A market specifications.',
-    powered_by: 'Cepa AI Agronomist Engine (Groq Vision)'
-  };
+  // Multimodal Generative AI Agronomist Verdict (Honest check - zero fake fallbacks)
+  const rawAi = currentSample.ai_agronomist_verdict || videoResult?.ai_agronomist_verdict;
+  const isAiAvailable = !!rawAi && rawAi.available !== false && !rawAi.error;
+  const aiVerdict = rawAi;
 
   return (
     <View style={styles.container}>
@@ -266,7 +265,14 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             <Text style={styles.kpiLabel}>{isOnlyOversized ? 'Oversize' : 'Reject'}</Text>
           </AnimatedPressable>
 
-          <View style={styles.kpiCard}>
+          <AnimatedPressable
+            haptic="selection"
+            onPress={() => setGradeFilter(gradeFilter === 'NEEDS_REVIEW' ? 'ALL' : 'NEEDS_REVIEW')}
+            style={[
+              styles.kpiCard,
+              gradeFilter === 'NEEDS_REVIEW' && styles.kpiCardSelected,
+            ]}
+          >
             <View style={[styles.kpiTopBarIndicator, { backgroundColor: Colors.review }]} />
             <View style={styles.kpiDotRow}>
               <View style={[styles.kpiDot, { backgroundColor: Colors.review }]} />
@@ -278,7 +284,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               </Text>
             </View>
             <Text style={styles.kpiLabel}>Review</Text>
-          </View>
+          </AnimatedPressable>
         </View>
       </FadeInView>
 
@@ -506,67 +512,85 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         >
           {/* Groq Generative AI Agronomist Hero Card */}
           <FadeInView delay={80} distance={10}>
-            <View style={styles.aiAgronomistCard}>
-              <View style={styles.aiCardHeaderRow}>
-                <View style={styles.aiPoweredBadge}>
-                  <Text style={styles.aiPoweredBadgeText}>GROQ MULTIMODAL VISION AI</Text>
+            {isAiAvailable && aiVerdict ? (
+              <View style={styles.aiAgronomistCard}>
+                <View style={styles.aiCardHeaderRow}>
+                  <View style={styles.aiPoweredBadge}>
+                    <Text style={styles.aiPoweredBadgeText}>GROQ MULTIMODAL VISION AI</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.aiRatingPill,
+                      (aiVerdict.quality_rating || 'GOOD') === 'EXCELLENT'
+                        ? styles.aiRatingPillExcellent
+                        : (aiVerdict.quality_rating || 'GOOD') === 'GOOD'
+                        ? styles.aiRatingPillGood
+                        : (aiVerdict.quality_rating || 'GOOD') === 'FAIR'
+                        ? styles.aiRatingPillFair
+                        : styles.aiRatingPillPoor,
+                    ]}
+                  >
+                    <Text style={styles.aiRatingPillText}>
+                      {aiVerdict.quality_rating || 'GOOD'} QUALITY
+                    </Text>
+                  </View>
                 </View>
-                <View
-                  style={[
-                    styles.aiRatingPill,
-                    (aiVerdict.quality_rating || 'GOOD') === 'EXCELLENT'
-                      ? styles.aiRatingPillExcellent
-                      : (aiVerdict.quality_rating || 'GOOD') === 'GOOD'
-                      ? styles.aiRatingPillGood
-                      : (aiVerdict.quality_rating || 'GOOD') === 'FAIR'
-                      ? styles.aiRatingPillFair
-                      : styles.aiRatingPillPoor,
-                  ]}
-                >
-                  <Text style={styles.aiRatingPillText}>
-                    {aiVerdict.quality_rating || 'GOOD'} QUALITY
+
+                <Text style={styles.aiVerdictTitle}>Expert Agronomist Appraisal</Text>
+                <Text style={styles.aiVerdictBody}>
+                  {aiVerdict.summary_verdict}
+                </Text>
+
+                {/* Observed Physical Defects */}
+                <View style={styles.aiSectionBox}>
+                  <Text style={styles.aiSectionSubheading}>OBSERVED PHYSICAL DEFECTS</Text>
+                  {aiVerdict.defects_observed && aiVerdict.defects_observed.length > 0 ? (
+                    aiVerdict.defects_observed.map((defect: string, idx: number) => (
+                      <View key={idx} style={styles.aiDefectItemRow}>
+                        <Text style={styles.aiDefectBullet}>•</Text>
+                        <Text style={styles.aiDefectText}>{defect}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.aiDefectText}>No visible fungal decay, neck rot, or green sprouting detected.</Text>
+                  )}
+                </View>
+
+                {/* Storage & Commercial Guidance */}
+                <View style={styles.aiGuidanceRow}>
+                  <View style={styles.aiGuidanceCol}>
+                    <Text style={styles.aiGuidanceLabel}>STORAGE ADVICE</Text>
+                    <Text style={styles.aiGuidanceText}>{aiVerdict.storage_advice}</Text>
+                  </View>
+                  <View style={styles.aiGuidanceCol}>
+                    <Text style={styles.aiGuidanceLabel}>MARKET VALUATION</Text>
+                    <Text style={styles.aiGuidanceText}>{aiVerdict.fair_market_note}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.aiModelFooter}>
+                  <Text style={styles.aiModelFooterText}>
+                    Model: {aiVerdict.powered_by || 'Groq AI (qwen/qwen3.8-27b)'} · Latency: &lt;1.5s
                   </Text>
                 </View>
               </View>
-
-              <Text style={styles.aiVerdictTitle}>Expert Agronomist Appraisal</Text>
-              <Text style={styles.aiVerdictBody}>
-                {aiVerdict.summary_verdict}
-              </Text>
-
-              {/* Observed Physical Defects */}
-              <View style={styles.aiSectionBox}>
-                <Text style={styles.aiSectionSubheading}>OBSERVED PHYSICAL DEFECTS</Text>
-                {aiVerdict.defects_observed && aiVerdict.defects_observed.length > 0 ? (
-                  aiVerdict.defects_observed.map((defect: string, idx: number) => (
-                    <View key={idx} style={styles.aiDefectItemRow}>
-                      <Text style={styles.aiDefectBullet}>•</Text>
-                      <Text style={styles.aiDefectText}>{defect}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.aiDefectText}>No visible fungal decay, neck rot, or green sprouting detected.</Text>
-                )}
-              </View>
-
-              {/* Storage & Commercial Guidance */}
-              <View style={styles.aiGuidanceRow}>
-                <View style={styles.aiGuidanceCol}>
-                  <Text style={styles.aiGuidanceLabel}>STORAGE ADVICE</Text>
-                  <Text style={styles.aiGuidanceText}>{aiVerdict.storage_advice}</Text>
+            ) : (
+              <View style={styles.aiAgronomistCard}>
+                <View style={styles.aiCardHeaderRow}>
+                  <View style={[styles.aiPoweredBadge, { backgroundColor: '#f1f5f9' }]}>
+                    <Text style={[styles.aiPoweredBadgeText, { color: '#64748b' }]}>OPTIONAL CLOUD AI</Text>
+                  </View>
+                  <View style={[styles.aiRatingPill, styles.aiRatingPillFair]}>
+                    <Text style={styles.aiRatingPillText}>STANDALONE CV ACTIVE</Text>
+                  </View>
                 </View>
-                <View style={styles.aiGuidanceCol}>
-                  <Text style={styles.aiGuidanceLabel}>MARKET VALUATION</Text>
-                  <Text style={styles.aiGuidanceText}>{aiVerdict.fair_market_note}</Text>
-                </View>
-              </View>
 
-              <View style={styles.aiModelFooter}>
-                <Text style={styles.aiModelFooterText}>
-                  Model: {aiVerdict.powered_by || 'Groq AI (qwen/qwen3.8-27b)'} · Latency: &lt;1.5s
+                <Text style={styles.aiVerdictTitle}>Groq Vision AI Offline</Text>
+                <Text style={styles.aiVerdictBody}>
+                  Deterministic computer vision, APMC caliber measurement, and NAFED grading are running on-device. Set GROQ_API_KEY on the backend server to activate multimodal LLM agronomist advice.
                 </Text>
               </View>
-            </View>
+            )}
           </FadeInView>
 
           {/* Interactive Chat with AI Agronomist */}

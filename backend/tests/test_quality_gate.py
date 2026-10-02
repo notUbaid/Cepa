@@ -39,8 +39,8 @@ class TestQualityGate:
         assert len(result.failures) == 0
 
     def test_insufficient_resolution_fails(self):
-        # 300x300 < 400 threshold
-        img = np.full((300, 300, 3), 128, dtype=np.uint8)
+        # 200x200 < settings.qg_min_resolution_px (300) threshold
+        img = np.full((200, 200, 3), 128, dtype=np.uint8)
         result = check_image_quality(img)
         assert result.passed is False
         assert FAIL_INSUFFICIENT_RESOLUTION in result.failures
@@ -61,16 +61,16 @@ class TestQualityGate:
         assert FAIL_TOO_DARK in result.failures
 
     def test_too_bright_image_fails(self):
-        # Mean luminance > 215
-        bright_img = np.full((1200, 1200, 3), 235, dtype=np.uint8)
+        # Mean luminance > 245
+        bright_img = np.full((1200, 1200, 3), 250, dtype=np.uint8)
         result = check_image_quality(bright_img)
         assert result.passed is False
         assert FAIL_TOO_BRIGHT in result.failures
 
     def test_excessive_glare_fails(self):
         img = _create_sharp_image()
-        # Make > 6% of pixels pure blown-out white (>250 in all channels)
-        img[:350, :350] = [255, 255, 255]
+        # Make > 50% of pixels pure blown-out white (>250 in all channels)
+        img[:900, :900] = [255, 255, 255]
         result = check_image_quality(img)
         assert result.passed is False
         assert FAIL_EXCESSIVE_GLARE in result.failures

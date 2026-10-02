@@ -214,3 +214,73 @@ class TestBhashiniConfigH8:
         from config import Settings
         s = Settings()
         assert s.bhashini_api_key == "bhashini_secret_key_123"
+
+
+class TestUncalibratedOverheadRemediation:
+    def test_uncalibrated_scale_preserved_with_review_confidence(self):
+        """Verifies fix for user issue: random photos without calibration cards compute
+        physical size via overhead heuristic with honest NEEDS_REVIEW confidence tier.
+        """
+        import cv2
+        from cv.calibration import compute_calibration
+        from cv.confidence import assess_confidence
+        from cv.marker_detector import MarkerDetectionResult
+        from cv.size_estimator import estimate_size
+        from cv.defect_classifier import DefectPrediction
+        from grading.engine import GradingEngine
+
+        # 1920x1080 capture frame without marker
+        dummy_img = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        uncalibrated_marker = MarkerDetectionResult(
+            detected=False,
+            failure_code="marker_not_detected",
+            failure_message="No ChArUco board detected.",
+        )
+        calib = compute_calibration(dummy_img, uncalibrated_marker)
+
+        # Scale must NOT be wiped to None
+        assert calib.is_estimated is True
+        assert calib.scale_mm_per_px is not None
+
+        # Mask of a clean healthy onion (~50mm diameter)
+        mask = np.zeros((1080, 1920), dtype=np.uint8)
+        radius_px = int(25.0 / calib.scale_mm_per_px)
+        cv2.circle(mask, (960, 540), radius_px, 255, -1)
+        size_est = estimate_size(mask, calib.scale_mm_per_px)
+
+        assert size_est is not None
+        assert size_est.equatorial_diameter_mm > 40.0
+
+        defects = DefectPrediction(
+            sprouted_prob=0.05,
+            rotten_prob=0.02,
+            damaged_prob=0.03,
+            model_version="test-model:v1",
+            is_mock=False,
+        )
+
+        conf = assess_confidence(
+            segmentation_conf=0.92,
+            touches_border=False,
+            size_estimate=size_est,
+            defect_prediction=defects,
+            is_estimated_scale=calib.is_estimated,
+        )
+
+        assert conf.tier == "NEEDS_REVIEW"
+        assert any("autonomous overhead" in r.lower() or "estimated" in r.lower() for r in conf.reasons)
+
+        from pathlib import Path
+        from grading.policy_loader import load_policy
+
+        policies_dir = Path(__file__).parent.parent / "grading" / "policies"
+        policy = load_policy("DEMO_ASSUMPTION_v1", policies_dir)
+        engine = GradingEngine(policy)
+        grade = engine.evaluate_bulb(
+            size_estimate=size_est,
+            defect_prediction=defects,
+            confidence=conf,
+        )
+        assert grade.grade in ("GRADE_A", "UNDER_SIZED", "OVER_SIZED")
+        assert grade.confidence_tier == "NEEDS_REVIEW"
+

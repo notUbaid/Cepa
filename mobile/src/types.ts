@@ -5,6 +5,8 @@ export type ConfidenceTier = 'HIGH' | 'NEEDS_REVIEW' | 'UNUSABLE';
 export interface InspectionSummary {
   id: string;
   lot_id: string | null;
+  farmer_id?: string | null;
+  farmer_name?: string | null;
   procurement_centre: string | null;
   officer_name: string | null;
   status: InspectionStatus;
@@ -124,6 +126,8 @@ export interface AiAgronomistVerdict {
   storage_advice: string;
   fair_market_note: string;
   powered_by?: string;
+  available?: boolean;
+  error?: string;
 }
 
 export interface VideoDefectItem {

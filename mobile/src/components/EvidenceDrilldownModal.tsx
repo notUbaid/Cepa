@@ -174,7 +174,7 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
                 <View style={styles.metricRow}>
                   <Text style={styles.metricLabel}>APMC Mandi Grade:</Text>
                   <Text style={[styles.metricValue, { color: Colors.accent }]}>
-                    {onion.mandi_size_grade || onion.explanation?.mandi_size_grade || 'Super'}
+                    {onion.mandi_size_grade || onion.explanation?.mandi_size_grade || 'Pending Verification'}
                   </Text>
                 </View>
 

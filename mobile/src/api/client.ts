@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { getApiBaseUrl } from '../config';
+import { getApiBaseUrl, getOfficerToken } from '../config';
 import {
   InspectionDetail,
   InspectionSummary,
@@ -13,12 +13,14 @@ export class ApiClient {
   private static async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}${endpoint}`;
+    const officerToken = getOfficerToken();
 
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           Accept: 'application/json',
+          ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
           ...options?.headers,
         },
       });
@@ -74,6 +76,8 @@ export class ApiClient {
 
   static async createInspection(data: {
     lot_id?: string;
+    farmer_name?: string;
+    farmer_id?: string;
     procurement_centre?: string;
     officer_name?: string;
     officer_id?: string;
@@ -174,11 +178,13 @@ export class ApiClient {
       formData.append('location_accuracy', location.accuracy.toString());
     }
 
+    const officerToken = getOfficerToken();
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
       headers: {
         Accept: 'application/json',
+        ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
       },
     });
 
@@ -221,11 +227,13 @@ export class ApiClient {
     const formData = new FormData();
     formData.append('file', blob, filename);
 
+    const officerToken = getOfficerToken();
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
       headers: {
         Accept: 'application/json',
+        ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
       },
     });
 
@@ -263,7 +271,6 @@ export class ApiClient {
       }
     );
   }
-
 
   static async getSample(inspectionId: string, sampleId: string): Promise<SampleDetail> {
     return this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);
@@ -313,5 +320,34 @@ export class ApiClient {
 
   static async getReport(inspectionId: string): Promise<ReportDetail> {
     return this.request<ReportDetail>(`/api/v1/inspections/${inspectionId}/reports`);
+  }
+
+  static async exportEnam(
+    inspectionId: string,
+    format: 'json' | 'xml' = 'json',
+    lotWeightKg = 1000.0
+  ): Promise<any> {
+    return this.request(`/api/v1/inspections/${inspectionId}/enam?format=${format}&lot_weight_kg=${lotWeightKg}`);
+  }
+
+  static async getMandiAnnouncement(
+    inspectionId: string,
+    language?: string
+  ): Promise<{
+    inspection_id: string;
+    language: string;
+    announcement_text: string;
+    lot_recommendation: string;
+    grade_a_pct: number;
+    urs_pct: number;
+    rejected_pct: number;
+    audio_available: boolean;
+    audio_base64?: string;
+    audio_content_type?: string;
+    is_mock: boolean;
+    tts_status?: string;
+  }> {
+    const langParam = language ? `?language=${language}` : '';
+    return this.request(`/api/v1/inspections/${inspectionId}/announce${langParam}`);
   }
 }

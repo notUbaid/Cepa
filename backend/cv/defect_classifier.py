@@ -37,12 +37,16 @@ DEFECT_CLASSIFIER_MOCK_VERSION = "mock-defect-classifier:v1"
 @dataclass
 class DefectPrediction:
     """Per-onion defect classification output."""
-    good_prob: float
-    damaged_prob: float
-    rotten_prob: float
-    sprouted_prob: float
-    model_version: str
-    is_mock: bool
+    good_prob: float = 0.0
+    damaged_prob: float = 0.0
+    rotten_prob: float = 0.0
+    sprouted_prob: float = 0.0
+    model_version: str = DEFECT_CLASSIFIER_MOCK_VERSION
+    is_mock: bool = False
+
+    def __post_init__(self) -> None:
+        if self.good_prob == 0.0 and (self.damaged_prob > 0.0 or self.rotten_prob > 0.0 or self.sprouted_prob > 0.0):
+            self.good_prob = max(0.0, 1.0 - (self.damaged_prob + self.rotten_prob + self.sprouted_prob))
 
     def as_dict(self) -> dict:
         return {
@@ -154,7 +158,7 @@ try:
     import torch
     import torch.nn as nn
     _TORCH_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError, Exception):
     torch = None
     nn = object
     _TORCH_AVAILABLE = False

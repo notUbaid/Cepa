@@ -72,3 +72,55 @@ export const setApiBaseUrl = (url: string) => {
     } catch {}
   }
 };
+
+export const DEFAULT_OFFICER_TOKEN =
+  process.env.EXPO_PUBLIC_OFFICER_TOKEN || 'cepa-officer-secret-key-2026';
+
+let currentOfficerToken = DEFAULT_OFFICER_TOKEN;
+export const getOfficerToken = () => currentOfficerToken;
+export const setOfficerToken = (token: string) => {
+  currentOfficerToken = token;
+};
+
+/**
+ * Resolves any backend media or API URL against the currently active API base URL.
+ * Handles:
+ * - Hardcoded localhost:8000 or 127.0.0.1:8000 URLs returned by backend -> rewrites to currentBaseUrl
+ * - Relative paths (e.g. /api/v1/storage/... or crops/...) -> prepends currentBaseUrl
+ * - Data URIs (base64) -> returned unchanged
+ * - Remote HTTPS URLs (Render/S3) -> returned unchanged
+ */
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // Base64 data URIs are self-contained
+  if (trimmed.startsWith('data:')) return trimmed;
+
+  const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
+
+  // Rewrite hardcoded localhost:8000 or 127.0.0.1:8000 to the device-reachable base URL
+  const rewritten = trimmed.replace(
+    /^https?:\/\/(localhost|127\.0\.0\.1):8000(?=\/|$)/i,
+    baseUrl
+  );
+
+  // If path is relative with leading slash
+  if (rewritten.startsWith('/')) {
+    return `${baseUrl}${rewritten}`;
+  }
+
+  // If path is relative storage path without leading slash
+  if (
+    rewritten.startsWith('api/') ||
+    rewritten.startsWith('crops/') ||
+    rewritten.startsWith('masks/') ||
+    rewritten.startsWith('images/') ||
+    rewritten.startsWith('reports/')
+  ) {
+    return `${baseUrl}/${rewritten}`;
+  }
+
+  return rewritten;
+}

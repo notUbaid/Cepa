@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 try:
     from ultralytics import YOLO as _YOLO
     _ULTRALYTICS_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError, Exception):
     _YOLO = None  # type: ignore[assignment]
     _ULTRALYTICS_AVAILABLE = False
 

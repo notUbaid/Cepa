@@ -52,9 +52,9 @@ def path_to_url(
     Build an authorized URL for serving a stored file.
     The URL pattern is: /api/v1/storage/{relative_path}
     """
-    if relative_path is None:
+    if relative_path is None or not str(relative_path).strip():
         return None
-    clean_path = relative_path.replace("\\", "/").lstrip("/")
+    clean_path = str(relative_path).replace("\\", "/").lstrip("/")
     if base_url:
         url = f"{base_url.rstrip('/')}/api/v1/storage/{clean_path}"
     else:

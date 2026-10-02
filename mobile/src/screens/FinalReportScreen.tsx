@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
-import { getApiBaseUrl } from '../config';
+import { getApiBaseUrl, resolveMediaUrl } from '../config';
 import { InspectionDetail, ReportDetail } from '../types';
 import {
   AnimatedPressable,
@@ -64,7 +64,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   const handleDownloadPdf = () => {
     Haptics.heavy();
     const pdfUrl = `${getApiBaseUrl()}/api/v1/inspections/${inspection.id}/reports/pdf`;
-    Linking.openURL(pdfUrl).catch((e) => {
+    Linking.openURL(pdfUrl).catch((e: any) => {
       Haptics.error();
       alert(`Could not open PDF: ${e.message}`);
     });
@@ -73,10 +73,34 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   const handleOpenShareLink = () => {
     if (report?.share_url) {
       Haptics.light();
-      Linking.openURL(report.share_url).catch((e) =>
+      const resolved = resolveMediaUrl(report.share_url) || report.share_url;
+      Linking.openURL(resolved).catch((e: any) =>
         alert(`Could not open link: ${e.message}`)
       );
     }
+  };
+
+  const [announcing, setAnnouncing] = useState(false);
+
+  const handleBhashiniAnnounce = async (lang = 'hi') => {
+    Haptics.medium();
+    setAnnouncing(true);
+    try {
+      const res = await ApiClient.getMandiAnnouncement(inspection.id, lang);
+      alert(
+        `Bhashini Mandi Announcement (${res.language.toUpperCase()}):\n\n"${res.announcement_text}"\n\nRecommendation: ${res.lot_recommendation}`
+      );
+    } catch (e: any) {
+      alert(`Announcement error: ${e.message}`);
+    } finally {
+      setAnnouncing(false);
+    }
+  };
+
+  const handleExportEnam = () => {
+    Haptics.light();
+    const enamUrl = `${getApiBaseUrl()}/api/v1/inspections/${inspection.id}/enam?format=xml`;
+    Linking.openURL(enamUrl).catch((e: any) => alert(`Could not open eNAM export: ${e.message}`));
   };
 
   if (loading) {
@@ -455,6 +479,33 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
               <Text style={styles.pdfBtnText}>Download Official PDF Certificate</Text>
             </View>
           </AnimatedPressable>
+
+          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+            <AnimatedPressable
+              haptic="medium"
+              style={[styles.nextBtn, { flex: 1, backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
+              onPress={() => handleBhashiniAnnounce('hi')}
+              disabled={announcing}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Feather name="volume-2" size={14} color="#16a34a" />
+                <Text style={[styles.nextBtnText, { color: '#16a34a' }]}>
+                  {announcing ? 'Playing...' : 'Mandi Audio'}
+                </Text>
+              </View>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              haptic="light"
+              style={[styles.nextBtn, { flex: 1, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}
+              onPress={handleExportEnam}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Feather name="file-text" size={14} color="#2563eb" />
+                <Text style={[styles.nextBtnText, { color: '#2563eb' }]}>eNAM Assaying</Text>
+              </View>
+            </AnimatedPressable>
+          </View>
 
           <AnimatedPressable
             haptic="medium"

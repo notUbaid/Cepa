@@ -779,6 +779,14 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   <Text style={styles.specBold}>Single-Layer Spread:</Text> Keep 15–30 bulbs separated without physical touching or stacking.
                 </Text>
               </View>
+              <View style={styles.specItem}>
+                <View style={styles.specNumCircle}>
+                  <Text style={styles.specNumText}>4</Text>
+                </View>
+                <Text style={styles.specText}>
+                  <Text style={styles.specBold}>Onion Authenticity Gate:</Text> The AI engine strictly validates genuine onion bulbs (Allium cepa). Other fruits, vegetables, or objects will trigger "Onion not detected".
+                </Text>
+              </View>
             </View>
           </FadeInView>
 

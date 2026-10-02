@@ -3,11 +3,13 @@ import {
   Animated,
   LogBox,
   Platform,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+const SafeAreaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
 
 // Suppress yellowbox/logbox warning popups in mobile dev environments (e.g. Expo Go)
 LogBox.ignoreAllLogs(true);

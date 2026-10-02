@@ -35,6 +35,8 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
   onCancel,
 }) => {
   const [lotId, setLotId] = useState('');
+  const [farmerName, setFarmerName] = useState('');
+  const [farmerId, setFarmerId] = useState('');
   const [procurementCentre, setProcurementCentre] = useState('');
   const [officerName, setOfficerName] = useState('');
   const [officerId, setOfficerId] = useState('');
@@ -80,6 +82,8 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
     try {
       const inspection = await ApiClient.createInspection({
         lot_id: lotId.trim() || undefined,
+        farmer_name: farmerName.trim() || undefined,
+        farmer_id: farmerId.trim() || undefined,
         procurement_centre: procurementCentre.trim() || undefined,
         officer_name: officerName.trim() || undefined,
         officer_id: officerId.trim() || undefined,
@@ -206,6 +210,29 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 value={lotId}
                 onChangeText={setLotId}
               />
+            </View>
+
+            <View style={styles.rowFields}>
+              <View style={[styles.fieldGroup, { flex: 1, marginRight: Spacing.sm }]}>
+                <Text style={styles.label}>Farmer Name (किसान का नाम)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Ramesh Patil"
+                  placeholderTextColor={Colors.textDim}
+                  value={farmerName}
+                  onChangeText={setFarmerName}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>AgriStack Farmer ID</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. MH-NSK-2026-8910"
+                  placeholderTextColor={Colors.textDim}
+                  value={farmerId}
+                  onChangeText={setFarmerId}
+                />
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>
