@@ -110,20 +110,8 @@ export class ApiClient {
   }
 
   public static async uriToBlob(fileUri: string, defaultType: string = 'image/jpeg'): Promise<Blob> {
-    // 1. Base64 Data URI
-    if (fileUri.startsWith('data:')) {
-      const matchType = fileUri.match(/^data:([^;]+);base64,(.+)$/);
-      if (matchType) {
-        const type = matchType[1] || defaultType;
-        const byteCharacters = atob(matchType[2]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        return new Blob([new Uint8Array(byteNumbers)], { type });
-      }
-    }
-
+    // 1. Removed manual base64 parsing (it crashes on massive video strings).
+    // Native fetch().blob() handles data: URIs much faster in C++.
     // 2. Modern WinterCG fetch(fileUri).blob() (handles http, https, and many local URIs in Expo)
     try {
       const response = await fetch(fileUri);
