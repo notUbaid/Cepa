@@ -162,7 +162,10 @@ export class ApiClient {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/samples`;
 
-    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
+    let rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
+    if (fileUri.startsWith('data:') || rawFilename.length > 50) {
+      rawFilename = `sample_${Date.now()}.jpg`;
+    }
     const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
@@ -216,7 +219,10 @@ export class ApiClient {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/video`;
 
-    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sweep.mp4';
+    let rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sweep.mp4';
+    if (fileUri.startsWith('data:') || rawFilename.length > 50) {
+      rawFilename = `sweep_${Date.now()}.mp4`;
+    }
     const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.mp4`;
     const match = /\.(\w+)$/.exec(filename);
     const ext = match ? match[1].toLowerCase() : 'mp4';
