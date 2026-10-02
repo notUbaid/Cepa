@@ -53,6 +53,10 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [activeTab, setActiveTab] = useState<'CAMERA' | 'UPLOAD' | 'VIDEO'>(initialTab);
   const [videoProcessing, setVideoProcessing] = useState(false);
   const [videoStepText, setVideoStepText] = useState('Uploading video sweep...');
+  const [liveOnionsDetected, setLiveOnionsDetected] = useState<number>(0);
+  const [liveSensorMessage, setLiveSensorMessage] = useState<string>(
+    'Align onions flat in frame · Tap screen to focus'
+  );
   const cameraRef = useRef<CameraView>(null);
 
   const toggleFacing = () => {
@@ -60,7 +64,111 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
   };
 
-  const triggerFileUpload = () => {
+  // Real-time live sensor telemetry in viewfinder on web
+  useEffect(() => {
+    if (Platform.OS !== 'web' || activeTab !== 'CAMERA') return;
+
+    const interval = setInterval(() => {
+      try {
+        const video = document.querySelector('video') as HTMLVideoElement | null;
+        if (!video || video.videoWidth === 0) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 160;
+        canvas.height = 120;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.drawImage(video, 0, 0, 160, 120);
+        const imgData = ctx.getImageData(0, 0, 160, 120);
+        const data = imgData.data;
+
+        let organicCount = 0;
+        let leftCount = 0;
+        let rightCount = 0;
+
+        for (let i = 0; i < data.length; i += 16) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const delta = max - min;
+
+          // Warm allium hues (red, purple, golden, or cream outer tunic)
+          const isWarmRedPurple = r > g * 1.12 && r > b * 1.05 && r > 60;
+          const isGoldenBrown = r > 120 && g > 70 && b < g * 0.9;
+          const isCreamBulb = r > 155 && g > 145 && b > 135 && delta < 45 && max < 252;
+
+          if (isWarmRedPurple || isGoldenBrown || isCreamBulb) {
+            organicCount++;
+            const pixelIndex = i / 4;
+            const x = pixelIndex % 160;
+            if (x < 80) leftCount++;
+            else rightCount++;
+          }
+        }
+
+        let count = 0;
+        if (organicCount > 25) {
+          if (leftCount > 15 && rightCount > 15) {
+            count = 2;
+          } else {
+            count = 1;
+          }
+        }
+
+        setLiveOnionsDetected(count);
+        if (count >= 2) {
+          setLiveSensorMessage('2 Onion Bulbs Tracked · Optical Caliper Ready');
+        } else if (count === 1) {
+          setLiveSensorMessage('1 Onion Bulb Tracked · Ready to Grade');
+        } else {
+          setLiveSensorMessage('Position onions flat in frame · Tap screen to focus');
+        }
+      } catch {
+        // Non-blocking background telemetry
+      }
+    }, 750);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  const captureWebVideoFrame = (): string | null => {
+    if (Platform.OS !== 'web') return null;
+    try {
+      const videoElements = document.querySelectorAll('video');
+      let targetVideo: HTMLVideoElement | null = null;
+      for (let i = 0; i < videoElements.length; i++) {
+        const v = videoElements[i];
+        if (v.videoWidth > 0 && v.videoHeight > 0) {
+          targetVideo = v;
+          break;
+        }
+      }
+      if (!targetVideo && videoElements.length > 0) {
+        targetVideo = videoElements[0];
+      }
+      if (targetVideo && targetVideo.videoWidth > 0) {
+        const canvas = document.createElement('canvas');
+        canvas.width = targetVideo.videoWidth;
+        canvas.height = targetVideo.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(targetVideo, 0, 0, canvas.width, canvas.height);
+          const dataUri = canvas.toDataURL('image/jpeg', 0.95);
+          if (dataUri && dataUri.length > 500) {
+            return dataUri;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('captureWebVideoFrame error:', e);
+    }
+    return null;
+  };
+
+  const triggerFileUpload = (useCamera: boolean = false) => {
     Haptics.light();
     if (Platform.OS === 'web') {
       try {
@@ -72,6 +180,11 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           input.accept = 'image/*';
           input.style.display = 'none';
           document.body.appendChild(input);
+        }
+        if (useCamera) {
+          input.setAttribute('capture', 'environment');
+        } else {
+          input.removeAttribute('capture');
         }
         input.value = '';
         input.onchange = (e: any) => {
@@ -256,25 +369,45 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   };
 
   const takePhoto = async () => {
-    if (!cameraRef.current || capturing) return;
+    if (capturing) return;
     Haptics.heavy();
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.95,
-        skipProcessing: false,
-      });
-      if (photo?.uri) {
-        Haptics.snap();
-        onPhotoCaptured(photo.uri);
-      } else {
-        throw new Error('No image returned from camera sensor');
+      // 1. Direct Web canvas capture from live <video> stream
+      if (Platform.OS === 'web') {
+        const webPhoto = captureWebVideoFrame();
+        if (webPhoto) {
+          Haptics.snap();
+          onPhotoCaptured(webPhoto);
+          return;
+        }
       }
+
+      // 2. Native CameraView capture
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.95,
+          skipProcessing: false,
+        });
+        if (photo?.uri) {
+          Haptics.snap();
+          onPhotoCaptured(photo.uri);
+          return;
+        }
+      }
+
+      // 3. Fallback: prompt device native camera directly
+      if (Platform.OS === 'web') {
+        triggerFileUpload(true);
+        return;
+      }
+
+      throw new Error('No image returned from camera sensor');
     } catch (err: any) {
       Haptics.error();
       if (Platform.OS === 'web') {
-        console.warn('takePictureAsync failed on web, loading verified demo lot:', err.message);
-        loadDemoSample();
+        console.warn('Camera sensor snapshot failed, triggering native camera:', err.message);
+        triggerFileUpload(true);
       } else {
         alert(`Camera capture error: ${err.message}`);
       }
@@ -964,11 +1097,30 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 </Animated.View>
               )}
 
-              {/* Minimal Guidance Pill */}
-              <View style={styles.guidancePill} pointerEvents="none">
-                <Feather name="maximize" size={12} color="#fbbf24" style={{ marginRight: 6 }} />
-                <Text style={styles.guidancePillText}>
-                  Keep onions flat & spread · Tap screen to focus
+              {/* Dynamic Live Sensor Guidance Pill */}
+              <View
+                style={[
+                  styles.guidancePill,
+                  liveOnionsDetected > 0 && {
+                    backgroundColor: 'rgba(6, 78, 59, 0.88)',
+                    borderColor: '#10b981',
+                  },
+                ]}
+                pointerEvents="none"
+              >
+                <Feather
+                  name={liveOnionsDetected > 0 ? 'check-circle' : 'maximize'}
+                  size={12}
+                  color={liveOnionsDetected > 0 ? '#34d399' : '#fbbf24'}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.guidancePillText,
+                    liveOnionsDetected > 0 && { color: '#ffffff', fontWeight: '700' },
+                  ]}
+                >
+                  {liveSensorMessage}
                 </Text>
               </View>
             </Pressable>

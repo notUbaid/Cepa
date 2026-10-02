@@ -114,29 +114,41 @@ export class ApiClient {
     const url = `${baseUrl}/api/v1/inspections/${inspectionId}/samples`;
 
     const formData = new FormData();
-    const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
-    const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+    let uploadBlob: Blob | null = null;
+    let filename = 'sample.jpg';
+    let type = 'image/jpeg';
+
+    if (fileUri.startsWith('data:')) {
+      const matchType = fileUri.match(/^data:([^;]+);base64,(.+)$/);
+      if (matchType) {
+        type = matchType[1] || 'image/jpeg';
+        const ext = type.includes('png') ? 'png' : 'jpg';
+        filename = `capture_${Date.now()}.${ext}`;
+        const byteCharacters = atob(matchType[2]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        uploadBlob = new Blob([byteArray], { type });
+      }
+    } else {
+      const rawFilename = fileUri.split('/').pop()?.split('?')[0] || 'sample.jpg';
+      filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+    }
 
     if (Platform.OS === 'web') {
-      try {
-        const fileRes = await fetch(fileUri);
-        const blob = await fileRes.blob();
-        formData.append('file', blob, filename);
-      } catch (blobErr) {
-        console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
-        const base64Match = fileUri.match(/^data:([^;]+);base64,(.+)$/);
-        if (base64Match) {
-          const byteCharacters = atob(base64Match[2]);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: base64Match[1] });
+      if (uploadBlob) {
+        formData.append('file', uploadBlob, filename);
+      } else {
+        try {
+          const fileRes = await fetch(fileUri);
+          const blob = await fileRes.blob();
           formData.append('file', blob, filename);
-        } else {
+        } catch (blobErr) {
+          console.warn('Direct blob fetch failed, checking base64 fallback:', blobErr);
           formData.append('file', fileUri);
         }
       }

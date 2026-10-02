@@ -155,10 +155,12 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
       let cleanMsg = 'Verification could not be completed.';
       if (err.message) {
         const raw = String(err.message);
-        if (raw.includes('Upload failed') || raw.includes('422') || raw.includes('Expected UploadFile')) {
-          cleanMsg = 'Image file could not be read or uploaded. Please try capturing or selecting another photo.';
+        if (raw.includes('Sample processing failed:')) {
+          cleanMsg = raw.split('Sample processing failed:')[1].trim();
+        } else if (raw.includes('Expected UploadFile')) {
+          cleanMsg = 'Image file could not be read. Please try capturing or selecting another photo.';
         } else if (raw.includes('Network') || raw.includes('Failed to fetch') || raw.includes('connect')) {
-          cleanMsg = 'Cannot reach the Mandi verification service. Ensure the local server is running on port 8000.';
+          cleanMsg = 'Cannot reach the Mandi verification service. Please check your network connection.';
         } else {
           cleanMsg = raw.replace(/\{.*\}/g, '').trim() || cleanMsg;
         }
