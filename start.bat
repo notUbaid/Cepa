@@ -29,7 +29,9 @@ if %errorlevel% neq 0 (
 :: Check for virtualenv
 set "PY_CMD=python"
 set "ACTIVATE_SCRIPT="
-if exist "venv\Scripts\activate.bat" (
+if exist "%USERPROFILE%\miniconda3\envs\cepa-ml\python.exe" (
+    set "ACTIVATE_SCRIPT=call "%USERPROFILE%\miniconda3\condabin\conda.bat" activate cepa-ml 2>nul || call conda activate cepa-ml"
+) else if exist "venv\Scripts\activate.bat" (
     set "ACTIVATE_SCRIPT=%~dp0venv\Scripts\activate.bat"
 ) else if exist ".venv\Scripts\activate.bat" (
     set "ACTIVATE_SCRIPT=%~dp0.venv\Scripts\activate.bat"
@@ -47,9 +49,19 @@ if not exist "%~dp0mobile\node_modules" (
     echo.
 )
 
-:: Configure default ports
-set "FRONTEND_PORT=4173"
+:: Configure default ports (Avoid port 4173 which is in use by another project)
+set "FRONTEND_PORT=3000"
 set "BACKEND_PORT=8000"
+
+:: Detect if frontend port 3000 is already in use
+netstat -ano | findstr :3000 | findstr LISTENING >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [WARNING] Port 3000 is currently occupied.
+    echo [*] Automatically routing CEPA Frontend to Port 3001.
+    set "FRONTEND_PORT=3001"
+) else (
+    set "FRONTEND_PORT=3000"
+)
 
 :: Detect if port 8000 is already in use
 netstat -ano | findstr :8000 | findstr LISTENING >nul 2>nul
@@ -67,8 +79,8 @@ echo   - Frontend (Web):   http://localhost:!FRONTEND_PORT!
 echo.
 echo Select launch mode:
 echo.
-echo   [1] Full Stack -- Backend + Frontend Web (Port 4173) [DEFAULT]
-echo   [2] Full Stack (Production Build) -- Backend + Static Web (Port 4173)
+echo   [1] Full Stack -- Backend + Frontend Web (Port !FRONTEND_PORT!) [DEFAULT]
+echo   [2] Full Stack (Production Build) -- Backend + Static Web (Port !FRONTEND_PORT!)
 echo   [3] Backend Only -- FastAPI Server (http://localhost:!BACKEND_PORT!)
 echo   [4] Frontend Only -- Expo Web Server (http://localhost:!FRONTEND_PORT!)
 echo   [5] Open Mandi Web Studio in Browser (http://localhost:!BACKEND_PORT!/inspector)
@@ -138,7 +150,7 @@ if not exist "%~dp0mobile\dist\index.html" (
 )
 
 echo [*] Serving static web client on http://localhost:!FRONTEND_PORT!...
-start "CEPA Static Web [Port !FRONTEND_PORT!]" cmd /k "python -m http.server !FRONTEND_PORT! --directory "%~dp0mobile\dist""
+start "CEPA Static Web [Port !FRONTEND_PORT!]" cmd /k "python "%~dp0mobile\serve_spa.py" !FRONTEND_PORT!"
 
 echo [*] Waiting for services to initialize...
 timeout /t 4 /nobreak >nul 2>nul || ping 127.0.0.1 -n 5 >nul

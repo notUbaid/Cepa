@@ -1,12 +1,12 @@
 @echo off
 setlocal EnableDelayedExpansion
-title "CEPA Quick Launch -- http://localhost:4173"
+title "CEPA Quick Launch -- http://localhost:3000"
 
 :: Ensure script runs from project root
 cd /d "%~dp0"
 
 echo ===============================================================================
-echo     CEPA Quick Launch -- Full Stack (Backend + Frontend Web on Port 4173)
+echo     CEPA Quick Launch -- Full Stack (Backend + Frontend Web)
 echo ===============================================================================
 echo.
 
@@ -27,7 +27,7 @@ if %errorlevel% neq 0 (
 :: Check for virtualenv or conda
 set "ACTIVATE_SCRIPT="
 if exist "%USERPROFILE%\miniconda3\envs\cepa-ml\python.exe" (
-    set "ACTIVATE_SCRIPT=call conda activate cepa-ml"
+    set "ACTIVATE_SCRIPT=call "%USERPROFILE%\miniconda3\condabin\conda.bat" activate cepa-ml 2>nul || call conda activate cepa-ml"
 ) else if exist "venv\Scripts\activate.bat" (
     set "ACTIVATE_SCRIPT=call "%~dp0venv\Scripts\activate.bat""
 ) else if exist ".venv\Scripts\activate.bat" (
@@ -46,9 +46,19 @@ if not exist "%~dp0mobile\node_modules" (
     echo.
 )
 
-:: Ports
-set "FRONTEND_PORT=4173"
+:: Ports (Avoid port 4173 which is in use by another project)
+set "FRONTEND_PORT=3000"
 set "BACKEND_PORT=8000"
+
+:: Check if frontend port 3000 is occupied
+netstat -ano | findstr :3000 | findstr LISTENING >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [WARNING] Port 3000 is currently occupied.
+    echo [*] Automatically routing CEPA Frontend to Port 3001.
+    set "FRONTEND_PORT=3001"
+) else (
+    set "FRONTEND_PORT=3000"
+)
 
 :: Check if port 8000 is occupied
 netstat -ano | findstr :8000 | findstr LISTENING >nul 2>nul

@@ -10,11 +10,14 @@ import cv2
 logger = logging.getLogger(__name__)
 
 class RAMService:
-    def __init__(self, model_type="swin_large", image_size=384, checkpoints_dir="ml/models/ram"):
+    def __init__(self, model_type="swin_large", image_size=384, checkpoints_dir=None):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.image_size = image_size
         self.model_type = model_type
-        self.checkpoints_dir = Path(checkpoints_dir)
+        if checkpoints_dir is None:
+            self.checkpoints_dir = Path(__file__).resolve().parent / "models" / "ram"
+        else:
+            self.checkpoints_dir = Path(checkpoints_dir)
         self.checkpoints_dir.mkdir(parents=True, exist_ok=True)
         self.checkpoint_path = self.checkpoints_dir / "ram_swin_large_14m.pth"
         self.model = None
