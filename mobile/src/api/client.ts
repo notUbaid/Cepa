@@ -10,37 +10,75 @@ import {
 } from '../types';
 
 export class ApiClient {
-  private static async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private static async request<T>(
+    endpoint: string,
+    options?: RequestInit & { timeoutMs?: number; retryCount?: number }
+  ): Promise<T> {
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}${endpoint}`;
     const officerToken = getOfficerToken();
+    const isHeavyEndpoint = endpoint.includes('/samples') || endpoint.includes('/video');
+    const timeoutMs = options?.timeoutMs ?? (isHeavyEndpoint ? 60000 : 15000);
+    const maxRetries = options?.retryCount ?? (options?.method && options.method !== 'GET' ? 0 : 1);
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          Accept: 'application/json',
-          ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
-          ...options?.headers,
-        },
-      });
+    let lastError: any = null;
 
-      if (!response.ok) {
-        let errorDetail = response.statusText;
-        try {
-          const errJson = await response.json();
-          errorDetail = errJson.detail || JSON.stringify(errJson);
-        } catch {
-          // Keep response.statusText
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: options?.signal || controller.signal,
+          headers: {
+            Accept: 'application/json',
+            ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
+            ...options?.headers,
+          },
+        });
+
+        clearTimeout(timer);
+
+        if (!response.ok) {
+          let errorDetail = response.statusText;
+          try {
+            const errJson = await response.json();
+            errorDetail = errJson.detail || JSON.stringify(errJson);
+          } catch {
+            // Keep response.statusText
+          }
+          throw new Error(`HTTP ${response.status}: ${errorDetail}`);
         }
-        throw new Error(`HTTP ${response.status}: ${errorDetail}`);
-      }
 
-      return (await response.json()) as T;
-    } catch (err: any) {
-      console.warn(`[ApiClient] Request to ${url} failed:`, err.message);
-      throw err;
+        return (await response.json()) as T;
+      } catch (err: any) {
+        clearTimeout(timer);
+        lastError = err;
+        const isAbort = err.name === 'AbortError' || err.message?.includes('aborted');
+        const isNetwork = isAbort || err.message?.includes('Network request failed');
+
+        if (attempt < maxRetries && isNetwork) {
+          console.warn(
+            `[ApiClient] Request to ${url} failed or timed out (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in 1.5s...`
+          );
+          await new Promise((res) => setTimeout(res, 1500));
+          continue;
+        }
+
+        if (isAbort) {
+          throw new Error(
+            `Request to ${endpoint} timed out after ${Math.round(
+              timeoutMs / 1000
+            )}s. The backend server may be waking up from cold-start. Please try again.`
+          );
+        }
+        console.warn(`[ApiClient] Request to ${url} failed:`, err.message);
+        throw err;
+      }
     }
+
+    throw lastError;
   }
 
   public static resolveMediaUrl(url: string | null | undefined): string | undefined {

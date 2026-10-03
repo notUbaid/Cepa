@@ -72,24 +72,28 @@ def create_all_tables() -> None:
     import models  # noqa: F401 — side-effect import registers models
     Base.metadata.create_all(bind=engine)
 
+    import logging
+    logger = logging.getLogger(__name__)
+
     # Lightweight SQLite auto-migration for newly added columns
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        try:
-            res = conn.execute(text("PRAGMA table_info(samples)")).fetchall()
-            existing_cols = {row[1] for row in res}
-            if "is_estimated_scale" not in existing_cols:
-                conn.execute(text("ALTER TABLE samples ADD COLUMN is_estimated_scale BOOLEAN DEFAULT 0"))
-            if "calibration_method" not in existing_cols:
-                conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
+    if is_sqlite:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            try:
+                res = conn.execute(text("PRAGMA table_info(samples)")).fetchall()
+                existing_cols = {row[1] for row in res}
+                if "is_estimated_scale" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN is_estimated_scale BOOLEAN DEFAULT 0"))
+                if "calibration_method" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
 
-            res_insp = conn.execute(text("PRAGMA table_info(inspections)")).fetchall()
-            existing_insp_cols = {row[1] for row in res_insp}
-            if "farmer_id" not in existing_insp_cols:
-                conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_id VARCHAR(50)"))
-            if "farmer_name" not in existing_insp_cols:
-                conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_name VARCHAR(150)"))
+                res_insp = conn.execute(text("PRAGMA table_info(inspections)")).fetchall()
+                existing_insp_cols = {row[1] for row in res_insp}
+                if "farmer_id" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_id VARCHAR(50)"))
+                if "farmer_name" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_name VARCHAR(150)"))
 
-            conn.commit()
-        except Exception:
-            pass
+                conn.commit()
+            except Exception as e:
+                logger.warning("SQLite auto-migration warning: %s", e)

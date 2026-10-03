@@ -1,7 +1,7 @@
 """
 Groq Generative AI Agronomist Service
 
-Harnesses Groq's high-speed multimodal Vision LLMs (qwen/qwen3.8-27b)
+Harnesses Groq's high-speed multimodal Vision and Text LLMs (llama-3.2-11b-vision-preview and llama-3.3-70b-versatile)
 to deliver human-understandable, expert post-harvest onion quality appraisals,
 pathology identification (Aspergillus niger, neck rot, sprouting),
 and interactive agronomic advice for farmers and APMC mandi officers.
@@ -23,7 +23,8 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 GROQ_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_VISION_MODEL = getattr(settings, "groq_vision_model", "qwen/qwen3.8-27b")
+GROQ_VISION_MODEL = getattr(settings, "groq_vision_model", "llama-3.2-11b-vision-preview")
+GROQ_TEXT_MODEL = "llama-3.3-70b-versatile"
 
 
 def _get_groq_api_key() -> str:
@@ -151,21 +152,28 @@ def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
             "Give direct, helpful advice on shelf-life, rot prevention, fair mandi prices, and grading."
         )
 
+        avg_diam = context.get("avg_diameter_mm")
+        avg_diam_str = f"{avg_diam} mm" if avg_diam is not None else "Not measured"
+        net_rate_val = context.get("net_rate_inr")
+        net_rate_str = f"₹{net_rate_val} / quintal" if net_rate_val is not None else "Pending assessment"
+        storage_val = context.get("storage_days")
+        storage_str = f"{storage_val} days" if storage_val is not None else "Pending appraisal"
+
         user_content = (
             f"Here is the data about this onion lot:\n"
             f"- Total Bulbs Checked: {context.get('total_bulbs', 0)}\n"
             f"- Grade A (Top Quality): {context.get('grade_a_count', 0)}\n"
             f"- URS (Usable/Minor defects): {context.get('urs_count', 0)}\n"
             f"- Rejected (Rotten/Sprouted): {context.get('rejected_count', 0)}\n"
-            f"- Mean Caliber Diameter: {context.get('avg_diameter_mm', '52.0')} mm\n"
-            f"- Estimated Payout Rate: ₹{context.get('net_rate_inr', '2410')} / quintal\n"
-            f"- Expected Storage Horizon: {context.get('storage_days', '90')} days\n\n"
+            f"- Mean Caliber Diameter: {avg_diam_str}\n"
+            f"- Estimated Payout Rate: {net_rate_str}\n"
+            f"- Expected Storage Horizon: {storage_str}\n\n"
             f"User Question: {question}\n\n"
             f"Please give a clear, direct, and actionable answer in 2-3 friendly paragraphs."
         )
 
         payload = {
-            "model": GROQ_VISION_MODEL,
+            "model": GROQ_TEXT_MODEL,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
@@ -179,8 +187,44 @@ def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
 
     except Exception as e:
         logger.warning("Groq AI Agronomist chat fallback: %s", e)
-        return (
-            "Based on the lot's assessment, your onions are in good condition. "
-            "For optimal storage, keep them in plastic crates or bamboo racks with bottom aeration, "
-            "away from moisture. Rotten and sprouted bulbs should be culled immediately to protect healthy stock."
-        )
+        total = context.get("total_bulbs", 0)
+        grade_a = context.get("grade_a_count", 0)
+        rejected = context.get("rejected_count", 0)
+        storage_days = context.get("storage_days")
+        net_rate = context.get("net_rate_inr")
+
+        storage_clause = f"for prolonged buffer storage ({storage_days} days)" if storage_days else "for prolonged buffer storage"
+        storage_hold = f"for up to {storage_days} days" if storage_days else "for seasonal holding"
+        storage_strat = f"for up to {storage_days} days" if storage_days else "for strategic buffer storage"
+        payout_clause = f"at the adjusted procurement rate of approximately ₹{net_rate}/quintal" if net_rate else "at the adjusted APMC procurement rate"
+        payout_clean = f"at ₹{net_rate}/quintal" if net_rate else "at benchmark APMC rates"
+        payout_fair = f"₹{net_rate}/quintal" if net_rate else "assessed APMC realization"
+
+        if total == 0:
+            return (
+                "Agronomic Advisory: No inspection measurements or bulb instances are currently recorded for this lot. "
+                "Please capture and process a top-down produce sample spread to generate objective quality metrics, "
+                "caliper diameters, and shelf-life forecasts."
+            )
+        elif rejected > 0 and (rejected / total) > 0.15:
+            return (
+                f"Agronomic Advisory: High rot/defect concentration detected ({rejected} of {total} bulbs rejected). "
+                f"This lot is NOT recommended {storage_clause}. "
+                "Immediate segregation and culling is strongly advised to prevent soft rot or black mold "
+                "from contaminating adjacent stock. We recommend routing this lot for immediate auction "
+                f"{payout_clause}."
+            )
+        elif rejected > 0:
+            return (
+                f"Agronomic Advisory: Fair quality lot with {grade_a} Grade A bulbs out of {total} sampled. "
+                f"However, {rejected} rejected/decayed bulb(s) must be culled manually prior to storage. "
+                f"With thorough culling and well-ventilated crate storage (25–30°C, RH 65–70%), this lot can be safely held "
+                f"{storage_hold}. Net estimated realization: {payout_fair}."
+            )
+        else:
+            return (
+                f"Agronomic Advisory: Excellent quality lot with zero critical defects across {total} inspected bulbs ({grade_a} Grade A). "
+                f"Tunics are sound and suitable for strategic buffer storage {storage_strat}. "
+                "Store on raised slatted bamboo racks or aerated plastic crates with bottom airflow to prevent moisture accumulation. "
+                f"Approved for full MSP/benchmark payout {payout_clean}."
+            )

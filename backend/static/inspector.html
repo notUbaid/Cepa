@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CEPA -- SIH26031 Mandi Inspection Studio — Autonomous Post-Harvest Produce Quality Inspection & Mandi Assaying Platform</title>
   
   <!-- Preconnect & Fonts -->
@@ -1519,7 +1519,7 @@
         </div>
         <div class="telemetry-pipeline-pill" id="pipeline-status-badge">
           <span class="status-pulse-dot" id="header-status-dot"></span>
-          <span id="header-status-text">YOLO11-Seg · MobileNetV3 · Acoustic FFT</span>
+          <span id="header-status-text">Connecting to CV Pipeline...</span>
         </div>
       </div>
 
@@ -1624,7 +1624,7 @@
         </div>
 
         <!-- Interactive Bulb Detail Card -->
-        <div class="bulb-detail-card" id="bulb-detail-card" class="instance-drawer">
+        <div class="bulb-detail-card instance-drawer" id="bulb-detail-card">
           <div class="bulb-detail-head">
             <span class="bulb-title">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
@@ -1860,11 +1860,11 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="inp-farmer-name">Farmer Name & AgriStack FID</label>
-          <input type="text" class="form-input" id="inp-farmer-name" placeholder="e.g. Kisan Ramesh Shinde (FID: 9876-5432-1098)" />
+          <input type="text" class="form-input" id="inp-farmer-name" placeholder="Farmer / Consignor Name or AgriStack ID (Optional)" />
         </div>
         <div class="form-group">
           <label class="form-label" for="inp-officer">Assaying Officer Name</label>
-          <input type="text" class="form-input" id="inp-officer" placeholder="e.g. Inspector Patil (NAFED Grader)" />
+          <input type="text" class="form-input" id="inp-officer" placeholder="Assaying Officer Name (Optional)" />
         </div>
         <div class="form-group">
           <label class="form-label">Attach Produce Calibration Photo</label>
@@ -1956,9 +1956,11 @@
     // ── HEALTH & TELEMETRY ──
     async function verifyBackendHealth() {
       try {
+        const t0 = performance.now();
         const res = await fetch(`${BASE}/api/v1/health/cv`);
         if (!res.ok) throw new Error('Health check returned non-200');
         const data = await res.json();
+        const roundTripMs = Math.round(performance.now() - t0);
         
         const dot = document.getElementById('header-status-dot');
         const txt = document.getElementById('header-status-text');
@@ -1966,12 +1968,18 @@
         if (data.status === 'ok') {
           dot.style.background = 'var(--color-emerald-500)';
           dot.style.boxShadow = '0 0 8px var(--color-emerald-500)';
-          txt.textContent = `${data.seg_provider || 'YOLO11-Seg'} · MobileNetV3 · Latency: 28ms`;
+          const defModel = data.defect_is_mock ? 'Mock Defect' : (data.defect_classifier || 'MobileNetV3');
+          txt.textContent = `${data.seg_provider || 'YOLO11-Seg'} · ${defModel} · Ping: ${roundTripMs}ms`;
+        } else {
+          dot.style.background = 'var(--color-amber-500)';
+          dot.style.boxShadow = 'none';
+          txt.textContent = `Degraded (${data.seg_provider || 'CV Offline'}) · Ping: ${roundTripMs}ms`;
         }
       } catch (err) {
         const dot = document.getElementById('header-status-dot');
         const txt = document.getElementById('header-status-text');
         dot.style.background = 'var(--color-amber-500)';
+        dot.style.boxShadow = 'none';
         txt.textContent = 'Service Standby';
       }
     }
@@ -2632,8 +2640,8 @@
           body: JSON.stringify({
             lot_id: lotId,
             procurement_centre: centre,
-            farmer_name: farmer || 'Kisan Ramesh Shinde',
-            officer_name: officer || 'Inspector Patil',
+            farmer_name: farmer ? farmer.trim() : null,
+            officer_name: officer ? officer.trim() : null,
             notes: 'Intake session initiated via Cepa Web Studio',
           }),
         });

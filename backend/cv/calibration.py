@@ -178,31 +178,35 @@ def compute_calibration(
     x_min, y_min = mapped.min(axis=0)
     x_max, y_max = mapped.max(axis=0)
 
-    # Output dimensions: limit to a reasonable size (8000px max) to avoid memory issues
-    out_w = min(8000, int(x_max - x_min))
-    out_h = min(8000, int(y_max - y_min))
+    extent_w_mm = float(x_max - x_min)
+    extent_h_mm = float(y_max - y_min)
 
-    # Shift homography to account for the min offset
-    T = np.array([[1, 0, -x_min], [0, 1, -y_min], [0, 0, 1]], dtype=np.float64)
+    # Output dimensions: maintain sensor optical density rather than downsampling to 1 px/mm.
+    # Standard phone captures (1080p-4K) have 2-8 px/mm.
+    target_scale = 1.0
+    if extent_w_mm > 0:
+        target_scale = float(w_img) / extent_w_mm
+        target_scale = max(1.0, min(8.0, target_scale))
+
+    out_w = min(8000, max(100, int(np.round(extent_w_mm * target_scale))))
+    out_h = min(8000, max(100, int(np.round(extent_h_mm * target_scale))))
+
+    actual_scale_x = out_w / max(extent_w_mm, 1e-6)
+    actual_scale_y = out_h / max(extent_h_mm, 1e-6)
+
+    # Shift and scale homography so rectified image aligns to [0, out_w] x [0, out_h]
+    T = np.array([
+        [actual_scale_x, 0.0, -x_min * actual_scale_x],
+        [0.0, actual_scale_y, -y_min * actual_scale_y],
+        [0.0, 0.0, 1.0],
+    ], dtype=np.float64)
     H_shifted = T @ H
 
     rectified = cv2.warpPerspective(image, H_shifted, (out_w, out_h))
 
-    # ── Compute mm/px scale in rectified image ─────────────────────────────────
-    # In the rectified image, 1 mm in board coordinates = some number of pixels.
-    # Map two adjacent corners through H to find their pixel separation.
-    # We use the first two detected corners for this.
-    pt1_board_mm = np.float32([[obj_pts_mm[0][0], obj_pts_mm[0][1], 1]])
-    pt2_board_mm = np.float32([[obj_pts_mm[1][0], obj_pts_mm[1][1], 1]])
-
-    # In board space, distance between corners:
-    board_dist_mm = float(np.linalg.norm(obj_pts_mm[0] - obj_pts_mm[1]))
-
-    # Map back through inverse homography to get pixel distance in rectified image
-    # Simpler: use the original image point distance scaled by H's local scale
-    # Actually: in rectified space, 1 board mm = (out_w / (x_max - x_min)) pixels
-    if (x_max - x_min) > 0:
-        px_per_mm = out_w / (x_max - x_min)
+    # In rectified space, px_per_mm is the true optical density:
+    if out_w > 0 and extent_w_mm > 0:
+        px_per_mm = actual_scale_x
         mm_per_px = 1.0 / px_per_mm
     else:
         mm_per_px = None
@@ -239,14 +243,25 @@ def compute_calibration(
         mm_per_px, out_w, out_h,
     )
 
+    # Dynamic Parallax & Standoff Uncertainty:
+    # An onion's equator sits ~20-35mm above the planar board surface.
+    # At close handheld distances (25-35cm, mm_per_px < 0.20), perspective parallax
+    # magnifies the equatorial silhouette by ~7-10% (Δ ~ 3.5-4.5mm).
+    # At calibrated tripod standoff (50-70cm, 0.20 <= mm_per_px <= 0.60), parallax is ~3-4% (Δ ~ 2.0mm).
+    # At wide packhouse overhead mount (> 70cm, mm_per_px > 0.60), parallax is ~2-3% (Δ ~ 1.5mm).
+    if mm_per_px is not None and mm_per_px < 0.20:
+        parallax_uncertainty_mm = 3.5
+    elif mm_per_px is not None and mm_per_px <= 0.60:
+        parallax_uncertainty_mm = 2.0
+    else:
+        parallax_uncertainty_mm = 1.5
+
     return CalibrationResult(
         rectified_image=rectified,
         scale_mm_per_px=mm_per_px,
         perspective_valid=True,
         is_estimated=False,
         calibration_method="CHARUCO_BOARD",
-        # ~2mm accounts for board-plane parallax: onion equators sit 20-40mm
-        # above the flat board, introducing ~1.5-2.5mm scale error at 65cm height.
-        uncertainty_mm=2.0,
+        uncertainty_mm=parallax_uncertainty_mm,
         measured_square_px=px_per_mm * (settings.charuco_square_length_mm),
     )

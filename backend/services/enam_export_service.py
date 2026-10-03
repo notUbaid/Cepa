@@ -1,28 +1,23 @@
 """
-eNAM & AgriStack Assaying Export Service
-=========================================
+eNAM & AgriStack Assaying Export Service (Illustrative Prototype Schema)
+========================================================================
 Digital Public Infrastructure (DPI) integration for agricultural procurement.
 
-Generates official assaying certificates for the National Agriculture Market (eNAM)
-and links them to the Government of India's AgriStack 12-digit Indian Farmer ID.
+Generates illustrative assaying payloads modeled after the National Agriculture
+Market (eNAM) assaying parameter format and Indian AgriStack Farmer ID metadata.
 
-Regulatory & Academic Citations:
---------------------------------
-1. [eNAM-2024] Ministry of Agriculture & Farmers Welfare, Government of India.
-   "National Agriculture Market (eNAM) -- Standard Operating Procedure for Assaying
-   and Quality Testing of Agricultural Commodities." DMI/eNAM Portal Spec v2.1, 2024.
-   Commodity Code: AGMARK-19-ONION (Allium cepa L.).
-2. [AgriStack-2024] Department of Agriculture & Farmers Welfare (DA&FW), GoI.
-   "AgriStack Architecture and Farmer Registry Standards." Digital Public Infrastructure, 2024.
-   Standardizes 12-digit unique Farmer ID (FID) with land parcel registry (Khasra).
-3. [AGMARK-2004] Directorate of Marketing & Inspection, Ministry of Agriculture.
-   "Fruits and Vegetables Grading and Marking Rules 2004 (Schedule XIX -- Onion)."
-   Defines size grades (Goli, Madhyam, Super, Jumbo) and defect tolerances.
+Regulatory & Practical References:
+----------------------------------
+1. eNAM SOP Guidelines: Modeled after DMI/eNAM portal assaying parameters for
+   Allium cepa L. (Nashik Red / Bellary Red onion varieties).
+2. AgriStack Farmer ID: Accommodates state and central digital farmer registry
+   identifiers (state-issued alphanumeric or central numeric IDs).
+3. APMC Commercial Mandi Practice: Sizing bands (Goli, Madhyam, Super, Jumbo)
+   and standard commercial dockage deductions.
 
-Enables seamless settlement:
-- Direct electronic bidding on eNAM trading portal.
-- Auto-crediting of Minimum Support Price (MSP) or Price Stabilization Fund (PSF) payouts
-  to the farmer's DBT Aadhaar-linked account based on digital certificate quality grade.
+Note: This service implements an illustrative eNAM-style data exchange schema.
+Production deployment requires binding to official State APMC and AgriStack API
+gateways upon gazette accreditation.
 """
 from __future__ import annotations
 

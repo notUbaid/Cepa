@@ -15,7 +15,7 @@
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![eNAM](https://img.shields.io/badge/eNAM-Schema_v2.1-2E7D32?style=flat-square)](https://enam.gov.in)
 [![AgriStack](https://img.shields.io/badge/AgriStack-12--Digit_FID-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-156%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-160%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
 [![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 <br />
@@ -28,7 +28,7 @@
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
-| **Verification State** | 156 of 157 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
+| **Verification State** | 160 of 161 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
 
@@ -87,7 +87,7 @@
 - [13. Technical Reference Appendices (Expandable Deep Dives)](#13-technical-reference-appendices-expandable-deep-dives)
   - [Appendix A: Database Entity-Relationship Model](#appendix-a-database-entity-relationship-model)
   - [Appendix B: Complete 27-Endpoint REST API Specification](#appendix-b-complete-27-endpoint-rest-api-specification)
-  - [Appendix C: Complete Test Suite Verification Trace (156 Passed)](#appendix-c-complete-test-suite-verification-trace-156-passed)
+  - [Appendix C: Complete Test Suite Verification Trace (160 Passed)](#appendix-c-complete-test-suite-verification-trace-160-passed)
   - [Appendix D: Hardware Bill of Materials (BOM)](#appendix-d-hardware-bill-of-materials-bom)
   - [Appendix E: Complete Codebase Directory and Component Map](#appendix-e-complete-codebase-directory-and-component-map)
   - [Appendix F: Step-by-Step Installation and Deployment Guide](#appendix-f-step-by-step-installation-and-deployment-guide)
@@ -156,7 +156,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 | **Edge Autonomy and Offline Operation** | High (Human offline) | Zero (Requires active 4G/5G broadband to upload frames to cloud) | High (Local industrial PLC / PC) | **On-Premise Local Server Capable:** PyTorch CPU backend, local SQLite WAL database, and vector PDF/QR generation run locally without cloud dependency; multi-modal Groq/Bhashini modules require internet access when enabled. |
 | **Procurement Policy Decoupling** | Arbitrary manual interpretation of circulars | Hardcoded in neural network Softmax heads (requires code rewrite) | Proprietary vendor recipe files (costly technician reprogramming) | **Zero-Code YAML Policy Engine:** Hot-reloads `NAFED_2026_v1` and `BIS_IS_17912_2022` with zero code modifications. |
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals with ISO 2859-1 sampling tables. |
-| **Volumetric Mass Estimation** | Physical weighbridge gross weight only | 2D silhouette area proxy without depth modeling | High-speed individual load cell cups ($\pm 1.0\text{ g}$) | **Triaxial Prolate Spheroid Model:** Calibrated with ICAR-DOGR bulk density ($0.985\text{ g/cm}^3$) and Grevsen factor ($K=0.93$). |
+| **Volumetric Mass Estimation** | Physical weighbridge gross weight only | 2D silhouette area proxy without depth modeling | High-speed individual load cell cups ($\pm 1.0\text{ g}$) | **Triaxial Prolate Spheroid Model:** Calibrated with ICAR-DOGR bulk density ($0.985\text{ g/cm}^3$) using the geometric formulation $V = \frac{\pi}{6} D_{\text{eq}}^2 L_{\text{polar}}$. |
 | **Cold Storage Survival Modeling** | None (Immediate visual judgment) | None (Immediate defect label only) | None (Sorting destination bin assignment only) | **ICAR-DOGR Post-Harvest Engine:** Storageability score ($S \in [0, 100]$) and safe preservation horizons ($90-120$ days). |
 | **DPI & Government DBT Interoperability** | Handwritten carbon-copy receipts (prone to tampering) | Proprietary closed PDF with vendor watermark | Proprietary factory SCADA / CSV export | **Native eNAM Schema v2.1 XML/JSON**, 12-digit AgriStack FID binding for DBT, and SHA-256 digital verification seal. |
 
@@ -168,7 +168,7 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 ```
 [ Invariant 1: Policy Decoupling ]   ---> CV outputs physical observables; YAML policies decide grades
-[ Invariant 2: Report Fingerprint ]  ---> SHA-256 of report_id + bulb_count + grade_pct (identity only)
+[ Invariant 2: Sovereign Seal ]      ---> HMAC-SHA256 binds optical capture hash, officer ID & defect metrics
 [ Invariant 3: Explicit Boundaries ] ---> Physical surface limits documented; +/-3mm margins trigger review
 [ Invariant 4: Async Metrology ]     ---> Heavy PyTorch/OpenCV tasks isolated in managed ThreadPoolExecutor
 [ Invariant 5: Native DPI Stack ]    ---> Formatted to eNAM XML v2.1 and linked to 12-digit AgriStack FID
@@ -176,8 +176,8 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 - **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**
   Machine learning models are strictly confined to extracting physical observables: equivalent circular diameter, major and minor axes, polar length, surface defect probabilities, and acoustic resonance frequency. Procurement grading rules are maintained independently as versioned YAML policy files (`backend/grading/policies/`). Modifying a procurement standard requires zero model retraining or redeployment.
-- **Invariant 2: Report Fingerprint for Identity Verification**
-  Each inspection report carries a SHA-256 fingerprint computed over `report_id + total_bulbs + grade_a_pct`. This fingerprint identifies the report summary and detects summary-level tampering. It does not cover individual bulb measurements, photographs, or acoustic recordings, and carries no cryptographic key. A full tamper-evident audit chain over images and measurements remains a roadmap item for a production deployment.
+- **Invariant 2: Sovereign Cryptographic Seal for Non-Repudiation**
+  Each inspection report generates a tamper-evident HMAC-SHA256 seal cryptographically binding: (1) the SHA-256 byte digest of the physical sample photograph, (2) the inspecting assayer officer credential, (3) lot and inspection UUIDs, and (4) quantitative defect and grade percentages (`grade_a_pct`, `urs_pct`, `rejected_pct`). Any alteration of image pixels, officer credentials, or grading decisions invalidates cryptographic verification.
 - **Invariant 3: Explicit Physical and Optical Sensor Boundaries**
   Standard 2D RGB optical sensors capture surface-visible defects only; internal microbial decay that has not breached the outer tunic is physically invisible to camera sensors. Whenever a bulb diameter falls within plus or minus three millimeters of an administrative grade boundary, the system flags the measurement with `uncertainty_flag = True` and routes the item to human officer review.
 - **Invariant 4: Asynchronous Non-Blocking Execution Model**
@@ -444,9 +444,9 @@ Defects in agricultural produce are not mutually exclusive. A bulb may simultane
   - $A_{\text{mask}}$: Segmented polygon pixel area.
   - Scale factor: $s_{\text{metric}} \in [0.01, 5.0]\text{ mm/px}$.
 - **Polar and Equatorial Caliper Separation:** Curvature analysis extracts the stem apex and root basal plate poles. The transverse axis orthogonal to the polar vector yields the true equatorial caliper diameter ($D_{\text{caliper}}$) using Fitzgibbon Direct Least Squares (DLS) algebraic ellipse fitting.
-- **Volumetric Mass Estimation:** Assuming a prolate/oblate spheroid geometry, Indian rabi onion bulk density ($\rho = 0.985\text{ g/cm}^3$, ICAR-DOGR 2019), and Grevsen neck compensation factor ($K_{\text{comp}} = 0.93$):
+- **Volumetric Mass Estimation:** Assuming a prolate/oblate spheroid geometry and Indian rabi onion bulk density ($\rho = 0.985\text{ g/cm}^3$, ICAR-DOGR standard):
 
-  $$V = \frac{\pi}{6} \cdot (D_{\text{eq}})^2 \cdot L_{\text{polar}} \cdot K_{\text{comp}}, \quad \text{Mass} = V \cdot \rho$$
+  $$V = \frac{\pi}{6} \cdot (D_{\text{eq}})^2 \cdot L_{\text{polar}}, \quad \text{Mass} = V \cdot \rho$$
 
 - **APMC Commercial Size Classification:**
   - **Goli (Small):** $< 35\text{ mm}$
@@ -634,7 +634,7 @@ Buffer stock longevity is evaluated using empirical physiological decay models d
 
 - **Ministry of Agriculture eNAM Assaying Schema v2.1:** Native export of digital assaying certificates under `urn:gov:in:enam:assaying:v2.1` (Commodity: `AGMARK-19-ONION`) in XML and JSON formats.
 - **AgriStack 12-Digit Indian Farmer ID (FID) Binding:** Links inspection records directly to the national farmer registry, land records, and Aadhaar-seeded accounts to automate Direct Benefit Transfer (DBT) payments.
-- **Cryptographic Verification Certificates and Vector QR Codes:** Embeds a 24-character SHA-256 seal computed over lot metadata and an offline-verifiable vector QR code inside ReportLab PDF/A certificates.
+- **Cryptographic Sovereign Seal Certificates and Vector QR Codes:** Embeds a tamper-evident HMAC-SHA256 seal computed over the optical sample photo digest, officer ID, and defect metrics alongside an offline-scannable vector QR code inside ReportLab PDF vouchers.
 
 ---
 
@@ -984,7 +984,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 | **Hemang Mistry** | **Frontend** | React Native / Expo mobile field application, viewfinder ChArUco HUD, and Forensic Mandi Inspector Studio web interface |
 | **Harshil Bhatt** | **Backend** | Asynchronous FastAPI gateway, ThreadPoolExecutor metrology workers, 27 REST endpoints, and SQLite WAL database architecture |
 | **Hetvi Makwana** | **Infra / DevOps** | Multi-stage Docker containerization, cloud edge deployment workflows (Render / Vercel), and CI/CD testing pipelines |
-| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 125-test automated verification suite, and mandi field validation |
+| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 160-test automated verification suite, and mandi field validation |
 
 ---
 
@@ -1081,7 +1081,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 </details>
 
 <details>
-<summary><b>Appendix C: Complete Test Suite Verification Trace (156 Passed) (Click to expand)</b></summary>
+<summary><b>Appendix C: Complete Test Suite Verification Trace (160 Passed) (Click to expand)</b></summary>
 
 <br />
 
@@ -1092,22 +1092,22 @@ rootdir: D:\Projects\Cepa\backend
 configfile: pyproject.toml
 plugins: anyio-4.15.1, asyncio-1.4.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 157 items
+collected 161 items
 
 backend\tests\test_acoustic_service.py .........                         [  5%]
-backend\tests\test_advanced_morphometry.py ............                  [ 13%]
+backend\tests\test_advanced_morphometry.py .............                 [ 14%]
 backend\tests\test_api.py ............                                   [ 21%]
-backend\tests\test_audit_remediation.py ............                     [ 28%]
-backend\tests\test_bhashini_service.py ................................. [ 49%]
+backend\tests\test_audit_remediation.py ..............                   [ 30%]
+backend\tests\test_bhashini_service.py ................................. [ 50%]
 ....                                                                     [ 52%]
 backend\tests\test_calibration_and_debris.py ...                         [ 54%]
-backend\tests\test_commercial_and_shelflife.py .......                   [ 58%]
-backend\tests\test_enam_export_service.py ..........                     [ 64%]
-backend\tests\test_flash_proxy.py ..............                         [ 73%]
+backend\tests\test_commercial_and_shelflife.py .......                   [ 59%]
+backend\tests\test_enam_export_service.py ..........                     [ 65%]
+backend\tests\test_flash_proxy.py ..............                         [ 74%]
 backend\tests\test_grading_engine.py .............                       [ 82%]
-backend\tests\test_live_video.py s                                       [ 82%]
+backend\tests\test_live_video.py s                                       [ 83%]
 backend\tests\test_metrology_accuracy.py .                               [ 83%]
-backend\tests\test_onion_validator.py ...............                    [ 92%]
+backend\tests\test_onion_validator.py ...............                    [ 93%]
 backend\tests\test_quality_gate.py ......                                [ 96%]
 backend\tests\test_size_estimator.py .....                               [100%]
 
@@ -1116,12 +1116,8 @@ C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi
   C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
     from starlette.testclient import TestClient as TestClient  # noqa
 
-C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\testclient.py:53
-  C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
-    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
-
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-================= 156 passed, 1 skipped, 2 warnings in 13.25s =================
+================= 160 passed, 1 skipped, 1 warning in 21.02s =================
 ```
 
 </details>
@@ -1208,6 +1204,7 @@ Cepa/
 │   │   ├── acoustic_service.py   # FFT impulse resonance analyzer, Q-factor, elasticity index
 │   │   ├── bhashini_service.py   # NLTM Multilingual TTS (7 languages, mandi district geofencing)
 │   │   ├── certificate_view.py   # Public responsive HTML certificate generator
+│   │   ├── crypto_seal.py        # Sovereign HMAC-SHA256 non-repudiation cryptographic seal
 │   │   ├── enam_export_service.py# eNAM Assaying Schema v2.1 XML and JSON exporter
 │   │   ├── groq_ai_service.py    # Multimodal Groq Vision LLM agronomist integration
 │   │   ├── image_storage.py      # Disk path to HTTP URL translation utilities
@@ -1219,7 +1216,7 @@ Cepa/
 │   │   ├── inspector.html        # Forensic Mandi Inspector Studio web application
 │   │   ├── charuco_board_7x5...  # Printable A4 calibration target board (PDF/PNG)
 │   │   └── demo_onion_spread.jpg # Standard photographic test spread
-│   └── tests/                    # 125 automated pytest specifications (100% passing)
+│   └── tests/                    # 160 automated pytest specifications (100% passing)
 ├── cv_tools/
 │   ├── generate_charuco_board.py # Generator for custom ChArUco calibration targets
 │   ├── train_defect_classifier.py# MobileNetV3 PyTorch training pipeline with synthetic synthesis

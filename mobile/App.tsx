@@ -1,18 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  LogBox,
   Platform,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   View,
 } from 'react-native';
-
-const SafeAreaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => <>{children}</>;
-
-// Suppress yellowbox/logbox warning popups in mobile dev environments (e.g. Expo Go)
-LogBox.ignoreAllLogs(true);
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ApiClient } from './src/api/client';
 import { Header } from './src/components/Header';
 import { CaptureScreen } from './src/screens/CaptureScreen';
@@ -63,10 +57,14 @@ export default function App() {
     setCurrentScreen(screen);
   };
 
-  // Poll health on startup and periodically
+  // Poll health on startup and periodically with overlap guard
   useEffect(() => {
     let active = true;
+    let isChecking = false;
+
     const checkServer = async () => {
+      if (isChecking) return;
+      isChecking = true;
       try {
         const cv = await ApiClient.checkCvHealth();
         if (!active) return;
@@ -83,11 +81,13 @@ export default function App() {
           if (!active) return;
           setServerOnline(false);
         }
+      } finally {
+        isChecking = false;
       }
     };
 
     checkServer();
-    const interval = setInterval(checkServer, 6000);
+    const interval = setInterval(checkServer, 8000);
     return () => {
       active = false;
       clearInterval(interval);

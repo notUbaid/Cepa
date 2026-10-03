@@ -99,14 +99,14 @@ async def get_demo_sample_video():
 
 
 @router.post("/demo/seed-inspection")
-async def seed_demo_inspection():
+async def seed_demo_inspection(force_reprocess: bool = False):
     """
-    Creates or retrieves a verified authentic demo inspection processed through the real
-    YOLO11 instance segmentation + Defect Classifier + NAFED grading engine pipeline.
+    Creates or retrieves a verified demo inspection.
+    When force_reprocess=True, runs the full live CV pipeline on the demo image.
     """
     from fastapi import Depends
     from database import get_db, SessionLocal
-    from models import Inspection
+    from models import Inspection, Sample
     from schemas import InspectionCreate
     from services import inspection_service
     from routers.inspections import _inspection_to_detail
@@ -114,7 +114,7 @@ async def seed_demo_inspection():
     db = SessionLocal()
     try:
         existing = db.query(Inspection).filter(Inspection.lot_id == "LOT-NASHIK-RED-DEMO").first()
-        if existing and existing.samples:
+        if existing and existing.samples and not force_reprocess:
             return _inspection_to_detail(existing, db)
 
         inspection = existing
@@ -124,14 +124,19 @@ async def seed_demo_inspection():
                 procurement_centre="Lasalgaon APMC Mandi, Nashik",
                 officer_name="Inspector Patil",
                 officer_id="MH-NSK-104",
-                notes="Verified authentic Nashik Red cultivar spread with ChArUco scale reference",
+                notes="Mandi intake demonstration: Nashik Red cultivar under autonomous overhead heuristic calibration",
             )
             inspection = inspection_service.create_inspection(db, body)
-            inspection.farmer_name = "Kisan Ramesh Shinde"
-            inspection.farmer_id = "AGRI-MH-2026-8812"
+            inspection.farmer_name = "Ramesh Patil"
+            inspection.farmer_id = "MH-NAS-2026-8842"
+            db.commit()
+        elif force_reprocess:
+            inspection.status = "IN_PROGRESS"
+            for s in list(inspection.samples):
+                db.delete(s)
             db.commit()
 
-        if _DEMO_SAMPLE_PATH.exists() and not inspection.samples:
+        if _DEMO_SAMPLE_PATH.exists() and (not inspection.samples or force_reprocess):
             with open(_DEMO_SAMPLE_PATH, "rb") as f:
                 image_bytes = f.read()
             await inspection_service.process_sample_image(

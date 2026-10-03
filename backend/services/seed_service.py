@@ -116,15 +116,47 @@ def seed_demo_data_if_empty() -> None:
             (48.0, 46.0, 75.0, "REJECTED", "SUPER", False, 0.40, 0.88, 0.05),
         ]
 
+        # Ensure storage directories and real crop/mask image files exist on disk
+        import cv2
+        import numpy as np
+
+        demo_img_path = Path(__file__).resolve().parent.parent / "static" / "demo_onion_spread.jpg"
+        source_img = cv2.imread(str(demo_img_path)) if demo_img_path.exists() else None
+
+        crops_dir = settings.storage_dir / "crops" / inspection.id / sample.id
+        masks_dir = settings.storage_dir / "masks" / inspection.id / sample.id
+        crops_dir.mkdir(parents=True, exist_ok=True)
+        masks_dir.mkdir(parents=True, exist_ok=True)
+
         for idx, (eq_d, pol_l, mass, grade, size_tier, uncert, p_dmg, p_rot, p_spr) in enumerate(calipers):
+            bx = 50 + (idx % 5) * 180
+            by = 50 + (idx // 5) * 140
+            bw = 120
+            bh = 110
+
+            crop_file = crops_dir / f"{idx:04d}.jpg"
+            mask_file = masks_dir / f"{idx:04d}.png"
+
+            if source_img is not None and by + bh <= source_img.shape[0] and bx + bw <= source_img.shape[1]:
+                crop_patch = source_img[by : by + bh, bx : bx + bw].copy()
+            else:
+                crop_patch = np.full((bh, bw, 3), (40, 30, 160), dtype=np.uint8)
+                cv2.circle(crop_patch, (bw // 2, bh // 2), 48, (60, 45, 185), -1)
+
+            mask_patch = np.zeros((bh, bw), dtype=np.uint8)
+            cv2.ellipse(mask_patch, (bw // 2, bh // 2), (bw // 2 - 8, bh // 2 - 8), 0, 0, 360, 255, -1)
+
+            cv2.imwrite(str(crop_file), crop_patch, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            cv2.imwrite(str(mask_file), mask_patch)
+
             inst = OnionInstance(
                 id=f"inst-{sample.id[:8]}-{idx:02d}",
                 sample_id=sample.id,
                 instance_index=idx,
-                bbox_x=50 + (idx % 5) * 180,
-                bbox_y=50 + (idx // 5) * 140,
-                bbox_w=120,
-                bbox_h=110,
+                bbox_x=bx,
+                bbox_y=by,
+                bbox_w=bw,
+                bbox_h=bh,
                 segmentation_conf=0.92,
                 touches_border=False,
                 crop_path=f"crops/{inspection.id}/{sample.id}/{idx:04d}.jpg",
@@ -181,7 +213,7 @@ def seed_demo_data_if_empty() -> None:
             rejected_count=1,
             defect_counts=json.dumps({"damaged": 3, "rotten": 1, "sprouted": 0}),
             ruleset_version="DEMO_ASSUMPTION_v1",
-            model_version="yolo11n-seg:mandi-onion-v1",
+            model_version="cepa-cv-pipeline:v1.0",
             share_token=DEMO_SHARE_TOKEN,
             pdf_path=f"reports/{DEMO_REPORT_ID}.pdf",
             sampling_note="Seeded demo lot: 1 sample photo (20 bulbs). Does not represent a real consignment.",

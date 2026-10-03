@@ -293,14 +293,22 @@ def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
     from PIL import Image
 
     if _imagenet_model is None:
-        _imagenet_model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
-        _imagenet_model.eval()
-        _imagenet_transforms = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        try:
+            _imagenet_model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
+            _imagenet_model.eval()
+            _imagenet_transforms = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+        except Exception as e:
+            logger.warning("MobileNetV3 ImageNet weights unavailable (offline/edge mode): %s", e)
+            _imagenet_model = False
+            return True
+
+    if _imagenet_model is False:
+        return True
 
     img_rgb = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(img_rgb)
@@ -313,9 +321,9 @@ def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
     top_prob, top_catid = torch.topk(prob, 5)
     
     # ImageNet food/produce categories: 923-965 (vegetables, fruits, food dishes),
-    # 881 (jack-o-lantern/pumpkin), 987 (corn), plus 117 (chambered nautilus, commonly
-    # triggered by concentric onion cross-sections).
-    food_classes = set(range(923, 966)) | {881, 987}
+    # 881 (jack-o-lantern/pumpkin), 987 (corn), 988 (acorn), 947 (mushroom),
+    # plus 117 (chambered nautilus, commonly triggered by concentric onion cross-sections).
+    food_classes = set(range(923, 966)) | {881, 987, 988, 947}
     
     # If any top-3 prediction is produce/food with meaningful probability, accept
     for cat_id, p in zip(top_catid[:3], top_prob[:3]):
@@ -328,9 +336,9 @@ def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
     
     top_id = int(top_catid[0].item())
     
-    # If the network is confident it is an animal (0-397) or clothing/object (400-890)
-    if top_id < 900 and top_id not in [881, 117]:
-        if top_prob[0].item() > 0.15:
+    # Only reject if the network is genuinely confident (>45%) it is an animal (0-397) or clothing/object (400-890)
+    if top_id < 900 and top_id not in [881, 117, 988, 947]:
+        if top_prob[0].item() > 0.45:
             return False
             
     return True

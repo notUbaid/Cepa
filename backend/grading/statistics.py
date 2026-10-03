@@ -50,11 +50,11 @@ class LotWeightStatistics:
 @dataclass
 class CommercialPricingAdvice:
     """NAFED / NCCF Procurement Rate & Dockage Deduction Appraisal."""
-    benchmark_mandi_rate_inr_per_qtl: float = 1800.0   # Standard MSP / Mandi base rate
+    benchmark_mandi_rate_inr_per_qtl: float = 2410.0   # Standard NAFED/MSP benchmark rate
     allowable_tolerance_pct: float = 5.0              # Permissible minor off-grade tolerance
     excess_defects_pct: float = 0.0
     dockage_rate_inr_per_qtl: float = 0.0
-    net_procurement_rate_inr_per_qtl: float = 1800.0
+    net_procurement_rate_inr_per_qtl: float = 2410.0
     payment_tier: str = "FULL_PRICE"                  # "FULL_PRICE" | "PROPORTIONAL_DOCKAGE" | "REJECT_NO_PAYOUT"
     pricing_rationale: str = ""
 
@@ -165,7 +165,7 @@ def compute_commercial_pricing(
     urs_pct: float,
     rejected_pct: float,
     critical_defect_pct: float,
-    base_rate_inr_per_qtl: float = 1800.0,
+    base_rate_inr_per_qtl: float = 2410.0,
 ) -> CommercialPricingAdvice:
     """
     Calculate Fair Average Quality (FAQ) dockage and recommended payout in INR/quintal.
@@ -198,7 +198,7 @@ def compute_commercial_pricing(
         )
 
     # Calculate dockage proportional to excess defect fraction
-    # E.g. 15% excess defects on Rs 1800 base -> dockage = 1800 * (15 / 100) * 0.75 = Rs 202.5 / qtl
+    # E.g. 15% excess defects on Rs 2410 base -> dockage = 2410 * (15 / 100) * 0.75 = Rs 271.1 / qtl
     dockage = round(base_rate_inr_per_qtl * (excess / 100.0) * 0.75, 1)
     net_payout = round(max(0.0, base_rate_inr_per_qtl - dockage), 1)
 
@@ -223,7 +223,7 @@ def evaluate_lot_statistics(
     sizes_mm: list[float] | None = None,
     weights_g: list[float] | None = None,
     urs_active: bool = True,
-    base_rate_inr: float = 1800.0,
+    base_rate_inr: float = 2410.0,
 ) -> LotQualityStatistics:
     """
     Evaluate statistical confidence, APMC sizes, biomass weight, and commercial pricing.
@@ -245,11 +245,12 @@ def evaluate_lot_statistics(
         base_rate_inr_per_qtl=base_rate_inr,
     )
 
-    # Lot recommendation logic
-    if est_critical.percentage > 5.0 or rotten_count >= 2:
+    # Lot recommendation logic: reject if critical rot/sprout rate exceeds standard 5.0%
+    # For small exploratory samples (N <= 15), 2 or more critical defects also signals high localized decay.
+    if est_critical.percentage > 5.0 or (total_bulbs <= 15 and rotten_count >= 2):
         recommendation = "REJECT_LOT"
         rationale = (
-            f"Critical rot/sprout rate ({est_critical.percentage}%) exceeds procurement threshold. "
+            f"Critical rot/sprout rate ({est_critical.percentage}%) exceeds procurement threshold (5.0%). "
             f"Lot is at high risk of rapid decay in storage."
         )
     elif total_bulbs < 15:

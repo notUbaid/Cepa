@@ -33,7 +33,7 @@ function resolveDefaultApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
-      return 'http://localhost:8001';
+      return 'http://localhost:8000';
     }
   }
 
@@ -41,7 +41,7 @@ function resolveDefaultApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const saved = window.localStorage.getItem('cepa_api_base_url');
-      if (saved && saved.trim() && !saved.includes('localhost:8000')) {
+      if (saved && saved.trim()) {
         return saved.trim().replace(/\/+$/, '');
       }
     } catch {}

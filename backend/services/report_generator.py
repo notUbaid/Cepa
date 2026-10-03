@@ -453,16 +453,17 @@ def generate_pdf_report(
     qr_drawing = Drawing(32 * mm, 32 * mm, transform=[32 * mm / w, 0, 0, 32 * mm / h, 0, 0])
     qr_drawing.add(qr_widget)
 
-    import hashlib
-    cert_hash = hashlib.sha256(f"{report.report_id}-{report.total_bulbs}-{report.grade_a_pct}".encode()).hexdigest()[:24].upper()
+    from services.crypto_seal import compute_inspection_seal
+    cert_seal, img_sha256 = compute_inspection_seal(report, inspection)
 
     verify_info = (
         f"<b>Scan QR to access inspection record online:</b><br/>"
         f"<font color='#2980b9'>{share_url}</font><br/><br/>"
-        f"<b>Report Fingerprint (SHA-256):</b> <code>SHA256:{cert_hash}</code><br/>"
-        f"<b>Token:</b> {report.share_token}<br/>"
-        f"<i>This fingerprint covers report ID, bulb count, and grade percentage. "
-        f"It does not constitute a tamper-proof audit trail over measurements or images.</i>"
+        f"<b>Cryptographic Sovereign Seal:</b> <code>HMAC-SHA256:{cert_seal[:32]}...</code><br/>"
+        f"<b>Sample Optical Hash:</b> <code>SHA256:{img_sha256[:20]}...</code><br/>"
+        f"<b>Verification Token:</b> {report.share_token}<br/>"
+        f"<i>This HMAC-SHA256 seal cryptographically binds the raw sample optical capture, "
+        f"assayer officer credential, and final defect/grade distribution metrics.</i>"
     )
 
     qr_table = Table([[qr_drawing, Paragraph(verify_info, ParagraphStyle("QRText", parent=styles["Normal"], fontSize=8.5, leading=12))]], colWidths=[3.5 * cm, 12.5 * cm])

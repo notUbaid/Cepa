@@ -323,19 +323,9 @@ def run_pipeline(
         for i, vd in enumerate(valid_detections)
     ]
 
-    # Smart Overhead Auto-Scale & Metrology
+    # Overhead Metrology & Scale Assignment
     if calibration.scale_mm_per_px is not None:
         effective_scale = calibration.scale_mm_per_px
-        if calibration.is_estimated and detections:
-            diam_px_list = [max(d.bbox_w, d.bbox_h) for d in detections if not d.touches_border] or [max(d.bbox_w, d.bbox_h) for d in detections]
-            if diam_px_list:
-                median_px = float(np.median(diam_px_list))
-                if median_px > 25.0:
-                    est_median_mm = median_px * effective_scale
-                    if est_median_mm > 70.0 or est_median_mm < 38.0:
-                        effective_scale = float(52.0 / median_px)
-                        logger.info("Auto-calibrated scale from bulb geometry: %.4f mm/px (median bulb = 52.0mm)", effective_scale)
-
         result.scale_mm_per_px = effective_scale
         result.is_estimated_scale = calibration.is_estimated
         if calibration.is_estimated or not calibration.perspective_valid:
@@ -461,12 +451,20 @@ def run_pipeline(
                         model_version=defect_pred.model_version + "+chromatic-mold",
                         is_mock=defect_pred.is_mock,
                     )
+                    # Preserve prior rejection reasons and explanations (e.g. DOUBLE_BULB)
+                    prior_reasons = list(grading.rejection_reasons)
+                    prior_explanation = dict(grading.explanation)
+
                     # Re-evaluate grading with boosted rotten_prob
                     grading = grading_engine.evaluate_bulb(
                         size_estimate=size_est,
                         defect_prediction=defect_pred,
                         confidence=confidence,
                     )
+                    for r in prior_reasons:
+                        if r not in grading.rejection_reasons:
+                            grading.rejection_reasons.append(r)
+                    grading.explanation.update(prior_explanation)
                     grading.explanation["black_mold_override"] = (
                         f"Aspergillus niger soot: {morph.black_mold_pct:.1f}% surface area "
                         f"(L*<42 & V<45 CIELAB/HSV). rotten_prob elevated to {boosted_rotten:.2f} → ROTTEN."

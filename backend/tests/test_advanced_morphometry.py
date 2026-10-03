@@ -58,6 +58,32 @@ class TestMandiMorphometryAndSizing:
         assert size.shape_index < 0.82
         assert size.mandi_size_grade == "SUPER"  # ~60mm is Super
 
+    def test_torpedo_bulb_shape_classification(self):
+        """Elongated spindle bulb (Tropea/spindle cultivar) where polar axis > equatorial diameter."""
+        mask = np.zeros((300, 300), dtype=np.uint8)
+        # Tapered spindle/torpedo contour: width ~40px at equator, height ~220px, tapering to neck at top
+        pts = np.array([
+            [150, 40],   # tapered apex neck
+            [165, 90],   # upper shoulder
+            [170, 150],  # equatorial right flank (width 40px)
+            [165, 210],  # lower flank
+            [150, 260],  # basal plate
+            [135, 210],  # lower flank
+            [130, 150],  # equatorial left flank
+            [135, 90],   # upper shoulder
+        ], dtype=np.int32)
+        cv2.fillPoly(mask, [pts], 255)
+        scale = 0.5
+
+        size = estimate_size(mask, scale_mm_per_px=scale)
+        assert size is not None
+        assert size.shape_class == "TORPEDO"
+        assert size.shape_index is not None and size.shape_index > 1.15
+        assert size.grevsen_weight_grams is not None
+        assert size.estimated_weight_grams is not None
+        assert size.grevsen_weight_grams < size.estimated_weight_grams
+
+
     def test_goli_baby_onion_mandi_grade(self):
         """Small bulb with diameter < 35mm should be classified as GOLI."""
         mask = np.zeros((200, 200), dtype=np.uint8)

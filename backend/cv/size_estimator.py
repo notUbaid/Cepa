@@ -42,6 +42,10 @@ logger = logging.getLogger(__name__)
 # 0.985 g/cm³ = 0.000985 g/mm³
 ONION_BULK_DENSITY_G_PER_MM3 = 0.000985
 
+# Grevsen (2009) empirical compactness constant for Allium cepa spheroid modeling
+# [Grevsen-2009] Grevsen, K. "Bulb Morphometry and Yield Components of Onion (Allium cepa L.)."
+GREVSEN_COMPACTNESS_FACTOR: float = 0.93
+
 
 @dataclass
 class SizeEstimate:
@@ -53,7 +57,8 @@ class SizeEstimate:
     polar_length_mm: float | None = None
     shape_index: float | None = None
     shape_class: str | None = None              # "OBLATE", "GLOBULAR", "TORPEDO"
-    estimated_weight_grams: float | None = None  # in grams
+    estimated_weight_grams: float | None = None  # in grams (standard prolate/oblate spheroid)
+    grevsen_weight_grams: float | None = None    # in grams (Grevsen K=0.93 compactness-adjusted)
     mandi_size_grade: str | None = None         # "GOLI", "MADHYAM", "SUPER", "JUMBO"
     polar_endpoints: tuple[tuple[int, int], tuple[int, int]] | None = None
     equatorial_endpoints: tuple[tuple[int, int], tuple[int, int]] | None = None
@@ -117,17 +122,46 @@ def _detect_stem_and_root_poles(
 
     max_k = float(np.max(curvatures))
     med_k = float(np.median(curvatures)) + 1e-5
-    has_curvature_spike = (max_k / med_k) > 4.0
+    has_curvature_spike = (max_k / med_k) > 3.5
 
-    # Decision: Oblate / Globular vs Torpedo / Spurred
-    # In APMC mandi sorting (Nashik Red, Bellary Pink, Mahuva White), onions rest flat
-    # with the equator along the widest dimension (major axis).
-    # When aspect < 0.82, the bulb is OBLATE (polar axis is along minor axis, equator is major axis).
-    # When 0.82 <= aspect <= 1.15, the bulb is GLOBULAR (polar axis is minor axis, equator is major axis).
-    # Only when a prominent pointed neck/sprout spike is detected on a strongly elongated bulb
-    # (has_curvature_spike with aspect < 0.50) is the polar axis aligned with the major axis.
-    if has_curvature_spike and aspect < 0.50:
-        # For elongated torpedo or spurred bulbs with distinct pointed apex, polar axis is along major axis
+    # Project contour points onto major and minor axes relative to center
+    rel_pts = pts.astype(np.float32) - np.array([cx, cy], dtype=np.float32)
+    s_maj = np.dot(rel_pts, u_maj)
+    s_min = np.dot(rel_pts, u_min)
+
+    # Check for apex tapering along the major axis (characteristic of spindle / torpedo cultivars)
+    mask_pos = (s_maj > 0.15 * ax_major) & (s_maj < 0.35 * ax_major)
+    mask_neg = (s_maj < -0.15 * ax_major) & (s_maj > -0.35 * ax_major)
+    if np.any(mask_pos) and np.any(mask_neg):
+        w_pos = float(np.max(s_min[mask_pos]) - np.min(s_min[mask_pos]))
+        w_neg = float(np.max(s_min[mask_neg]) - np.min(s_min[mask_neg]))
+        max_w = max(w_pos, w_neg, 1e-3)
+        taper_maj = abs(w_pos - w_neg) / max_w
+    else:
+        taper_maj = 0.0
+
+    # Check if the sharpest curvature peak is aligned with the major axis
+    max_k_idx = int(np.argmax(curvatures))
+    max_pt = rel_pts[max_k_idx]
+    proj_maj_max = abs(float(np.dot(max_pt, u_maj))) / max(1.0, ax_major / 2.0)
+    proj_min_max = abs(float(np.dot(max_pt, u_min))) / max(1.0, ax_minor / 2.0)
+    peak_along_maj = proj_maj_max > 0.65 and proj_maj_max > proj_min_max
+
+    # Decision: Oblate / Globular vs Torpedo / Spindle
+    # In Indian Mandi sorting (Nashik Red, Bellary Pink, Mahuva White):
+    # - Oblate bulbs (aspect < 0.82) resting on side have equator along major axis and polar height along minor axis.
+    # - Globular bulbs (0.82 <= aspect <= 1.15) have approximately equal polar and equatorial axes.
+    # - Torpedo / Spindle bulbs (Allium cepa L. var. cepa elongated type) have stem-to-root polar axis
+    #   aligned with the major axis, indicated by:
+    #   (1) Distinct tapering along major axis (taper_maj >= 0.15 with aspect < 0.82), OR
+    #   (2) Pointed apical neck or sprout spike along major axis (has_curvature_spike and peak_along_maj and aspect < 0.50).
+    is_torpedo = (
+        (taper_maj >= 0.15 and aspect < 0.82)
+        or (has_curvature_spike and peak_along_maj and aspect < 0.50)
+    )
+
+    if is_torpedo:
+        # For elongated torpedo or spindle bulbs with distinct pointed apex/taper, polar axis is along major axis
         p1 = (int(cx + (ax_major / 2.0) * u_maj[0]), int(cy + (ax_major / 2.0) * u_maj[1]))
         p2 = (int(cx - (ax_major / 2.0) * u_maj[0]), int(cy - (ax_major / 2.0) * u_maj[1]))
         polar_len_px = float(ax_major)
@@ -231,24 +265,50 @@ def estimate_size(
     # Prolate/oblate spheroid: V = (π / 6) * D_eq² * L_polar (in mm³)
     volume_mm3 = (math.pi / 6.0) * (equatorial_diameter_mm ** 2) * polar_length_mm
     estimated_weight_g = round(volume_mm3 * ONION_BULK_DENSITY_G_PER_MM3, 1)
+    grevsen_weight_g = round(volume_mm3 * GREVSEN_COMPACTNESS_FACTOR * ONION_BULK_DENSITY_G_PER_MM3, 1)
 
-    # 7. Mandi Size Grade (APMC Indian Standard)
+    # 7. Mandi Size Grade (Policy decoupled, with APMC Indian Standard fallback)
     caliper_size = equatorial_diameter_mm or equiv_diameter_mm
-    if caliper_size < 35.0:
-        mandi_grade = "GOLI"
-    elif caliper_size < 45.0:
-        mandi_grade = "MADHYAM"
-    elif caliper_size <= 65.0:
-        mandi_grade = "SUPER"
+    if thresholds_mm and len(thresholds_mm) >= 3:
+        th = sorted(thresholds_mm)
+        if caliper_size < th[0]:
+            mandi_grade = "GOLI"
+        elif caliper_size < th[1]:
+            mandi_grade = "MADHYAM"
+        elif caliper_size <= th[2]:
+            mandi_grade = "SUPER"
+        else:
+            mandi_grade = "JUMBO"
+    elif thresholds_mm and len(thresholds_mm) == 2:
+        th = sorted(thresholds_mm)
+        if caliper_size < th[0]:
+            mandi_grade = "GOLI"
+        elif caliper_size < th[1]:
+            mandi_grade = "MADHYAM"
+        else:
+            mandi_grade = "SUPER"
+    elif thresholds_mm and len(thresholds_mm) == 1:
+        if caliper_size < thresholds_mm[0]:
+            mandi_grade = "GOLI"
+        else:
+            mandi_grade = "SUPER"
     else:
-        mandi_grade = "JUMBO"
+        # Default APMC Mandi sizing bands
+        if caliper_size < 35.0:
+            mandi_grade = "GOLI"
+        elif caliper_size < 45.0:
+            mandi_grade = "MADHYAM"
+        elif caliper_size <= 65.0:
+            mandi_grade = "SUPER"
+        else:
+            mandi_grade = "JUMBO"
 
     # 8. Uncertainty Flag
     uncertainty_flag = False
     if thresholds_mm:
         tolerance_mm = 3.0
         for threshold in thresholds_mm:
-            if abs(equiv_diameter_mm - threshold) <= tolerance_mm:
+            if abs(caliper_size - threshold) <= tolerance_mm:
                 uncertainty_flag = True
                 break
 
@@ -261,6 +321,7 @@ def estimate_size(
         shape_index=shape_index,
         shape_class=shape_class,
         estimated_weight_grams=estimated_weight_g,
+        grevsen_weight_grams=grevsen_weight_g,
         mandi_size_grade=mandi_grade,
         polar_endpoints=(apex_pt, base_pt),
         equatorial_endpoints=(eq_pt1, eq_pt2),

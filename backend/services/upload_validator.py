@@ -114,4 +114,26 @@ async def validate_and_read_upload(
             detail=f"{label} is empty (0 bytes).",
         )
 
-    return b"".join(chunks)
+    content = b"".join(chunks)
+
+    # 3. Magic-byte signature verification (defends against extension spoofing)
+    if "image/jpeg" in allowed_types or "image/png" in allowed_types:
+        is_jpeg = content.startswith(b"\xff\xd8\xff")
+        is_png = content.startswith(b"\x89PNG\r\n\x1a\n")
+        is_webp = content.startswith(b"RIFF") and len(content) > 12 and content[8:12] == b"WEBP"
+        if not (is_jpeg or is_png or is_webp):
+            logger.warning("Rejected upload '%s': failed magic-byte header inspection", upload_file.filename)
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Security: File content does not match genuine image magic headers (JPEG/PNG/WebP).",
+            )
+    elif "audio/wav" in allowed_types:
+        is_wav = content.startswith(b"RIFF") and len(content) > 12 and content[8:12] == b"WAVE"
+        if not is_wav:
+            logger.warning("Rejected upload '%s': failed WAV magic-byte inspection", upload_file.filename)
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="Security: File content does not match standard RIFF/WAVE PCM audio format.",
+            )
+
+    return content

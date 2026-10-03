@@ -7,7 +7,7 @@ by measuring differential optical reflectance between ambient and flash illumina
 Theoretical grounding:
 - Nicolaï et al. (2007): Non-destructive NIR spectroscopy and visible reflectance
 - Taniwaki & Sakurai (2023): Vis-NIR optical reflectance characteristics of Allium cepa L.
-- AGMARK Schedule XIX (2004) / BIS IS 17912:2022
+- APMC Mandi Commercial Practice & BIS IS 17912:2022 (Supply Chain Guidelines)
 """
 from __future__ import annotations
 

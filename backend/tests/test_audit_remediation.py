@@ -356,3 +356,96 @@ class TestUncalibratedOverheadRemediation:
         assert grade.grade in ("GRADE_A", "UNDER_SIZED", "OVER_SIZED")
         assert grade.confidence_tier == "NEEDS_REVIEW"
 
+
+class TestCryptographicSealAndPolicyDecoupling:
+    """Verifies HMAC-SHA256 cryptographic seal non-repudiation and dynamic policy thresholds."""
+
+    def test_cryptographic_seal_integrity_binding(self):
+        from services.crypto_seal import compute_inspection_seal, verify_inspection_seal
+        from unittest.mock import MagicMock
+
+        report = MagicMock(
+            report_id="REP-TEST-001",
+            total_bulbs=42,
+            grade_a_pct=85.7,
+            urs_pct=9.5,
+            rejected_pct=4.8,
+            share_token="cepa-demo-token-123",
+        )
+        sample = MagicMock(image_path="test_img.jpg", processed_image_path=None)
+        inspection = MagicMock(
+            id="insp-seal-uuid-001",
+            officer_id="OFF-SEAL-77",
+            samples=[sample],
+        )
+
+        seal_hex, img_hash = compute_inspection_seal(report, inspection)
+        assert len(seal_hex) == 64
+        assert len(img_hash) == 64
+        assert verify_inspection_seal(seal_hex, report, inspection) is True
+
+        # Tampering with officer ID fails verification
+        tampered_inspection = MagicMock(
+            id="insp-seal-uuid-001",
+            officer_id="OFF-IMPOSTOR-99",
+            samples=[sample],
+        )
+        assert verify_inspection_seal(seal_hex, report, tampered_inspection) is False
+
+        # Tampering with quality metrics fails verification
+        tampered_report = MagicMock(
+            report_id="REP-TEST-001",
+            total_bulbs=42,
+            grade_a_pct=99.0,
+            urs_pct=1.0,
+            rejected_pct=0.0,
+            share_token="cepa-demo-token-123",
+        )
+        assert verify_inspection_seal(seal_hex, tampered_report, inspection) is False
+
+    def test_size_estimator_policy_decoupling(self):
+        from cv.size_estimator import estimate_size
+        import cv2
+
+        mask = np.zeros((200, 200), dtype=np.uint8)
+        # Draw 100px diameter circle at 0.5 mm/px -> ~50mm diameter
+        cv2.circle(mask, (100, 100), 50, 255, -1)
+
+        # Standard APMC thresholds: 45 to 65 is SUPER
+        std_est = estimate_size(mask, scale_mm_per_px=0.5)
+        assert std_est is not None
+        assert std_est.mandi_size_grade == "SUPER"
+
+        # Custom policy where 50mm is classified as MADHYAM because SUPER starts at 55mm
+        custom_thresholds = [40.0, 55.0, 75.0]
+        custom_est = estimate_size(mask, scale_mm_per_px=0.5, thresholds_mm=custom_thresholds)
+        assert custom_est is not None
+        assert custom_est.mandi_size_grade == "MADHYAM"
+
+    def test_groq_ai_agronomist_truthfulness(self):
+        from services.groq_ai_service import ask_ai_agronomist
+
+        # 1. Empty lot should never fabricate praise or pretend bulbs were checked
+        empty_ans = ask_ai_agronomist("Can I store these onions?", {"total_bulbs": 0})
+        assert "No inspection measurements" in empty_ans
+        assert "zero critical defects" not in empty_ans
+
+        # 2. Rot-heavy lot should explicitly warn against buffer storage
+        rot_ans = ask_ai_agronomist(
+            "Can I store these onions?",
+            {"total_bulbs": 20, "grade_a_count": 5, "urs_count": 5, "rejected_count": 10, "net_rate_inr": 1800, "storage_days": 90}
+        )
+        assert "High rot/defect concentration" in rot_ans
+        assert "NOT recommended" in rot_ans
+        assert "Immediate segregation" in rot_ans
+
+        # 3. Clean lot gives sound agronomic storage advice
+        clean_ans = ask_ai_agronomist(
+            "How should I store these?",
+            {"total_bulbs": 20, "grade_a_count": 20, "urs_count": 0, "rejected_count": 0, "net_rate_inr": 2410, "storage_days": 90}
+        )
+        assert "Excellent quality lot" in clean_ans
+        assert "suitable for strategic buffer storage" in clean_ans
+
+
+

@@ -1,5 +1,6 @@
 {
-    "status": "VALIDATED",
+    "status": "PROTOTYPE_BENCHMARK",
+    "dataset_audit_note": "Public composite dataset (Mendeley & Roboflow). Severe class imbalance (88.7% majority GOOD class). Macro F1 is 0.727; field deployment requires curated mandi defect captures per walkthrough.md.",
     "total_test_images": 1733,
     "overall_accuracy": 0.9636468551644547,
     "classes": [

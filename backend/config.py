@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     # ── Groq Multimodal AI ───────────────────────────────────────────────────
     groq_api_key: str = ""
-    groq_vision_model: str = "qwen/qwen3.8-27b"
+    groq_vision_model: str = "llama-3.2-11b-vision-preview"
 
     # ── Bhashini Multilingual Speech Synthesis (NLTM) ────────────────────────
     bhashini_api_key: str = ""
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     seg_iou_threshold: float = 0.45
 
     # ── Security & Authentication ────────────────────────────────────────────
-    officer_api_key: str = "cepa-officer-dev-key"
+    officer_api_key: str = "cepa-officer-secret-key-2026"
     enforce_officer_auth: bool = False  # Set to True in production to strictly require X-Officer-Token
 
     # ── Upload Limits ────────────────────────────────────────────────────────

@@ -25,9 +25,8 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     Generate responsive HTML certificate for public verification.
     """
     r = report_detail
-    cert_hash = hashlib.sha256(
-        f"{r.report_id}-{r.total_bulbs}-{r.grade_a_pct}".encode()
-    ).hexdigest()[:24].upper()
+    from services.crypto_seal import compute_inspection_seal
+    cert_seal, img_sha256 = compute_inspection_seal(r, inspection)
 
     policy_version = getattr(r, "ruleset_version", "DEMO_ASSUMPTION_v1")
     is_policy_verified = _get_policy_verified(policy_version)
@@ -448,8 +447,8 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
       </div>
 
       <div class="hash-banner">
-        <span>INTEGRITY HASH:</span>
-        <span class="hash-val">SHA256:{cert_hash}</span>
+        <span>SOVEREIGN CRYPTOGRAPHIC SEAL:</span>
+        <span class="hash-val">HMAC-SHA256:{cert_seal[:32]}...</span>
       </div>
     </div>
 
@@ -603,7 +602,8 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     <div class="footer-note">
       Cepa National Produce Quality & Cold Storage Platform - SIH26031 Proof of Concept<br/>
       Policy: <strong>{policy_version}</strong> (verified: {is_policy_verified}) - Segmentation: <strong>YOLO11n-seg</strong> - Defect Model: <strong>{'Mock/Rule-based (DEF_USE_MOCK=true)' if is_mock else 'MobileNetV3 PyTorch'}</strong><br/>
-      Report Fingerprint: <code>SHA256:{cert_hash}</code> (covers report summary fields only)
+      Cryptographic Seal: <code>HMAC-SHA256:{cert_seal[:32]}...</code> · Photo Digest: <code>SHA256:{img_sha256[:16]}...</code><br/>
+      (Cryptographically binds sample photo, inspecting officer credential, and quality grading distribution)
     </div>
 
   </div>

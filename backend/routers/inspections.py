@@ -815,10 +815,11 @@ async def ask_ai_endpoint(
             context["net_rate_inr"] = sample_detail.commercial_settlement.get("net_rate_inr", 2410)
             context["avg_diameter_mm"] = sample_detail.commercial_settlement.get("mean_equatorial_diameter_mm", 52.0)
 
+    import asyncio
     from services.groq_ai_service import ask_ai_agronomist, _get_groq_api_key
-    answer = ask_ai_agronomist(body.question, context)
+    answer = await asyncio.to_thread(ask_ai_agronomist, body.question, context)
     powered_by = (
-        f"Groq AI ({getattr(__import__('config', fromlist=['settings']).settings, 'groq_vision_model', 'qwen/qwen3.8-27b')})"
+        f"Groq AI ({getattr(settings, 'groq_vision_model', 'llama-3.2-11b-vision-preview')})"
         if _get_groq_api_key()
         else "Cepa Offline (Groq unavailable — configure GROQ_API_KEY)"
     )
@@ -912,7 +913,8 @@ async def announce_grade_endpoint(
     # Get Bhashini API key from settings
     bhashini_key = getattr(settings, "bhashini_api_key", "") or ""
 
-    result = synthesize_grade_announcement(announcement, bhashini_api_key=bhashini_key)
+    import asyncio
+    result = await asyncio.to_thread(synthesize_grade_announcement, announcement, bhashini_api_key=bhashini_key)
 
     import base64 as _b64
     response: dict = {
@@ -943,16 +945,17 @@ async def export_enam_endpoint(
     inspection_id: str,
     format: str = Query("json", pattern="^(json|xml)$", description="Export format: json or xml"),
     lot_weight_kg: float = Query(1000.0, ge=1.0, le=100000.0, description="Consignment declared weight in kg"),
+    officer: str = Depends(verify_officer_token),
     db: Session = Depends(get_db),
 ):
     """
-    Export standardized eNAM (National Agriculture Market) Assaying Certificate
-    linked to the farmer's 12-digit AgriStack Farmer ID.
+    Export illustrative eNAM-style (National Agriculture Market) Assaying Certificate
+    linked to the farmer's AgriStack Farmer ID metadata.
 
-    Conforms to:
-    - Ministry of Agriculture eNAM Assaying Specification v2.1
-    - AGMARK Schedule XIX (Fruits and Vegetables Grading and Marking Rules)
-    - AgriStack Farmer Registry Data Exchange Standard
+    Modeled after:
+    - Ministry of Agriculture eNAM-style APMC Assaying parameter framework
+    - Indian Mandi Commercial Sizing & APMC Dockage conventions
+    - AgriStack Farmer Registry Data Exchange illustrative prototype schema
     """
     inspection = inspection_service.get_inspection(db, inspection_id)
     if inspection is None:
@@ -985,7 +988,7 @@ async def export_enam_endpoint(
         }
     except Exception as e:
         logger.exception("Failed to export eNAM certificate: %s", e)
-        raise HTTPException(status_code=500, detail=f"Failed to generate eNAM certificate: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate eNAM certificate due to an internal processing error.")
 
 
 # ── Flash Proxy Index (FPI) Differential Reflectance Endpoint ───────────────

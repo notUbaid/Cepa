@@ -227,11 +227,19 @@ def process_video_scan(
             "powered_by": "Cepa AI",
         }
 
-    # 6. Compute lot health summary
-    healthy_onions = max(0, total_onions_seen - total_bad_onions)
+    # 6. Compute lot health summary (deduplicated across keyframe sweep)
+    max_bulbs_frame = max((k.bulbs_detected for k in keyframes_analyzed), default=0)
+    max_bad_frame = max((k.bad_bulbs for k in keyframes_analyzed), default=0)
+    est_total_seen = max(max_bulbs_frame, int(round(total_onions_seen / max(1, len(keyframes_analyzed))))) if keyframes_analyzed else 0
+    est_bad_seen = min(total_bad_onions, max_bad_frame)
+
+    healthy_onions = max(0, est_total_seen - est_bad_seen)
     health_score = 100
-    if total_onions_seen > 0:
-        health_score = max(20, int(100 - (total_bad_onions / total_onions_seen) * 100))
+    if est_total_seen > 0:
+        health_score = max(20, int(100 - (est_bad_seen / est_total_seen) * 100))
+
+    total_onions_seen = est_total_seen
+    total_bad_onions = est_bad_seen
 
     if total_bad_onions == 0:
         overall_status = "EXCELLENT"

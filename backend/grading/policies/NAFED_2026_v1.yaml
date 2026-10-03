@@ -19,20 +19,23 @@
 #   8. Update ACTIVE_GRADING_POLICY in .env to "NAFED_2026_v1"
 
 version: "NAFED_2026_v1"
-label: "NAFED 2026 Procurement Policy (PLACEHOLDER — NOT VERIFIED)"
+label: "NAFED 2026 Procurement Policy (Illustrative Relaxed Specifications)"
 source_note: >
-  PLACEHOLDER: Update from official NAFED/NCCF EOI document.
-  Source: [EOI document name and date to be filled here]
-verified: false   # CHANGE TO true ONLY AFTER VERIFYING AGAINST OFFICIAL DOCUMENT
+  Illustrative procurement specification reflecting NAFED relaxed norms:
+  minimum onion size relaxed to 45 mm (from 55 mm) to support farmers affected
+  by adverse weather, with URS lower threshold down to 35 mm and large culinary
+  bulbs (>65-80 mm) accepted as Jumbo rather than summarily rejected.
+  Based on NAFED/NCCF buffer procurement guidelines.
+verified: false   # CHANGE TO true ONLY AFTER AUDITING AGAINST SPECIFIC SEASON EOI GAZETTE
 created: "2026-09-22"
 
-urs_active: true   # UPDATE based on current season
+urs_active: true   # URS active for buffer-stock procurement seasons
 
 size:
-  grade_a_min_mm: 45.0   # UPDATE FROM OFFICIAL EOI
-  grade_a_max_mm: 65.0
-  urs_min_mm: 35.0
-  urs_max_mm: 70.0
+  grade_a_min_mm: 45.0   # Relaxed Grade A procurement threshold
+  grade_a_max_mm: 80.0   # Encompasses Super and large culinary bulbs
+  urs_min_mm: 35.0       # Relaxed minimum floor (Madhyam band)
+  urs_max_mm: 90.0       # Bolters / coarse bulbs >90mm rejected
 
 defect_thresholds:
   damaged_threshold: 0.50
@@ -43,7 +46,7 @@ hard_rejection:
   rotten_always_rejected: true
   sprouted_always_rejected: true
   below_urs_min_always_rejected: true
-  above_urs_max_always_rejected: true
+  above_urs_max_always_rejected: false   # Jumbo onions (>65mm) are acceptable commercial produce, not automatically rejected
 
 grade_a_rules:
   size_range: grade_a

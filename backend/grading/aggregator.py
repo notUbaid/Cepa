@@ -152,8 +152,9 @@ def aggregate_from_db_instances(
     rot_thresh = 0.50
     spr_thresh = 0.50
     try:
+        from config import settings
         from grading.policy_loader import load_policy
-        p = load_policy(ruleset_version)
+        p = load_policy(ruleset_version, settings.policies_dir)
         if p and hasattr(p, "defect"):
             dmg_thresh = p.defect.damaged_threshold
             rot_thresh = p.defect.rotten_threshold

@@ -21,8 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend codebase
 COPY . .
 
-# Ensure storage, weights, and static directories exist
-RUN mkdir -p storage weights static
+# Ensure storage, weights, and static directories exist and configure non-root user
+RUN useradd -u 10001 -m -s /bin/bash appuser && \
+    mkdir -p storage weights static && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 # Configure production environment
 ENV BACKEND_ENV=production \

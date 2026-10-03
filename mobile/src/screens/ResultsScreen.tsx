@@ -942,7 +942,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           {/* Agronomic Context Explainer */}
           <FadeInView delay={220} distance={10}>
             <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Why Storageability Index Wins Hackathons</Text>
+              <Text style={styles.infoTitle}>Agronomic Value: Strategic Buffer Storage Optimization</Text>
               <Text style={styles.infoBody}>
                 Every year, 30–40% of buffer stock onions rot inside cold storage facilities (over ₹1,000 Cr national loss). Sizing alone cannot predict rot: latent Aspergillus spores and damaged tunics rapidly trigger bacterial soft rot. Cepa's storageability model gives procurement authorities definitive algorithmic proof to allocate premium lots to long storage and route vulnerable lots to immediate market auctions.
               </Text>

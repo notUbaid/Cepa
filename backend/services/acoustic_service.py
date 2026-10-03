@@ -511,65 +511,63 @@ class RealAcousticAnalyzer(AcousticAnalyzer):
             # ── 6. Q factor from −3 dB (half-power) bandwidth ──────────────
             quality_factor_q: float | None = None
             half_power_threshold = peak_power * (1.0 / np.sqrt(2.0))
-            above_half = spectrum_band >= half_power_threshold
 
-            if above_half.any():
-                above_indices = np.where(above_half)[0]
-                low_idx = int(above_indices[0])
-                high_idx = int(above_indices[-1])
+            # Contiguously trace the half-power bandwidth specifically around the resonant peak
+            # to prevent unrelated spectral harmonics or low-frequency ambient rumble from distorting Q
+            low_idx = peak_idx_band
+            while low_idx > 0 and spectrum_band[low_idx - 1] >= half_power_threshold:
+                low_idx -= 1
 
-                freq_low = float(freqs_band[low_idx])
-                freq_high = float(freqs_band[high_idx])
-                bandwidth = freq_high - freq_low
+            high_idx = peak_idx_band
+            while high_idx < len(spectrum_band) - 1 and spectrum_band[high_idx + 1] >= half_power_threshold:
+                high_idx += 1
 
-                if bandwidth > 0.0:
-                    quality_factor_q = dominant_freq_hz / bandwidth
-                else:
-                    # Single-bin peak — Q is effectively very high; cap at 100
-                    quality_factor_q = 100.0
+            freq_low = float(freqs_band[low_idx])
+            freq_high = float(freqs_band[high_idx])
+            bandwidth = freq_high - freq_low
+
+            if bandwidth > 0.0:
+                quality_factor_q = dominant_freq_hz / bandwidth
+            else:
+                # Single-bin peak — interpolate bandwidth using bin spacing (df)
+                df = float(freqs_band[1] - freqs_band[0]) if len(freqs_band) > 1 else 1.0
+                quality_factor_q = min(100.0, dominant_freq_hz / df)
 
             # ── 7. Elasticity Index ─────────────────────────────────────────
             elasticity_index: float | None = None
             if mass_g is not None and mass_g > 0.0:
                 elasticity_index = (dominant_freq_hz ** 2) * (mass_g ** (2.0 / 3.0))
 
-            # ── 8. Classification ───────────────────────────────────────────
-            rng_noise = np.random.default_rng(
-                seed=int(abs(dominant_freq_hz * 1000)) % (2 ** 31)
-            )
-            noise = float(rng_noise.uniform(-_SCORE_NOISE_SCALE, _SCORE_NOISE_SCALE))
-
-            hollow_risk_score: float
-            hollow_risk_tier: str
-            confidence: float
-
-            freq_high_risk = (
-                dominant_freq_hz is not None and dominant_freq_hz < _FREQ_HOLLOW_MAX
-            )
-            freq_medium_risk = (
-                dominant_freq_hz is not None
-                and _FREQ_HOLLOW_MAX <= dominant_freq_hz < _FREQ_HEALTHY_MIN
-            )
-            q_high_risk = quality_factor_q is not None and quality_factor_q < _Q_MEDIUM_MIN
-            q_medium_risk = (
-                quality_factor_q is not None
-                and _Q_MEDIUM_MIN <= quality_factor_q < _Q_HEALTHY_MIN
-            )
-            q_healthy = quality_factor_q is not None and quality_factor_q >= _Q_HEALTHY_MIN
-
-            if dominant_freq_hz >= _FREQ_HEALTHY_MIN and q_healthy:
-                hollow_risk_score = float(np.clip(0.05 + noise, 0.0, 1.0))
-                hollow_risk_tier = "LOW"
-                confidence = 0.85
-            elif freq_medium_risk or q_medium_risk:
-                hollow_risk_score = float(np.clip(0.40 + noise, 0.0, 1.0))
-                hollow_risk_tier = "MEDIUM"
-                confidence = 0.70
+            # ── 8. Continuous Physical Classification ───────────────────────────
+            # Scale dominant frequency by bulb mass (Hertzian elasticity: f0 ∝ m^(-1/3))
+            if mass_g is not None and mass_g > 0.0:
+                f_comp = dominant_freq_hz * ((mass_g / 100.0) ** (1.0 / 3.0))
             else:
-                # freq_high_risk or q_high_risk or freq < HEALTHY without q_healthy
-                hollow_risk_score = float(np.clip(0.82 + noise, 0.0, 1.0))
+                f_comp = dominant_freq_hz
+
+            # Continuous frequency risk: f_comp >= 750 Hz (healthy) -> 0.0; <= 450 Hz (hollow) -> 1.0
+            r_freq = float(np.clip((750.0 - f_comp) / (750.0 - 450.0), 0.0, 1.0))
+
+            # Continuous damping/Q-factor risk: Q >= 20 (sharp) -> 0.0; Q <= 8 (damped cavity) -> 1.0
+            if quality_factor_q is not None:
+                r_q = float(np.clip((20.0 - quality_factor_q) / (20.0 - 8.0), 0.0, 1.0))
+            else:
+                r_q = r_freq
+
+            # Multi-parameter continuous risk score (65% frequency resonance, 35% tissue damping)
+            combined_risk = float(0.65 * r_freq + 0.35 * r_q)
+            hollow_risk_score = float(np.clip(combined_risk, 0.02, 0.98))
+
+            # Operational risk tiers & SNR-grounded confidence
+            if hollow_risk_score < 0.35 and dominant_freq_hz >= _FREQ_HEALTHY_MIN:
+                hollow_risk_tier = "LOW"
+                confidence = float(np.clip(0.70 + 0.25 * min(1.0, z_score / 15.0), 0.60, 0.95))
+            elif hollow_risk_score < 0.60:
+                hollow_risk_tier = "MEDIUM"
+                confidence = float(np.clip(0.60 + 0.20 * min(1.0, z_score / 15.0), 0.55, 0.85))
+            else:
                 hollow_risk_tier = "HIGH"
-                confidence = 0.90
+                confidence = float(np.clip(0.75 + 0.20 * min(1.0, z_score / 15.0), 0.65, 0.95))
 
             # ── 9. Human-readable notes ─────────────────────────────────────
             q_str = f"{quality_factor_q:.1f}" if quality_factor_q is not None else "N/A"
