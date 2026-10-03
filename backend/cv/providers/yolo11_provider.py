@@ -122,7 +122,12 @@ class YOLO11SegmentationProvider(SegmentationProvider):
 
         effective_conf = max(0.35, self._conf)
         effective_iou = min(0.25, self._iou)
-        target_classes_list = list(self._target_class_ids) if self._target_class_ids else None
+        target_classes_list = list(self._target_class_ids)
+        
+        # If we couldn't find any valid target classes, do not fall back to None (which detects EVERYTHING)
+        if not target_classes_list:
+            logger.warning("No target classes configured for YOLO11. Skipping inference to prevent garbage detections.")
+            return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
 
         try:
             results = self._model.predict(

@@ -225,11 +225,26 @@ class OnionAuthenticityValidator:
                 metrics=metrics,
             )
 
+        # ── 11. Deep Learning ImageNet Gate (Reject humans, clothes, electronics) ──
+        try:
+            is_valid_food = _check_imagenet_food(crop_bgr)
+            metrics["imagenet_valid_food"] = float(is_valid_food)
+            if not is_valid_food:
+                logger.info("Rejected candidate: Neural network classified object as non-food (human/clothing/etc).")
+                return AuthenticityResult(
+                    is_onion=False,
+                    rejection_reason="non_food_object_detected",
+                    metrics=metrics,
+                )
+        except Exception as e:
+            logger.warning("ImageNet validation failed: %s", e)
+
         return AuthenticityResult(
             is_onion=True,
             confidence=0.98,
             metrics=metrics,
         )
+
 
     @classmethod
     def filter_detections(
@@ -262,3 +277,60 @@ class OnionAuthenticityValidator:
                 rejected.append((d, result.rejection_reason))
 
         return authenticated, rejected
+
+# ── ImageNet Singleton ────────────────────────────────────────────────────────
+_imagenet_model = None
+_imagenet_transforms = None
+
+def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
+    """
+    Passes the crop through a tiny MobileNetV3 to ensure it's not a person, 
+    clothing, or furniture. ImageNet has 1000 classes.
+    """
+    global _imagenet_model, _imagenet_transforms
+    import torch
+    from torchvision import models, transforms
+    from PIL import Image
+
+    if _imagenet_model is None:
+        _imagenet_model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
+        _imagenet_model.eval()
+        _imagenet_transforms = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+    img_rgb = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(img_rgb)
+    input_tensor = _imagenet_transforms(pil_img).unsqueeze(0)
+
+    with torch.no_grad():
+        output = _imagenet_model(input_tensor)
+        
+    prob = torch.nn.functional.softmax(output[0], dim=0)
+    top_prob, top_catid = torch.topk(prob, 5)
+    
+    # ImageNet food/produce categories: 923-965 (vegetables, fruits, food dishes),
+    # 881 (jack-o-lantern/pumpkin), 987 (corn), plus 117 (chambered nautilus, commonly
+    # triggered by concentric onion cross-sections).
+    food_classes = set(range(923, 966)) | {881, 987}
+    
+    # If any top-3 prediction is produce/food with meaningful probability, accept
+    for cat_id, p in zip(top_catid[:3], top_prob[:3]):
+        cid = int(cat_id.item())
+        if cid in food_classes and p.item() > 0.05:
+            return True
+        # If top class is nautilus (concentric rings), accept if vegetable is in top-5
+        if cid == 117 and any(int(c.item()) in food_classes for c in top_catid):
+            return True
+    
+    top_id = int(top_catid[0].item())
+    
+    # If the network is confident it is an animal (0-397) or clothing/object (400-890)
+    if top_id < 900 and top_id not in [881, 117]:
+        if top_prob[0].item() > 0.15:
+            return False
+            
+    return True

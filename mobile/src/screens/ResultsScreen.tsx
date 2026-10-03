@@ -78,7 +78,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   };
 
   type ViewMode = 'grid' | 'ai_agronomist' | 'video_sweep' | 'storage' | 'settlement' | 'overlay';
-  const [viewMode, setViewMode] = useState<ViewMode>(videoResult ? 'video_sweep' : 'grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [gradeFilter, setGradeFilter] = useState<'ALL' | 'GRADE_A' | 'URS' | 'REJECTED' | 'NEEDS_REVIEW'>('ALL');
   const [aiQuestion, setAiQuestion] = useState('');
   const [askingAi, setAskingAi] = useState(false);

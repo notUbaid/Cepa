@@ -267,21 +267,23 @@ def process_video_scan(
     # 7. Run full Deep Learning pipeline on the best frame to extract individual crops and get precise grades
     if sharpest_frame is not None:
         try:
-            from cv.pipeline import run_pipeline
-            from services.inspection_service import _seg_provider, _defect_classifier, _active_policy
-            pipeline_result = run_pipeline(
-                db=db,
-                sample=sample,
-                image=sharpest_frame,
-                seg_provider=_seg_provider,
-                defect_classifier=_defect_classifier,
-                policy=_active_policy
+            from services.inspection_service import _run_pipeline_sync, _persist_pipeline_results
+            
+            # Encode frame to bytes for pipeline ingestion
+            _, buffer = cv2.imencode('.jpg', sharpest_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            frame_bytes = buffer.tobytes()
+            
+            pipeline_result = _run_pipeline_sync(
+                image_bytes=frame_bytes,
+                inspection_id=inspection_id,
+                sample_id=sample.id
             )
-            db.commit()
+            
+            _persist_pipeline_results(db, sample.id, pipeline_result)
             db.refresh(sample)
             
             # Override rudimentary video metrics with the high-accuracy deep learning results
-            dl_bad = sum(1 for i in pipeline_result.instances if i.classification_result and i.classification_result.grade != "GRADE_A")
+            dl_bad = sum(1 for i in pipeline_result.instances if i.grading_result and i.grading_result.grade != "GRADE_A")
             total_onions_seen = len(pipeline_result.instances)
             total_bad_onions = dl_bad
             healthy_onions = max(0, total_onions_seen - dl_bad)
