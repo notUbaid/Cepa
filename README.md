@@ -15,7 +15,7 @@
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![eNAM](https://img.shields.io/badge/eNAM-Schema_v2.1-2E7D32?style=flat-square)](https://enam.gov.in)
 [![AgriStack](https://img.shields.io/badge/AgriStack-12--Digit_FID-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-125%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-156%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
 [![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
 <br />
@@ -28,7 +28,7 @@
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
-| **Verification State** | 124 of 125 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
+| **Verification State** | 156 of 157 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
 
@@ -76,12 +76,18 @@
 - [8. Digital Public Infrastructure (DPI) Integrations](#8-digital-public-infrastructure-dpi-integrations)
 - [9. Forensic Mandi Inspector Studio (Web Workstation)](#9-forensic-mandi-inspector-studio-web-workstation)
 - [10. Field Officer Mobile Client (React Native / Expo)](#10-field-officer-mobile-client-react-native--expo)
+  - [10.1 Why React Native & Expo for Agricultural Field Assaying?](#101-why-react-native--expo-for-agricultural-field-assaying)
+  - [10.2 Architectural Topology & Native Hardware Sensor Bridges](#102-architectural-topology--native-hardware-sensor-bridges)
+  - [10.3 How to Run on Your Physical Device (Step-by-Step)](#103-how-to-run-on-your-physical-device-step-by-step)
+  - [10.4 Device IP Resolution & Network Connectivity Invariants](#104-device-ip-resolution--network-connectivity-invariants)
+  - [10.5 Mandi Viewfinder HUD, Screen Flow & Offline Resilience](#105-mandi-viewfinder-hud-screen-flow--offline-resilience)
+  - [10.6 Standalone Production Compilation (APK & Web Export)](#106-standalone-production-compilation-apk--web-export)
 - [11. Active Engineering Bottlenecks and Under-Development Modules](#11-active-engineering-bottlenecks-and-under-development-modules)
 - [12. Engineering Team: Better Call Coders](#12-engineering-team-better-call-coders)
 - [13. Technical Reference Appendices (Expandable Deep Dives)](#13-technical-reference-appendices-expandable-deep-dives)
   - [Appendix A: Database Entity-Relationship Model](#appendix-a-database-entity-relationship-model)
   - [Appendix B: Complete 27-Endpoint REST API Specification](#appendix-b-complete-27-endpoint-rest-api-specification)
-  - [Appendix C: Complete Test Suite Verification Trace (124 Passed)](#appendix-c-complete-test-suite-verification-trace-124-passed)
+  - [Appendix C: Complete Test Suite Verification Trace (156 Passed)](#appendix-c-complete-test-suite-verification-trace-156-passed)
   - [Appendix D: Hardware Bill of Materials (BOM)](#appendix-d-hardware-bill-of-materials-bom)
   - [Appendix E: Complete Codebase Directory and Component Map](#appendix-e-complete-codebase-directory-and-component-map)
   - [Appendix F: Step-by-Step Installation and Deployment Guide](#appendix-f-step-by-step-installation-and-deployment-guide)
@@ -645,11 +651,276 @@ The Forensic Mandi Inspector Studio (`backend/static/inspector.html`) provides a
 
 ## 10. Field Officer Mobile Client (React Native / Expo)
 
-The mobile field application (`mobile/`) is designed for harsh APMC yard environments:
-- **Viewfinder HUD with Target Alignment Boxes:** Real-time rectangular guide for aligning the ChArUco calibration board.
-- **Live Optical Controls:** Tap-to-focus lock, 1x/2x optical zoom toggles, front/rear lens switching, and exposure compensation.
-- **Real-Time Visual Processing Feedback:** Sweeping laser animation and telemetry checklist during inference.
-- **Live Server Connectivity Status:** Header status badge indicating backend API reachability with auto-reconnection polling; camera capture directly connects to local or cloud FastAPI gateway.
+The CEPA Field Officer Mobile Application ([`mobile/`](file:///d:/Projects/Cepa/mobile/)) is an enterprise-grade React Native application built on the **Expo 57** universal runtime. Engineered specifically for the harsh, dust-heavy, high-throughput operating conditions of agricultural intake gates, it equips mandi assaying officers with a sub-millimeter optical caliper, real-time quality gate feedback, acoustic resonance analytics, and direct eNAM/AgriStack certification.
+
+```
++-------------------------------------------------------------------------------------------------------+
+|                                    CEPA FIELD OFFICER MOBILE CLIENT                                   |
+|                                         (React Native 0.86 / Expo 57)                                 |
++-----------------------------------+-----------------------------------+-------------------------------+
+|       NATIVE SENSORS              |        VIEWFINDER RETICLE         |       NETWORK & RUNTIME       |
+|  • expo-camera (Tap Focus, Zoom)  |  • ChArUco 7x5 Alignment HUD      |  • Auto-Reconnecting Socket   |
+|  • expo-location (APMC Geo-fence) |  • Dual-Exposure FPI Flash Torch  |  • Dynamic LAN / Cloud Bridge |
+|  • expo-haptics (Tactile Alerts)  |  • Real-Time Video Sweep Tracker  |  • Multi-Stage Blob Steamer   |
+|  • expo-image-picker (Roll Pick)  |  • 6-Point Optical Quality Gate   |  • Offline Local Draft Cache  |
++-----------------------------------+-----------------------------------+-------------------------------+
+```
+
+---
+
+### 10.1 Why React Native & Expo for Agricultural Field Assaying?
+
+Selecting the client-side technology stack for agricultural assaying involves severe constraints unique to Indian public procurement:
+
+1. **Massive Smartphone Heterogeneity in Mandi Yards:**
+   Procurement officers, commission agents, and mandi assayers across Maharashtra, Madhya Pradesh, Gujarat, and Karnataka carry an immense variety of hardware. While central NAFED supervisors carry enterprise iPads or iPhones, field grading personnel predominantly operate budget Android devices (Xiaomi, Realme, Vivo, Samsung M-series) retailing between ₹8,000 and ₹15,000. Maintaining separate native Kotlin/Java and Swift codebases would double engineering overhead, bifurcate bug fixes, and inevitably introduce algorithmic measurement divergence between Android and iOS. React Native guarantees **100% mathematical and UI parity** across both ecosystems from a single TypeScript codebase.
+
+2. **Hardware-Level Sensor Access without Native Fragility:**
+   High-precision optical assaying requires deep hardware integration: locking focus distance, commanding LED flash pulses for differential reflectance, streaming high-frame-rate video buffers, and interrogating GPS hardware. Traditional hybrid wrappers (e.g. legacy Cordova or web PWAs) suffer from severe canvas memory leaks, lack camera shutter control, and are frequently killed by Android low-memory killers on 2 GB RAM devices. Expo provides robust, battle-tested native modules (`expo-camera`, `expo-location`, `expo-haptics`) that compile directly to native Android CameraX and iOS AVFoundation APIs without requiring fragile native bridging code.
+
+3. **Zero-Compilation Evaluator Onboarding via Expo Go:**
+   Hackathon evaluators, government nodal officers, and field inspectors can launch the complete native application on their personal smartphones in under **30 seconds** by scanning a QR code with the free **Expo Go** application ([Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent) / [Apple App Store](https://apps.apple.com/app/expo-go/id982107779)). No Android Studio, Xcode, CocoaPods, Gradle, or Android SDK installations are required on the host machine.
+
+4. **Instant Over-The-Air (OTA) Updates via EAS Update:**
+   Mandi procurement circulars (such as DoCA Price Stabilisation Fund revisions, size tolerance relaxations, or dockage formula adjustments) change dynamically during the six-week Rabi procurement window. Standard app store review cycles take 3 to 7 days for Google Play and Apple App Store approval. Expo enables sub-minute Over-The-Air updates pushed directly to officers' handsets over cellular data, ensuring every gate officer enforces identical statutory grading thresholds simultaneously.
+
+5. **Universal Multi-Target Compilation (Native iOS + Native Android + Web Studio):**
+   Through Metro bundler and `react-native-web`, every screen component compiles cleanly to modern Web standards. This allows the exact same client to execute as a responsive desktop application inside web browsers (`http://localhost:3000`), providing mandi administrators with a full-screen desktop dashboard without maintaining a separate frontend repository.
+
+---
+
+### 10.2 Architectural Topology & Native Hardware Sensor Bridges
+
+The mobile client interfaces directly with device hardware through specialized, low-overhead native subsystems:
+
+| Subsystem | Expo Native Module | Hardware Capability & Mandi Application |
+|:---|:---|:---|
+| **Optical Capture** | `expo-camera` | Manages the CMOS image sensor. Provides continuous autofocus with tap-to-focus locking, 1x/2x digital zoom pills, front/rear lens toggling, and torch activation for dual-exposure FPI spectroscopy. |
+| **Acoustic Impulse** | `expo-av` | Interfaces with the smartphone MEMS microphone at 44.1 kHz / 16-bit PCM to capture physical tap resonance for hollow-heart rot analysis. |
+| **Geolocation Audit** | `expo-location` | Interrogates GPS/GLONASS hardware with 10-meter precision. Automatically tags inspection metadata with exact coordinates (`geo_lat`, `geo_lon`) to verify produce was appraised inside the gazetted APMC precinct (preventing fraudulent remote certification). |
+| **Tactile Telemetry** | `expo-haptics` | Employs electromagnetic vibration motors to deliver tactile click confirmations upon shutter actuation, quality gate clearance, or grade rejection. Indispensable in deafening APMC auction sheds where audio notifications are drowned out by tractor engines and megaphone bidding. |
+| **Media Pipeline** | `expo-image-picker` | Bridges the system photo gallery and document storage, allowing officers to load pre-captured benchmark lots, video sweep MP4 files, or high-speed burst sequences for offline grading. |
+
+#### Memory-Safe Multi-Stage Blob Bridge (`ApiClient.uriToBlob`)
+A critical engineering challenge on entry-level Android devices (2 GB – 3 GB RAM) is that decoding high-resolution camera data URIs via standard JavaScript `atob()` triggers instant Out-Of-Memory (OOM) heap exhaustion (`Failed to fetch: Out of memory`). CEPA resolves this through a multi-stage native streaming pipeline in [`mobile/src/api/client.ts`](file:///d:/Projects/Cepa/mobile/src/api/client.ts):
+- **Base64 Data URIs:** Streamed via native `fetch(dataUri).blob()` using the platform's internal C++ WinterCG blob implementation, completely bypassing the JavaScript engine heap.
+- **File System URIs (`file://`):** Read directly off flash storage into native binary buffers via React Native `XMLHttpRequest` (`responseType = 'blob'`).
+- **Chunked FormData Upload:** Dispatches binary blobs with explicit MIME headers (`image/jpeg`, `video/mp4`), matching the FastAPI gateway's streaming memory threshold (max 15 MB image, 50 MB video).
+
+---
+
+### 10.3 How to Run on Your Physical Device (Step-by-Step)
+
+You can run CEPA on physical Android smartphones, iPhones, emulators, or web browsers using the steps below.
+
+```
+                    ┌────────────────────────────────────────────────────────┐
+                    │                   SELECT RUNNER METHOD                 │
+                    └───────┬──────────────────────┬──────────────────┬──────┘
+                            │                      │                  │
+               ┌────────────▼──────────┐ ┌─────────▼────────┐ ┌───────▼────────┐
+               │ 1. 1-Click start.bat  │ │ 2. Expo Go (LAN) │ │ 3. Expo Tunnel │
+               │ (Windows Workstation) │ │ (Same Wi-Fi)     │ │ (Remote/Cell)  │
+               └───────────────────────┘ └──────────────────┘ └────────────────┘
+```
+
+#### Prerequisites
+1. **Node.js:** Ensure Node.js 18.x or 20.x is installed (`node -v`).
+2. **Python:** Ensure Python 3.10+ is installed (`python --version`).
+3. **Expo Go Application:** Install the official Expo Go app on your smartphone:
+   - **Android:** Download from [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+   - **iOS:** Download from [Apple App Store](https://apps.apple.com/app/expo-go/id982107779)
+
+---
+
+#### Method A: The 1-Click Interactive Launcher (`start.bat`)
+For Windows developers, the root directory includes an automated multi-process orchestration script ([`start.bat`](file:///d:/Projects/Cepa/start.bat)):
+
+1. Double-click `start.bat` in the project root (or run `.\start.bat` from PowerShell).
+2. The script autonomously performs environment discovery:
+   - Detects Python virtual environments (`venv`, `.venv`, or Conda `cepa-ml`).
+   - Checks if `node_modules` are installed in `mobile/` (installs via `npm install` if missing).
+   - Audits active ports to prevent collisions (if Port 3000 or 8000 are occupied, it automatically shifts to 3001 and 8001).
+3. Select launch mode:
+   - Press `1` for **Full Stack (Backend + Mobile Web App)** [Default].
+   - Both servers launch in dedicated terminal windows, and your default browser opens `http://localhost:3000`.
+
+---
+
+#### Method B: Running on a Physical Smartphone over Local Wi-Fi (Expo Go)
+To inspect authentic onion spreads using your physical smartphone camera:
+
+1. **Connect to the Same Wi-Fi:** Ensure your host computer and your smartphone are connected to the **same local Wi-Fi router / mobile hotspot**.
+2. **Start the Backend API:**
+   ```bash
+   cd Cepa/backend
+   python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+   > [!NOTE]
+   > Binding to `--host 0.0.0.0` is mandatory so that other devices on your local network can reach the server.
+3. **Find your Computer's Local IP Address:**
+   - **Windows:** Run `ipconfig` in PowerShell. Locate the `IPv4 Address` under your Wi-Fi adapter (e.g., `192.168.1.45`).
+   - **macOS / Linux:** Run `ifconfig` or `ip a` (e.g., `192.168.1.45`).
+4. **Launch the Expo Development Server:**
+   ```bash
+   cd Cepa/mobile
+   npx expo start
+   ```
+5. **Scan and Launch on Device:**
+   - **On Android:** Open the **Expo Go** app, tap **"Scan QR code"**, and point the camera at the QR code displayed in your computer terminal.
+   - **On iOS:** Open the native **Camera** app, point it at the QR code in your terminal, and tap the notification banner **"Open in Expo Go"**.
+   - The JavaScript bundle will compile and stream directly to your phone.
+
+---
+
+#### Method C: Running on a Physical Smartphone over Cellular / Remote Network (Expo Tunnel)
+If your smartphone is using 4G/5G mobile data or your local Wi-Fi network blocks peer-to-peer device communication (common on university, corporate, or hotel networks), use Expo's secure cloud tunnel:
+
+```bash
+cd Cepa/mobile
+npx expo start --tunnel
+```
+
+Expo spins up an encrypted ngrok tunnel. Scan the resulting QR code in Expo Go. The bundle and assets will stream over the internet through the tunnel without requiring local network pairing.
+
+---
+
+#### Method D: Running in Desktop Web Browser
+To use your laptop webcam or test the responsive Mandi Workstation layout:
+
+```bash
+cd Cepa/mobile
+npx expo start --web
+```
+Or simply press `w` in an active Expo CLI terminal. The application will open immediately at `http://localhost:3000`.
+
+---
+
+#### Method E: Running on Android Emulator / iOS Simulator
+- **Android Studio Emulator:** Launch your virtual device (AVD) in Android Studio, then press `a` in the Expo terminal. Expo will install Expo Go onto the emulator and open CEPA.
+- **iOS Simulator (macOS only):** Ensure Xcode Command Line Tools are configured, then press `i` in the Expo terminal.
+
+---
+
+### 10.4 Device IP Resolution & Network Connectivity Invariants
+
+One of the most frequent developer stumbling blocks in mobile client development is the **"localhost loopback trap"**:
+> **The Physical Device Loopback Trap:**  
+> On a physical smartphone, querying `http://localhost:8000` directs traffic to the **phone itself**, NOT your development computer. The request fails immediately with `Network request failed` or `Connection refused`.
+
+CEPA implements an autonomous, 4-tier network resolution algorithm in [`mobile/src/config.ts`](file:///d:/Projects/Cepa/mobile/src/config.ts):
+
+```typescript
+function resolveDefaultApiBaseUrl(): string {
+  // 1. Hosted Environment Guard (Vercel / Render / HTTPS domains)
+  if (isHostedEnvironment()) {
+    return 'https://cepa-backend.onrender.com';
+  }
+  // 2. Localhost Web Browser Execution
+  if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
+    return 'http://localhost:8001';
+  }
+  // 3. User Override from Local Storage
+  const saved = getStoredApiUrl();
+  if (saved) return saved;
+
+  // 4. Default for Physical Native Handsets (Expo Go / Standalone APK)
+  // Routes to the high-availability cloud backend so real phones work out-of-the-box!
+  return 'https://cepa-backend.onrender.com';
+}
+```
+
+#### Network Resolution Invariants:
+1. **Out-of-the-Box Phone Testing:** By defaulting native handsets to the deployed production backend (`https://cepa-backend.onrender.com`), any evaluator can install Expo Go, scan the QR code, and start capturing onion spreads immediately without configuring manual IP addresses.
+2. **Localhost Wi-Fi Override:** To point your phone at your local development machine, start Expo with your LAN IP:
+   ```bash
+   EXPO_PUBLIC_API_URL=http://192.168.1.45:8000 npx expo start
+   ```
+3. **Android Emulator Loopback:** In Android emulators, `10.0.2.2` is mapped to the host loopback (`http://10.0.2.2:8000`).
+4. **Strict Mixed-Content Security Guard:** If the app is loaded over HTTPS (e.g. on Vercel), browser security prohibits requests to unencrypted `http://localhost`. `config.ts` enforces HTTPS routing, purging stale insecure URLs from browser cache.
+5. **DPDP Officer Authentication Invariant:** All mutating inspection endpoints (`finalize`, `samples`, `video`, `fpi`, `announce`) require valid credentials. The client automatically injects the `X-Officer-Token` header (`getOfficerToken()`), pre-configured to `cepa-officer-secret-key-2026`.
+
+---
+
+### 10.5 Mandi Viewfinder HUD, Screen Flow & Offline Resilience
+
+The mobile application is structured around a streamlined, 6-screen transactional workflow optimized for single-handed use by field inspectors wearing protective work gloves:
+
+```
+[1. HomeScreen] ──────► [2. NewInspection] ──────► [3. CaptureScreen]
+(Lot Registry)          (AgriStack FID)             (ChArUco HUD & Flash)
+                                                          │
+                                                          ▼
+[6. FinalReport] ◄───── [5. ResultsScreen]  ◄───── [4. QualityCheck]
+(eNAM PDF & Seal)       (Bento KPIs & LLM)          (Laser Optical Scan)
+```
+
+1. **`HomeScreen.tsx` (Mandi Consignment Registry):**
+   - Displays real-time inspection history, aggregate lot metrics, and pending certification drafts.
+   - Houses the **Live Backend Health Badge** with automated heartbeat polling (`GET /api/v1/health`), displaying server latency and active computer vision provider state.
+
+2. **`NewInspectionScreen.tsx` (Intake Gate Registration):**
+   - Collects consignment metadata: Mandi Yard selector, declared truck consignment weight, and farmer credentials.
+   - **AgriStack 12-Digit FID Verification:** Integrates Indian Farmer ID validation, linking inspection lots to Aadhaar-seeded Direct Benefit Transfer (DBT) accounts.
+   - **Offline Draft Resilience:** If network connectivity drops inside a remote mandi shed, the screen automatically generates an offline local inspection session (`insp-offline-...`), allowing the officer to proceed with optical captures without stalling truck throughput.
+
+3. **`CaptureScreen.tsx` (Aerospace Mandi Viewfinder HUD):**
+   - Renders a high-contrast target reticle for framing the standardized ChArUco 7x5 calibration board.
+   - **Live Optical Controls:** 1x / 2x zoom pills, manual tap-to-focus indicator, and front/rear lens switching.
+   - **Multi-Modal Inspection Modes:**
+     - *Still Optical Spread:* Captures high-resolution calibrated spreads.
+     - *Video Sweep Sweep Mode:* Records a continuous pass over multi-tonne tractor trolleys, tracking bulbs across keyframes.
+     - *Dual-Exposure FPI Flash Torch:* Commands smartphone LED flash pulses for differential reflectance spectroscopy.
+     - *Native Camera Shutter Button:* Direct intent launcher for native OEM camera hardware.
+
+4. **`QualityCheckScreen.tsx` (Pre-Flight Metrology Verification):**
+   - Features an animated laser sweep across the captured frame.
+   - Evaluates the 6-point statutory quality gate: Laplacian blur index ($\ge 80$), specular glare fraction ($\le 5\%$), minimal resolution ($W, H \ge 400\text{ px}$), perspective homography validity, ChArUco corner count ($N \ge 4$), and minimum bulb threshold ($N \ge 1$).
+
+5. **`ResultsScreen.tsx` (Bento KPI Grid & Diagnostic Telemetry):**
+   - High-contrast Bento grid presenting total bulb count, Grade A percentage, Under-Sized / Over-Sized count, and estimated sample mass.
+   - **Interactive Bulb Crop Cards:** Tap any individual bulb to view segmented alpha masks, polar/equatorial caliper dimensions, and CIELAB chromaticity values.
+   - **Human-in-the-Loop Arbitration:** Enables authorized officers to override borderline model defect scores, logging full audit records (`human_corrected = True`).
+   - **Groq AI Agronomist Chat:** Multimodal interactive diagnostic advisory powered by Qwen-27B.
+   - **Acoustic Tap FFT:** Visualizes resonance peak ($f_0$) and Quality Factor ($Q$) for internal hollow-body decay.
+
+6. **`FinalReportScreen.tsx` (Official Certification & Settlement):**
+   - Generates the formal APMC Commercial Settlement Slip detailing gross payout, quality dockages, and net payable value.
+   - Provides 1-tap download of the official ReportLab PDF/A certificate bearing the cryptographic SHA-256 seal and vector QR code.
+   - Generates multilingual voice grade announcements in 7 Indian regional languages via Bhashini TTS.
+
+---
+
+### 10.6 Standalone Production Compilation (APK & Web Export)
+
+For enterprise deployment to state procurement agencies without Expo Go:
+
+#### 1. Compiling a Standalone Android APK (EAS Build)
+To produce an installable `.apk` binary for distribution to field officers' handsets:
+```bash
+# 1. Install Expo Application Services (EAS) CLI globally
+npm install -g eas-cli
+
+# 2. Authenticate with Expo account
+eas login
+
+# 3. Configure build profile (selects APK artifact instead of AAB bundle)
+eas build:configure
+
+# 4. Trigger cloud compilation
+eas build -p android --profile preview
+```
+The cloud build service returns a direct download URL and QR code to install the native `cepa-field-officer.apk` on any Android device.
+
+#### 2. Compiling Static Production Web Bundle
+To build an optimized static single-page application for hosting on Nginx, Apache, or Vercel:
+```bash
+cd mobile
+npx expo export -p web
+```
+The optimized production bundle is generated in `mobile/dist/`, ready for zero-configuration edge hosting.
+
+---
 
 
 ---
@@ -810,7 +1081,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 </details>
 
 <details>
-<summary><b>Appendix C: Complete Test Suite Verification Trace (124 Passed) (Click to expand)</b></summary>
+<summary><b>Appendix C: Complete Test Suite Verification Trace (156 Passed) (Click to expand)</b></summary>
 
 <br />
 
@@ -820,23 +1091,37 @@ platform win32 -- Python 3.12.0, pytest-9.1.1, pluggy-1.6.0
 rootdir: D:\Projects\Cepa\backend
 configfile: pyproject.toml
 plugins: anyio-4.15.1, asyncio-1.4.0
-asyncio: mode=Mode.STRICT, debug=False
-collected 125 items
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 157 items
 
-tests\test_acoustic_service.py .........                                 [  7%]
-tests\test_advanced_morphometry.py ............                          [ 16%]
-tests\test_api.py .........                                              [ 24%]
-tests\test_bhashini_service.py .....................................     [ 53%]
-tests\test_calibration_and_debris.py ...                                 [ 56%]
-tests\test_commercial_and_shelflife.py ......                            [ 60%]
-tests\test_enam_export_service.py ..........                             [ 68%]
-tests\test_flash_proxy.py ..............                                 [ 80%]
-tests\test_grading_engine.py .............                               [ 90%]
-tests\test_live_video.py s                                               [ 91%]
-tests\test_quality_gate.py ......                                        [ 96%]
-tests\test_size_estimator.py .....                                       [100%]
+backend\tests\test_acoustic_service.py .........                         [  5%]
+backend\tests\test_advanced_morphometry.py ............                  [ 13%]
+backend\tests\test_api.py ............                                   [ 21%]
+backend\tests\test_audit_remediation.py ............                     [ 28%]
+backend\tests\test_bhashini_service.py ................................. [ 49%]
+....                                                                     [ 52%]
+backend\tests\test_calibration_and_debris.py ...                         [ 54%]
+backend\tests\test_commercial_and_shelflife.py .......                   [ 58%]
+backend\tests\test_enam_export_service.py ..........                     [ 64%]
+backend\tests\test_flash_proxy.py ..............                         [ 73%]
+backend\tests\test_grading_engine.py .............                       [ 82%]
+backend\tests\test_live_video.py s                                       [ 82%]
+backend\tests\test_metrology_accuracy.py .                               [ 83%]
+backend\tests\test_onion_validator.py ...............                    [ 92%]
+backend\tests\test_quality_gate.py ......                                [ 96%]
+backend\tests\test_size_estimator.py .....                               [100%]
 
-================= 124 passed, 1 skipped, 2 warnings in 28.14s =================
+============================== warnings summary ===============================
+C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\ubaid\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 156 passed, 1 skipped, 2 warnings in 13.25s =================
 ```
 
 </details>
@@ -999,20 +1284,63 @@ pytest -v
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Mobile Field Client Installation
+### 1-Click Interactive Full-Stack Launcher (`start.bat`)
+
+For Windows workstations, launch the complete orchestrated system with automatic port conflict detection:
+```cmd
+# Double-click start.bat in the root directory, or execute from terminal:
+.\start.bat
+```
+- Automatically resolves Python venv, Node dependencies, and port availability.
+- Option `[1]` runs both the FastAPI Backend (`:8000` / `:8001`) and Expo Web Studio (`:3000` / `:3001`).
+- Option `[6]` executes the automated verification suite.
+
+---
+
+### Mobile Field Client Installation & Physical Device Execution
 
 ```bash
-# 1. Navigate to mobile directory
+# 1. Navigate to mobile directory and install dependencies
 cd Cepa/mobile
-
-# 2. Install JavaScript dependencies
 npm install
 
-# 3. Start Expo development server
+# 2. Run on physical smartphone over local Wi-Fi (Expo Go)
+# Ensure smartphone and computer share the same Wi-Fi network:
 npx expo start
+
+# 3. Run on physical smartphone over cellular / remote networks (Expo Tunnel)
+# Bypasses local network firewalls and NAT barriers:
+npx expo start --tunnel
+
+# 4. Run in desktop web browser
+npx expo start --web
+
+# 5. Run on Android Studio Emulator / iOS Simulator
+npx expo run:android   # or press 'a' in active Expo CLI
+npx expo run:ios       # or press 'i' in active Expo CLI
 ```
 
-Press `w` to launch the mobile client in a web browser, or scan the QR code with Expo Go on Android or iOS.
+#### Connecting Physical Devices to Local Backend:
+On physical phones, `localhost` points to the phone's internal loopback. By default, CEPA connects to the high-availability cloud backend (`https://cepa-backend.onrender.com`). To connect your physical phone to your local machine over Wi-Fi:
+```bash
+# Set your host computer's LAN IP (e.g. 192.168.1.45)
+EXPO_PUBLIC_API_URL=http://<YOUR_LAN_IP>:8000 npx expo start
+```
+
+#### Standalone Android APK Compilation (EAS Build):
+```bash
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview
+```
+
+#### Static Production Web Bundle Export:
+```bash
+cd Cepa/mobile
+npx expo export -p web
+```
+
+---
 
 ### Production Environment Variables (`.env`)
 
@@ -1023,11 +1351,15 @@ BACKEND_ENV=production
 # Active Procurement Policy (DEMO_ASSUMPTION_v1 / NAFED_2026_v1 / BIS_IS_17912_2022)
 ACTIVE_GRADING_POLICY=DEMO_ASSUMPTION_v1
 
-# Defect Classifier Mock Mode (true: rule-based mock; false: requires trained weights)
-DEF_USE_MOCK=true
+# Defect Classifier Mock Mode (true: deterministic mock; false: requires trained MobileNetV3 weights)
+DEF_USE_MOCK=false
 
-# CORS Allowed Origins (Comma-separated)
-CORS_ORIGINS=http://localhost:8081,http://localhost:19006,exp://localhost:8081,https://*.vercel.app
+# Officer Authentication & Access Control (DPDP Compliance)
+ENFORCE_OFFICER_AUTH=true
+OFFICER_API_KEY=cepa-officer-secret-key-2026
+
+# CORS Allowed Origins
+CORS_ORIGINS=http://localhost:3000,http://localhost:8081,http://localhost:19006,exp://localhost:8081
 
 # Multimodal Groq AI API Key (Groq Cloud)
 GROQ_API_KEY=gsk_your_groq_api_key_here
