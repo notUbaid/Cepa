@@ -132,28 +132,14 @@ def run_pipeline(
         defect_model_version=defect_classifier.model_version,
     )
 
-    # ── Decode image ───────────────────────────────────────────────────────────
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    # ── Decode image (multi-format with EXIF orientation correction) ───────────
+    from cv.image_decoder import decode_image_to_bgr
+    image = decode_image_to_bgr(image_bytes)
     if image is None:
         result.failure_message = "Could not decode image. Please recapture."
         result.quality_flags = ["corrupt_image"]
         logger.error("Could not decode image for sample %s", sample_id)
         return result
-
-    # ── EXIF orientation correction ────────────────────────────────────────────
-    # Mobile cameras embed orientation in EXIF; cv2.imdecode ignores it.
-    # Use PIL to apply the correct rotation so the image is always right-side-up.
-    try:
-        import io
-        from PIL import Image as _PILImage, ExifTags as _ExifTags, ImageOps as _ImageOps
-        _pil_img = _PILImage.open(io.BytesIO(image_bytes))
-        _pil_img = _ImageOps.exif_transpose(_pil_img)
-        # Convert PIL RGB → OpenCV BGR numpy array
-        image = cv2.cvtColor(np.array(_pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
-        logger.debug("EXIF-transposed image to %dx%d", image.shape[1], image.shape[0])
-    except Exception as _exif_err:
-        logger.debug("EXIF transpose skipped (%s); using raw decode", _exif_err)
 
 
     logger.info(

@@ -21,17 +21,23 @@ from config import settings
 
 def save_image(image_bytes: bytes, inspection_id: str) -> str:
     """
-    Save a raw image upload to persistent storage.
+    Save an image upload to persistent storage in universal JPEG format.
+    Automatically normalizes multi-format uploads (HEIC, TIFF, BMP, WebP, AVIF)
+    to baseline JPEG to guarantee error-free rendering in web browsers, mobile webviews,
+    and ReportLab PDF generators.
 
     Returns:
         Relative path (relative to storage_dir) suitable for storing in DB.
     """
+    from cv.image_decoder import transcode_to_standard_jpeg
+    normalized_bytes = transcode_to_standard_jpeg(image_bytes)
+
     images_dir = settings.storage_dir / "images" / inspection_id
     images_dir.mkdir(parents=True, exist_ok=True)
 
     filename = f"{uuid.uuid4()}.jpg"
     abs_path = images_dir / filename
-    abs_path.write_bytes(image_bytes)
+    abs_path.write_bytes(normalized_bytes)
 
     # Return relative path (relative to storage_dir)
     rel_path = f"images/{inspection_id}/{filename}"

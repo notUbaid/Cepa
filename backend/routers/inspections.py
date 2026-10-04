@@ -399,7 +399,7 @@ async def update_inspection(
 @router.post("/inspections/{inspection_id}/samples", status_code=status.HTTP_201_CREATED)
 async def add_sample(
     inspection_id: str,
-    file: UploadFile = File(..., description="Captured onion spread image (JPEG/PNG)"),
+    file: UploadFile = File(..., description="Captured onion spread image (JPEG/PNG/WebP/HEIC/BMP/TIFF/AVIF)"),
     acoustic_file: UploadFile | None = File(None, description="Optional acoustic tap WAV recording"),
     bulb_mass_g: float | None = Form(None, description="Optional bulb mass in grams for Elasticity Index"),
     geo_lat: float | None = Form(None),
@@ -1042,14 +1042,12 @@ async def analyze_flash_proxy_endpoint(
         amb_bytes = await ambient_file.read()
         flash_bytes = await flash_file.read()
 
-        amb_np = np.frombuffer(amb_bytes, np.uint8)
-        flash_np = np.frombuffer(flash_bytes, np.uint8)
-
-        amb_bgr = cv2.imdecode(amb_np, cv2.IMREAD_COLOR)
-        flash_bgr = cv2.imdecode(flash_np, cv2.IMREAD_COLOR)
+        from cv.image_decoder import decode_image_to_bgr
+        amb_bgr = decode_image_to_bgr(amb_bytes)
+        flash_bgr = decode_image_to_bgr(flash_bytes)
 
         if amb_bgr is None or flash_bgr is None:
-            raise HTTPException(status_code=400, detail="Invalid image bytes: could not decode JPEG/PNG")
+            raise HTTPException(status_code=400, detail="Invalid image bytes: could not decode image (JPEG/PNG/WebP/HEIC/BMP/TIFF/AVIF)")
 
         # Downscale for memory efficiency on constrained cloud containers (512MB RAM)
         max_dim = 800
@@ -1068,7 +1066,7 @@ async def analyze_flash_proxy_endpoint(
         heatmap_b64 = encode_heatmap_to_base64(heatmap_bgr)
 
         import gc
-        del amb_bytes, flash_bytes, amb_np, flash_np, amb_bgr, flash_bgr, fpi_map, full_mask, heatmap_bgr
+        del amb_bytes, flash_bytes, amb_bgr, flash_bgr, fpi_map, full_mask, heatmap_bgr
         gc.collect()
 
         return {

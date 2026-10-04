@@ -25,9 +25,26 @@ router = APIRouter(tags=["storage"])
 MIME_TYPE_MAP = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
+    ".jpe": "image/jpeg",
+    ".jfif": "image/jpeg",
     ".png": "image/png",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
+    ".heif": "image/heif",
+    ".bmp": "image/bmp",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".avif": "image/avif",
+    ".gif": "image/gif",
     ".pdf": "application/pdf",
     ".mp4": "video/mp4",
+    ".mov": "video/quicktime",
+    ".webm": "video/webm",
+    ".m4v": "video/x-m4v",
+    ".mkv": "video/x-matroska",
+    ".avi": "video/avi",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
 }
 
 

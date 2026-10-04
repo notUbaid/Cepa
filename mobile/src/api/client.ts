@@ -194,7 +194,16 @@ export class ApiClient {
     }
     const filename = rawFilename.includes('.') ? rawFilename : `${rawFilename}.jpg`;
     const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+    const ext = match ? match[1].toLowerCase() : 'jpg';
+    let type = 'image/jpeg';
+    if (ext === 'png') type = 'image/png';
+    else if (ext === 'webp') type = 'image/webp';
+    else if (ext === 'heic') type = 'image/heic';
+    else if (ext === 'heif') type = 'image/heif';
+    else if (ext === 'bmp') type = 'image/bmp';
+    else if (ext === 'tif' || ext === 'tiff') type = 'image/tiff';
+    else if (ext === 'avif') type = 'image/avif';
+    else if (ext === 'gif') type = 'image/gif';
 
     const blob = await this.uriToBlob(fileUri, type);
 
