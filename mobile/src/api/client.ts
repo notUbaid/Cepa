@@ -129,9 +129,36 @@ export class ApiClient {
     geo_lat?: number;
     geo_lon?: number;
     location_accuracy?: number;
+    cut_test_performed?: boolean;
+    cut_test_bulbs_count?: number;
+    cut_test_internal_defects_found?: number;
+    cut_test_notes?: string;
   }): Promise<InspectionDetail> {
     return this.request<InspectionDetail>('/api/v1/inspections', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async updateInspection(
+    id: string,
+    data: {
+      lot_id?: string;
+      farmer_name?: string;
+      farmer_id?: string;
+      procurement_centre?: string;
+      officer_name?: string;
+      officer_id?: string;
+      notes?: string;
+      cut_test_performed?: boolean;
+      cut_test_bulbs_count?: number;
+      cut_test_internal_defects_found?: number;
+      cut_test_notes?: string;
+    }
+  ): Promise<InspectionDetail> {
+    return this.request<InspectionDetail>(`/api/v1/inspections/${id}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });

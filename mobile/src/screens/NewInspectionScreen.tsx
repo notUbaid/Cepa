@@ -43,6 +43,10 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
   const [officerName, setOfficerName] = useState('');
   const [officerId, setOfficerId] = useState('');
   const [notes, setNotes] = useState('');
+  const [cutTestPerformed, setCutTestPerformed] = useState(false);
+  const [cutTestBulbsCount, setCutTestBulbsCount] = useState('10');
+  const [cutTestInternalDefects, setCutTestInternalDefects] = useState('0');
+  const [cutTestNotes, setCutTestNotes] = useState('');
 
   // GPS state
   const [location, setLocation] = useState<{
@@ -93,6 +97,10 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         geo_lat: location.lat,
         geo_lon: location.lon,
         location_accuracy: location.accuracy,
+        cut_test_performed: cutTestPerformed,
+        cut_test_bulbs_count: cutTestPerformed ? parseInt(cutTestBulbsCount, 10) || 0 : undefined,
+        cut_test_internal_defects_found: cutTestPerformed ? parseInt(cutTestInternalDefects, 10) || 0 : undefined,
+        cut_test_notes: cutTestPerformed ? (cutTestNotes.trim() || undefined) : undefined,
       });
       onInspectionCreated(inspection, targetMode);
     } catch (err: any) {
@@ -109,6 +117,10 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
         officer_name: officerName.trim() || 'Officer',
         officer_id: officerId.trim() || 'OFF-01',
         notes: notes.trim() || null,
+        cut_test_performed: cutTestPerformed,
+        cut_test_bulbs_count: cutTestPerformed ? parseInt(cutTestBulbsCount, 10) || 0 : undefined,
+        cut_test_internal_defects_found: cutTestPerformed ? parseInt(cutTestInternalDefects, 10) || 0 : undefined,
+        cut_test_notes: cutTestPerformed ? (cutTestNotes.trim() || null) : null,
         geo_lat: location.lat ?? null,
         geo_lon: location.lon ?? null,
         location_accuracy: location.accuracy ?? null,
@@ -282,6 +294,84 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
                 value={notes}
                 onChangeText={setNotes}
               />
+            </View>
+
+            {/* Assayer Internal Cut-Test Protocol */}
+            <View style={styles.cutTestCard}>
+              <View style={styles.cutTestCardHeader}>
+                <View style={{ flex: 1, paddingRight: Spacing.xs }}>
+                  <Text style={styles.cutTestCardTag}>ASSAYER INTERNAL AUDIT · प्रत्यक्ष तपासणी</Text>
+                  <Text style={styles.cutTestCardTitle}>Officer Destructive Cut-Test</Text>
+                </View>
+                <AnimatedPressable
+                  haptic="selection"
+                  style={[
+                    styles.cutTestToggleBtn,
+                    cutTestPerformed ? styles.cutTestToggleBtnActive : styles.cutTestToggleBtnInactive,
+                  ]}
+                  onPress={() => setCutTestPerformed(!cutTestPerformed)}
+                >
+                  <Feather
+                    name={cutTestPerformed ? "check-circle" : "circle"}
+                    size={12}
+                    color={cutTestPerformed ? "#059669" : Colors.textMuted}
+                  />
+                  <Text
+                    style={[
+                      styles.cutTestToggleText,
+                      cutTestPerformed ? styles.cutTestToggleTextActive : styles.cutTestToggleTextInactive,
+                    ]}
+                  >
+                    {cutTestPerformed ? 'Performed' : 'Optical Only'}
+                  </Text>
+                </AnimatedPressable>
+              </View>
+
+              {cutTestPerformed ? (
+                <View style={styles.cutTestExpandedContent}>
+                  <Text style={styles.cutTestHelperText}>
+                    Record results of cross-section slicing (sample 5–10 bulbs) to verify internal rot, smudged scales, or hollow heart before certifying.
+                  </Text>
+                  <View style={styles.rowFields}>
+                    <View style={[styles.fieldGroup, { flex: 1, marginRight: Spacing.sm }]}>
+                      <Text style={styles.label}>Bulbs Sliced</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="10"
+                        placeholderTextColor={Colors.textDim}
+                        keyboardType="numeric"
+                        value={cutTestBulbsCount}
+                        onChangeText={setCutTestBulbsCount}
+                      />
+                    </View>
+                    <View style={[styles.fieldGroup, { flex: 1 }]}>
+                      <Text style={styles.label}>Internal Defects</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="0"
+                        placeholderTextColor={Colors.textDim}
+                        keyboardType="numeric"
+                        value={cutTestInternalDefects}
+                        onChangeText={setCutTestInternalDefects}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Internal Quality Notes</Text>
+                    <TextInput
+                      style={[styles.input, { minHeight: 46 }]}
+                      placeholder="e.g. Sound dry scales, no internal rot or black mould"
+                      placeholderTextColor={Colors.textDim}
+                      value={cutTestNotes}
+                      onChangeText={setCutTestNotes}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.cutTestOptText}>
+                  Default: Non-destructive optical grading active. Tap toggle if physical cross-section slicing was conducted.
+                </Text>
+              )}
             </View>
           </View>
         </FadeInView>
@@ -584,5 +674,77 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
+  },
+  cutTestCard: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  cutTestCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cutTestCardTag: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.accentTeal,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  cutTestCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  cutTestToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+  },
+  cutTestToggleBtnActive: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  cutTestToggleBtnInactive: {
+    backgroundColor: Colors.cardBg,
+    borderColor: Colors.borderMuted,
+  },
+  cutTestToggleText: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  cutTestToggleTextActive: {
+    color: '#059669',
+  },
+  cutTestToggleTextInactive: {
+    color: Colors.textMuted,
+  },
+  cutTestExpandedContent: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderMuted,
+  },
+  cutTestHelperText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    lineHeight: 16,
+    marginBottom: Spacing.sm,
+  },
+  cutTestOptText: {
+    fontSize: 11,
+    color: Colors.textDim,
+    lineHeight: 16,
+    marginTop: 6,
   },
 });

@@ -407,6 +407,74 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         </View>
       </FadeInView>
 
+      {/* Assayer Destructive Cut-Test Protocol Card */}
+      <FadeInView delay={235} distance={12}>
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.cardSectionTag}>ASSAYER INTERNAL PROTOCOL</Text>
+              <Text style={styles.sectionHeaderTitle}>Destructive Cut-Test Record · छेद-चाचणी</Text>
+            </View>
+            <View
+              style={[
+                styles.tierPill,
+                report.cut_test_performed
+                  ? { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' }
+                  : { backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.1)' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tierPillText,
+                  report.cut_test_performed ? { color: Colors.accent } : { color: Colors.textMuted },
+                ]}
+              >
+                {report.cut_test_performed ? 'VERIFIED' : 'OPTIONAL MODE'}
+              </Text>
+            </View>
+          </View>
+
+          {report.cut_test_performed ? (
+            <View style={{ marginTop: Spacing.sm }}>
+              <View style={styles.cutTestGrid}>
+                <View style={styles.cutTestMetric}>
+                  <Text style={styles.cutTestLabel}>BULBS SLICED</Text>
+                  <Text style={styles.cutTestVal}>{report.cut_test_bulbs_count ?? 0} Bulbs</Text>
+                </View>
+                <View style={styles.cutTestMetric}>
+                  <Text style={styles.cutTestLabel}>INTERNAL ROT FOUND</Text>
+                  <Text
+                    style={[
+                      styles.cutTestVal,
+                      (report.cut_test_internal_defects_found ?? 0) > 0
+                        ? { color: Colors.reject }
+                        : { color: Colors.accent },
+                    ]}
+                  >
+                    {(report.cut_test_internal_defects_found ?? 0) > 0
+                      ? `${report.cut_test_internal_defects_found} Defective`
+                      : '0 (Clean / Sound)'}
+                  </Text>
+                </View>
+              </View>
+              {report.cut_test_notes ? (
+                <View style={styles.cutTestNotesBox}>
+                  <Text style={styles.cutTestNotesLabel}>OFFICER CROSS-SECTION NOTES:</Text>
+                  <Text style={styles.cutTestNotesText}>{report.cut_test_notes}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <View style={styles.cutTestEmptyBox}>
+              <Feather name="shield" size={16} color={Colors.textMuted} style={{ marginRight: 8 }} />
+              <Text style={styles.cutTestEmptyText}>
+                Non-destructive optical grading active. No physical destructive cut-test logged for this consignment.
+              </Text>
+            </View>
+          )}
+        </View>
+      </FadeInView>
+
       {/* Defect Occurrences */}
       <FadeInView delay={250} distance={12}>
         <View style={styles.sectionCard}>
@@ -1310,5 +1378,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#059669',
+  },
+  cutTestGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  cutTestMetric: {
+    flex: 1,
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  cutTestLabel: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  cutTestVal: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: Colors.text,
+  },
+  cutTestNotesBox: {
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  cutTestNotesLabel: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  cutTestNotesText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  cutTestEmptyBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBgElevated,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderMuted,
+  },
+  cutTestEmptyText: {
+    flex: 1,
+    fontSize: 11,
+    color: Colors.textMuted,
+    lineHeight: 16,
   },
 });

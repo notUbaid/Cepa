@@ -17,11 +17,16 @@ export interface InspectionSummary {
   grade_a_pct?: number;
   urs_pct?: number;
   rejected_pct?: number;
+  cut_test_performed?: boolean;
 }
 
 export interface InspectionDetail extends InspectionSummary {
   officer_id: string | null;
   notes: string | null;
+  cut_test_performed?: boolean;
+  cut_test_bulbs_count?: number;
+  cut_test_internal_defects_found?: number;
+  cut_test_notes?: string | null;
   geo_lat: number | null;
   geo_lon: number | null;
   location_accuracy: number | null;
@@ -180,6 +185,10 @@ export interface ReportDetail {
   officer_name: string | null;
   officer_id: string | null;
   officer_notes: string | null;
+  cut_test_performed?: boolean;
+  cut_test_bulbs_count?: number;
+  cut_test_internal_defects_found?: number;
+  cut_test_notes?: string | null;
   sample_count: number;
   sampling_note: string;
   total_bulbs: number;
