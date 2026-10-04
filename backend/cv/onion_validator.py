@@ -92,6 +92,7 @@ class OnionAuthenticityValidator:
             )
 
         # ── 2. Solidity & Circularity Gate ─────────────────────────────────────
+        solidity = 1.0
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if cnts:
             c = max(cnts, key=cv2.contourArea)
@@ -119,6 +120,7 @@ class OnionAuthenticityValidator:
 
         metrics = {
             "aspect_ratio": aspect_ratio,
+            "solidity": solidity,
             "median_h": median_h,
             "median_s": median_s,
             "median_v": median_v,
@@ -228,14 +230,27 @@ class OnionAuthenticityValidator:
         # ── 11. Deep Learning ImageNet Gate (Reject humans, clothes, electronics) ──
         try:
             is_valid_food = _check_imagenet_food(crop_bgr)
-            metrics["imagenet_valid_food"] = float(is_valid_food)
-            if not is_valid_food:
+            if is_valid_food is False:
+                metrics["imagenet_valid_food"] = 0.0
                 logger.info("Rejected candidate: Neural network classified object as non-food (human/clothing/etc).")
                 return AuthenticityResult(
                     is_onion=False,
                     rejection_reason="non_food_object_detected",
                     metrics=metrics,
                 )
+            elif is_valid_food is True:
+                metrics["imagenet_valid_food"] = 1.0
+            else:
+                # DL weights offline/unavailable: enforce strict botanical criteria so system never fails open
+                metrics["imagenet_valid_food"] = -1.0
+                solidity_val = metrics.get("solidity", 1.0)
+                if solidity_val < 0.72 or onion_pigment_frac < 0.65 or aspect_ratio < 0.58 or aspect_ratio > 1.70:
+                    logger.info("Rejected candidate: offline mode failed strict botanical criteria (solidity=%.2f, pigment=%.2f)", solidity_val, onion_pigment_frac)
+                    return AuthenticityResult(
+                        is_onion=False,
+                        rejection_reason="strict_botanical_gate_failure_offline",
+                        metrics=metrics,
+                    )
         except Exception as e:
             logger.warning("ImageNet validation failed: %s", e)
 
@@ -282,10 +297,15 @@ class OnionAuthenticityValidator:
 _imagenet_model = None
 _imagenet_transforms = None
 
-def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
+def _check_imagenet_food(bgr_img: np.ndarray) -> bool | None:
     """
     Passes the crop through a tiny MobileNetV3 to ensure it's not a person, 
-    clothing, or furniture. ImageNet has 1000 classes.
+    clothing, furniture, or non-food object. ImageNet has 1000 classes.
+
+    Returns:
+        True: Confirmed food/produce.
+        False: Confirmed non-food object (>0.30 probability).
+        None: Weights offline or unavailable (activates strict botanical fallback).
     """
     global _imagenet_model, _imagenet_transforms
     import torch
@@ -305,10 +325,10 @@ def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
         except Exception as e:
             logger.warning("MobileNetV3 ImageNet weights unavailable (offline/edge mode): %s", e)
             _imagenet_model = False
-            return True
+            return None
 
     if _imagenet_model is False:
-        return True
+        return None
 
     img_rgb = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(img_rgb)
@@ -336,9 +356,9 @@ def _check_imagenet_food(bgr_img: np.ndarray) -> bool:
     
     top_id = int(top_catid[0].item())
     
-    # Only reject if the network is genuinely confident (>45%) it is an animal (0-397) or clothing/object (400-890)
+    # Reject if the network is confident (>30%) it is an animal (0-397) or clothing/object (400-890)
     if top_id < 900 and top_id not in [881, 117, 988, 947]:
-        if top_prob[0].item() > 0.45:
+        if top_prob[0].item() > 0.30:
             return False
             
     return True

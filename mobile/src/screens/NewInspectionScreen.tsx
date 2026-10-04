@@ -28,11 +28,13 @@ import {
 interface NewInspectionScreenProps {
   onInspectionCreated: (inspection: InspectionDetail, mode?: 'CAMERA' | 'UPLOAD' | 'VIDEO') => void;
   onCancel: () => void;
+  initialMode?: 'CAMERA' | 'UPLOAD' | 'VIDEO';
 }
 
 export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
   onInspectionCreated,
   onCancel,
+  initialMode = 'CAMERA',
 }) => {
   const [lotId, setLotId] = useState('');
   const [farmerName, setFarmerName] = useState('');
@@ -76,7 +78,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
     })();
   }, []);
 
-  const handleStartCapture = async (targetMode: 'CAMERA' | 'UPLOAD' = 'CAMERA') => {
+  const handleStartCapture = async (targetMode: 'CAMERA' | 'UPLOAD' | 'VIDEO' = initialMode) => {
     Haptics.heavy();
     setSubmitting(true);
     try {
@@ -97,7 +99,7 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
       console.warn('Network inspection creation failed, falling back to local inspection:', err.message);
       // Resilient local inspection object so user is NEVER blocked from opening the camera
       const fallbackInspection: InspectionDetail = {
-        id: `local-${Date.now()}`,
+        id: `insp-offline-${Date.now()}`,
         lot_id: lotId.trim() || `LOT-${Date.now().toString().slice(-4)}`,
         created_at: new Date().toISOString(),
         finalized_at: null,
@@ -300,32 +302,74 @@ export const NewInspectionScreen: React.FC<NewInspectionScreenProps> = ({
               <AnimatedPressable
                 haptic="heavy"
                 style={styles.submitBtn}
-                onPress={() => handleStartCapture('CAMERA')}
+                onPress={() => handleStartCapture(initialMode)}
                 disabled={submitting}
               >
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Text style={styles.submitBtnText}>Continue to Camera</Text>
-                    <Feather name="arrow-right" size={14} color="#ffffff" />
+                    <Text style={styles.submitBtnText}>
+                      {initialMode === 'VIDEO'
+                        ? 'Continue to Video Sweep'
+                        : initialMode === 'UPLOAD'
+                        ? 'Continue to Photo Upload'
+                        : 'Continue to Camera'}
+                    </Text>
+                    <Feather
+                      name={initialMode === 'VIDEO' ? 'video' : initialMode === 'UPLOAD' ? 'upload-cloud' : 'arrow-right'}
+                      size={14}
+                      color="#ffffff"
+                    />
                   </View>
                 )}
               </AnimatedPressable>
             </View>
 
-            <AnimatedPressable
-              haptic="medium"
-              style={styles.uploadDirectBtn}
-              onPress={() => handleStartCapture('UPLOAD')}
-              disabled={submitting}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <Feather name="upload-cloud" size={14} color="#059669" />
-                <Text style={styles.uploadDirectBtnText}>Upload Photo File Directly</Text>
-                <Feather name="arrow-right" size={14} color="#059669" />
-              </View>
-            </AnimatedPressable>
+            {/* Alternative quick triggers */}
+            <View style={styles.altButtonsRow}>
+              {initialMode !== 'CAMERA' && (
+                <AnimatedPressable
+                  haptic="medium"
+                  style={[styles.altBtn, { flex: 1 }]}
+                  onPress={() => handleStartCapture('CAMERA')}
+                  disabled={submitting}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Feather name="camera" size={13} color="#059669" />
+                    <Text style={styles.altBtnText}>Live Camera</Text>
+                  </View>
+                </AnimatedPressable>
+              )}
+
+              {initialMode !== 'VIDEO' && (
+                <AnimatedPressable
+                  haptic="medium"
+                  style={[styles.altBtn, { flex: 1 }]}
+                  onPress={() => handleStartCapture('VIDEO')}
+                  disabled={submitting}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Feather name="video" size={13} color="#059669" />
+                    <Text style={styles.altBtnText}>Video Sorter</Text>
+                  </View>
+                </AnimatedPressable>
+              )}
+
+              {initialMode !== 'UPLOAD' && (
+                <AnimatedPressable
+                  haptic="medium"
+                  style={[styles.altBtn, { flex: 1 }]}
+                  onPress={() => handleStartCapture('UPLOAD')}
+                  disabled={submitting}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Feather name="upload-cloud" size={13} color="#059669" />
+                    <Text style={styles.altBtnText}>Upload File</Text>
+                  </View>
+                </AnimatedPressable>
+              )}
+            </View>
           </View>
         </FadeInView>
       </ScrollView>
@@ -521,6 +565,24 @@ const styles = StyleSheet.create({
   uploadDirectBtnText: {
     color: Colors.text,
     fontSize: 13,
+    fontWeight: '600',
+  },
+  altButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  altBtn: {
+    paddingVertical: 12,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.cardBgElevated,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  altBtnText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

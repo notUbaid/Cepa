@@ -454,19 +454,24 @@ def generate_pdf_report(
     qr_drawing.add(qr_widget)
 
     from services.crypto_seal import compute_inspection_seal
-    cert_seal, img_sha256 = compute_inspection_seal(report, inspection)
+    seal_res = compute_inspection_seal(report, inspection)
+    cert_seal = getattr(report, "cryptographic_seal", None) or seal_res.seal_hex
+    img_sha256 = getattr(report, "image_sha256", None) or seal_res.image_sha256 or "PHOTO_UNAVAILABLE"
+    seal_status = getattr(report, "seal_status", None) or getattr(seal_res, "seal_status", "VALID")
 
     verify_info = (
         f"<b>Scan QR to access inspection record online:</b><br/>"
         f"<font color='#2980b9'>{share_url}</font><br/><br/>"
-        f"<b>Cryptographic Sovereign Seal:</b> <code>HMAC-SHA256:{cert_seal[:32]}...</code><br/>"
-        f"<b>Sample Optical Hash:</b> <code>SHA256:{img_sha256[:20]}...</code><br/>"
-        f"<b>Verification Token:</b> {report.share_token}<br/>"
+        f"<b>Cryptographic Sovereign Seal:</b><br/>"
+        f"<font size='6.5'><code>HMAC-SHA256:{cert_seal}</code></font><br/>"
+        f"<b>Sample Optical Hash:</b><br/>"
+        f"<font size='6.5'><code>SHA256:{img_sha256}</code></font><br/>"
+        f"<b>Seal Verification Status:</b> <b>{seal_status}</b> &nbsp;|&nbsp; <b>Verification Token:</b> {report.share_token}<br/>"
         f"<i>This HMAC-SHA256 seal cryptographically binds the raw sample optical capture, "
         f"assayer officer credential, and final defect/grade distribution metrics.</i>"
     )
 
-    qr_table = Table([[qr_drawing, Paragraph(verify_info, ParagraphStyle("QRText", parent=styles["Normal"], fontSize=8.5, leading=12))]], colWidths=[3.5 * cm, 12.5 * cm])
+    qr_table = Table([[qr_drawing, Paragraph(verify_info, ParagraphStyle("QRText", parent=styles["Normal"], fontSize=8, leading=10.5))]], colWidths=[3.5 * cm, 12.5 * cm])
     qr_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4),

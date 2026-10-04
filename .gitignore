@@ -20,6 +20,8 @@ env/
 storage/
 cepa_storage/
 backend/storage/
+backend/storage_old/
+storage_old/
 *.db
 *.db-shm
 *.db-wal
@@ -110,3 +112,6 @@ ml/datasets/
 ml/models/
 ml/checkpoints/
 ml/ram_plus_plus/
+
+# CI Workflows (managed separately when OAuth lacks workflow scope)
+.github/workflows/

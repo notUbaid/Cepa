@@ -5,13 +5,22 @@ Import all models here so that:
 1. `database.create_all_tables()` picks them up via metadata.
 2. Alembic's `env.py` can see all models for migration generation.
 """
-from models.inspection import Inspection
-from models.sample import Sample
-from models.onion_instance import OnionInstance
-from models.defect_observation import DefectObservation
-from models.measurement import Measurement
-from models.classification_result import ClassificationResult
-from models.report import Report
+try:
+    from models.inspection import Inspection
+    from models.sample import Sample
+    from models.onion_instance import OnionInstance
+    from models.defect_observation import DefectObservation
+    from models.measurement import Measurement
+    from models.classification_result import ClassificationResult
+    from models.report import Report
+except ImportError:
+    from backend.models.inspection import Inspection
+    from backend.models.sample import Sample
+    from backend.models.onion_instance import OnionInstance
+    from backend.models.defect_observation import DefectObservation
+    from backend.models.measurement import Measurement
+    from backend.models.classification_result import ClassificationResult
+    from backend.models.report import Report
 
 __all__ = [
     "Inspection",

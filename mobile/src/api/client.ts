@@ -18,7 +18,7 @@ export class ApiClient {
     const url = `${baseUrl}${endpoint}`;
     const officerToken = getOfficerToken();
     const isHeavyEndpoint = endpoint.includes('/samples') || endpoint.includes('/video');
-    const timeoutMs = options?.timeoutMs ?? (isHeavyEndpoint ? 60000 : 15000);
+    const timeoutMs = options?.timeoutMs ?? (isHeavyEndpoint ? 120000 : 45000);
     const maxRetries = options?.retryCount ?? (options?.method && options.method !== 'GET' ? 0 : 1);
 
     let lastError: any = null;
@@ -208,14 +208,29 @@ export class ApiClient {
     }
 
     const officerToken = getOfficerToken();
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-        ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
-      },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
+        },
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      if (fetchErr.name === 'AbortError' || fetchErr.message?.includes('aborted')) {
+        throw new Error('Sample upload timed out after 120s. Server may be under heavy CV load. Please retry.');
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -260,14 +275,29 @@ export class ApiClient {
     formData.append('file', blob, filename);
 
     const officerToken = getOfficerToken();
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-        ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
-      },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180000);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(officerToken ? { 'X-Officer-Token': officerToken } : {}),
+        },
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      if (fetchErr.name === 'AbortError' || fetchErr.message?.includes('aborted')) {
+        throw new Error('Video scan timed out after 180s. Keyframe CV sweep took too long. Please retry.');
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -293,8 +323,8 @@ export class ApiClient {
   static async askAiAgronomist(
     inspectionId: string,
     question: string
-  ): Promise<{ answer: string; inspection_id: string }> {
-    return this.request<{ answer: string; inspection_id: string }>(
+  ): Promise<{ answer: string; inspection_id: string; powered_by?: string; is_fallback?: boolean }> {
+    return this.request<{ answer: string; inspection_id: string; powered_by?: string; is_fallback?: boolean }>(
       `/api/v1/inspections/${inspectionId}/ask-ai`,
       {
         method: 'POST',

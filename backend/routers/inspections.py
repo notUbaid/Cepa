@@ -309,21 +309,43 @@ async def list_inspections(
     db: Session = Depends(get_db),
 ) -> list[InspectionSummary]:
     inspections = inspection_service.get_all_inspections(db, skip=skip, limit=limit)
-    return [
-        InspectionSummary(
-            id=i.id,
-            lot_id=i.lot_id,
-            farmer_id=getattr(i, "farmer_id", None),
-            farmer_name=getattr(i, "farmer_name", None),
-            procurement_centre=i.procurement_centre,
-            officer_name=i.officer_name,
-            status=i.status,
-            created_at=i.created_at,
-            finalized_at=i.finalized_at,
-            sample_count=len(i.samples),
+    summaries = []
+    for i in inspections:
+        total_b = i.report.total_bulbs if i.report else 0
+        g_a_pct = i.report.grade_a_pct if i.report else 0.0
+        u_pct = i.report.urs_pct if i.report else 0.0
+        r_pct = i.report.rejected_pct if i.report else 0.0
+
+        if not i.report and i.samples:
+            instances = [inst for s in i.samples for inst in s.onion_instances]
+            if instances:
+                total_b = len(instances)
+                a_cnt = sum(1 for inst in instances if inst.classification_result and inst.classification_result.grade == "GRADE_A")
+                u_cnt = sum(1 for inst in instances if inst.classification_result and inst.classification_result.grade == "URS")
+                r_cnt = sum(1 for inst in instances if inst.classification_result and inst.classification_result.grade == "REJECTED")
+                g_a_pct = round(100.0 * a_cnt / total_b, 1)
+                u_pct = round(100.0 * u_cnt / total_b, 1)
+                r_pct = round(100.0 * r_cnt / total_b, 1)
+
+        summaries.append(
+            InspectionSummary(
+                id=i.id,
+                lot_id=i.lot_id,
+                farmer_id=getattr(i, "farmer_id", None),
+                farmer_name=getattr(i, "farmer_name", None),
+                procurement_centre=i.procurement_centre,
+                officer_name=i.officer_name,
+                status=i.status,
+                created_at=i.created_at,
+                finalized_at=i.finalized_at,
+                sample_count=len(i.samples),
+                total_bulbs=total_b,
+                grade_a_pct=g_a_pct,
+                urs_pct=u_pct,
+                rejected_pct=r_pct,
+            )
         )
-        for i in inspections
-    ]
+    return summaries
 
 
 @router.get("/inspections/{inspection_id}")
@@ -553,6 +575,7 @@ def _sample_to_detail(sample) -> SampleDetail:
         inspection_id=sample.inspection_id,
         sample_index=sample.sample_index,
         image_path=sample.image_path,
+        image_sha256=getattr(sample, "image_sha256", None),
         processed_image_path=sample.processed_image_path,
         original_image_url=path_to_url(sample.image_path),
         processed_image_url=path_to_url(sample.processed_image_path),
@@ -563,7 +586,7 @@ def _sample_to_detail(sample) -> SampleDetail:
         perspective_valid=sample.perspective_valid,
         is_estimated_scale=getattr(sample, "is_estimated_scale", False) or not sample.marker_detected,
         calibration_method=getattr(sample, "calibration_method", "AUTONOMOUS_OVERHEAD_HEURISTIC" if not sample.marker_detected else "CHARUCO_BOARD") or "AUTONOMOUS_OVERHEAD_HEURISTIC",
-        scale_uncertainty_mm=3.5 if (getattr(sample, "is_estimated_scale", False) or not sample.marker_detected) else 0.5,
+        scale_uncertainty_mm=5.0 if (getattr(sample, "is_estimated_scale", False) or not sample.marker_detected) else 0.5,
         quality_passed=sample.quality_passed,
         quality_flags=flags,
         processing_status=sample.processing_status,
@@ -816,17 +839,13 @@ async def ask_ai_endpoint(
             context["avg_diameter_mm"] = sample_detail.commercial_settlement.get("mean_equatorial_diameter_mm", 52.0)
 
     import asyncio
-    from services.groq_ai_service import ask_ai_agronomist, _get_groq_api_key
-    answer = await asyncio.to_thread(ask_ai_agronomist, body.question, context)
-    powered_by = (
-        f"Groq AI ({getattr(settings, 'groq_vision_model', 'llama-3.2-11b-vision-preview')})"
-        if _get_groq_api_key()
-        else "Cepa Offline (Groq unavailable — configure GROQ_API_KEY)"
-    )
+    from services.groq_ai_service import ask_ai_agronomist_detailed
+    res = await asyncio.to_thread(ask_ai_agronomist_detailed, body.question, context)
     return {
-        "answer": answer,
+        "answer": res["answer"],
         "inspection_id": inspection_id,
-        "powered_by": powered_by,
+        "powered_by": res["powered_by"],
+        "is_fallback": res.get("is_fallback", False),
     }
 
 

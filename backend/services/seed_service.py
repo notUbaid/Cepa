@@ -119,8 +119,17 @@ def seed_demo_data_if_empty() -> None:
         # Ensure storage directories and real crop/mask image files exist on disk
         import cv2
         import numpy as np
+        import shutil
+        import hashlib
 
         demo_img_path = Path(__file__).resolve().parent.parent / "static" / "demo_onion_spread.jpg"
+        target_demo_img = settings.storage_dir / "demo_onion_spread.jpg"
+        if demo_img_path.exists():
+            if not target_demo_img.exists():
+                shutil.copy2(demo_img_path, target_demo_img)
+            demo_sha256 = hashlib.sha256(target_demo_img.read_bytes()).hexdigest().upper()
+            sample.image_sha256 = demo_sha256
+
         source_img = cv2.imread(str(demo_img_path)) if demo_img_path.exists() else None
 
         crops_dir = settings.storage_dir / "crops" / inspection.id / sample.id
@@ -216,9 +225,14 @@ def seed_demo_data_if_empty() -> None:
             model_version="cepa-cv-pipeline:v1.0",
             share_token=DEMO_SHARE_TOKEN,
             pdf_path=f"reports/{DEMO_REPORT_ID}.pdf",
-            sampling_note="Seeded demo lot: 1 sample photo (20 bulbs). Does not represent a real consignment.",
+            sampling_note="Demonstration Prototype Lot: 1 sample photo (20 bulbs) for verification. Does not represent a commercial consignment.",
             created_at=now,
         )
+        from services.crypto_seal import compute_inspection_seal
+        seal_res = compute_inspection_seal(report, inspection)
+        report.cryptographic_seal = seal_res.seal_hex
+        report.image_sha256 = seal_res.image_sha256
+        report.seal_status = seal_res.seal_status
         db.add(report)
         db.commit()
 

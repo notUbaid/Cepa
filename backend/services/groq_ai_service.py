@@ -1,7 +1,7 @@
 """
 Groq Generative AI Agronomist Service
 
-Harnesses Groq's high-speed multimodal Vision and Text LLMs (llama-3.2-11b-vision-preview and llama-3.3-70b-versatile)
+Harnesses Groq's high-speed multimodal Vision and Text LLM (qwen/qwen3.8-27b)
 to deliver human-understandable, expert post-harvest onion quality appraisals,
 pathology identification (Aspergillus niger, neck rot, sprouting),
 and interactive agronomic advice for farmers and APMC mandi officers.
@@ -23,8 +23,8 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 GROQ_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_VISION_MODEL = getattr(settings, "groq_vision_model", "llama-3.2-11b-vision-preview")
-GROQ_TEXT_MODEL = "llama-3.3-70b-versatile"
+GROQ_VISION_MODEL = getattr(settings, "groq_vision_model", "qwen/qwen3.8-27b")
+GROQ_TEXT_MODEL = getattr(settings, "groq_text_model", "qwen/qwen3.8-27b")
 
 
 def _get_groq_api_key() -> str:
@@ -133,16 +133,9 @@ def analyze_inspection_with_ai(image_bgr: np.ndarray) -> dict[str, Any]:
         }
 
 
-def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
+def ask_ai_agronomist_detailed(question: str, context: dict[str, Any]) -> dict[str, Any]:
     """
-    Interactive Q&A with the Groq AI Agronomist about an inspection lot.
-
-    Args:
-        question: User's question (e.g. "Can I store these onions for 2 months?").
-        context: Inspection summary and measurements.
-
-    Returns:
-        Clear, empathetic, plain-language agricultural answer.
+    Detailed Q&A with the Groq AI Agronomist, returning answer, powered_by label, and fallback status.
     """
     try:
         system_prompt = (
@@ -183,7 +176,12 @@ def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
         }
 
         resp = _make_groq_request(payload)
-        return resp["choices"][0]["message"]["content"].strip()
+        content = resp["choices"][0]["message"]["content"].strip()
+        return {
+            "answer": content,
+            "powered_by": f"Groq AI ({GROQ_TEXT_MODEL})",
+            "is_fallback": False,
+        }
 
     except Exception as e:
         logger.warning("Groq AI Agronomist chat fallback: %s", e)
@@ -201,30 +199,45 @@ def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
         payout_fair = f"₹{net_rate}/quintal" if net_rate else "assessed APMC realization"
 
         if total == 0:
-            return (
-                "Agronomic Advisory: No inspection measurements or bulb instances are currently recorded for this lot. "
+            text = (
+                "[Rule-Based Offline Advisory]: No inspection measurements or bulb instances are currently recorded for this lot. "
                 "Please capture and process a top-down produce sample spread to generate objective quality metrics, "
                 "caliper diameters, and shelf-life forecasts."
             )
         elif rejected > 0 and (rejected / total) > 0.15:
-            return (
-                f"Agronomic Advisory: High rot/defect concentration detected ({rejected} of {total} bulbs rejected). "
+            text = (
+                f"[Rule-Based Offline Advisory]: High rot/defect concentration detected ({rejected} of {total} bulbs rejected). "
                 f"This lot is NOT recommended {storage_clause}. "
                 "Immediate segregation and culling is strongly advised to prevent soft rot or black mold "
                 "from contaminating adjacent stock. We recommend routing this lot for immediate auction "
                 f"{payout_clause}."
             )
         elif rejected > 0:
-            return (
-                f"Agronomic Advisory: Fair quality lot with {grade_a} Grade A bulbs out of {total} sampled. "
+            text = (
+                f"[Rule-Based Offline Advisory]: Fair quality lot with {grade_a} Grade A bulbs out of {total} sampled. "
                 f"However, {rejected} rejected/decayed bulb(s) must be culled manually prior to storage. "
                 f"With thorough culling and well-ventilated crate storage (25–30°C, RH 65–70%), this lot can be safely held "
                 f"{storage_hold}. Net estimated realization: {payout_fair}."
             )
         else:
-            return (
-                f"Agronomic Advisory: Excellent quality lot with zero critical defects across {total} inspected bulbs ({grade_a} Grade A). "
+            text = (
+                f"[Rule-Based Offline Advisory]: Excellent quality lot with zero critical defects across {total} inspected bulbs ({grade_a} Grade A). "
                 f"Tunics are sound and suitable for strategic buffer storage {storage_strat}. "
                 "Store on raised slatted bamboo racks or aerated plastic crates with bottom airflow to prevent moisture accumulation. "
                 f"Approved for full MSP/benchmark payout {payout_clean}."
             )
+
+        return {
+            "answer": text,
+            "powered_by": "Cepa Mandi Rule Engine (Offline Fallback)",
+            "is_fallback": True,
+        }
+
+
+def ask_ai_agronomist(question: str, context: dict[str, Any]) -> str:
+    """
+    Interactive Q&A with the Groq AI Agronomist about an inspection lot.
+    Backward-compatible wrapper returning answer string.
+    """
+    res = ask_ai_agronomist_detailed(question, context)
+    return res["answer"]

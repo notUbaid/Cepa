@@ -75,12 +75,12 @@ app = FastAPI(
 )
 
 # CORS Middleware
-# allow_origins handles exact origins (localhost dev).
-# allow_origin_regex restricts Vercel preview/production deployments to CEPA apps.
+# allow_origins handles exact configured origins (localhost dev & configured domains).
+# allow_origin_regex allows production CEPA Vercel deployments (cepa-app, cepa-nine, and branch previews).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"^https://cepa-app\.vercel\.app$" if settings.backend_env == "production" else None,
+    allow_origin_regex=r"^https://(cepa-app|cepa-nine|cepa-[a-z0-9-]+)\.vercel\.app$",
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software or its computer vision and metrology algorithms in your research, please cite it as below."
+authors:
+  - family-names: "CEPA Development Consortium"
+    given-names: "SIH26031 Team"
+title: "CEPA: Autonomous Optical Metrology, Deep Botanical Defect Segmentation, and Cryptographic Sovereign Assaying Platform for Allium Cepa"
+version: 1.0.0
+date-released: 2026-10-04
+url: "https://github.com/notUbaid/Cepa"
+keywords:
+  - "agricultural-robotics"
+  - "computer-vision"
+  - "optical-metrology"
+  - "charuco-calibration"
+  - "cryptographic-audit"
+  - "post-harvest-biology"
+  - "smart-india-hackathon"
+license: "MIT"

@@ -83,7 +83,13 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   const [aiQuestion, setAiQuestion] = useState('');
   const [askingAi, setAskingAi] = useState(false);
   const [chatMessages, setChatMessages] = useState<
-    { role: 'user' | 'ai'; text: string; time: string }[]
+    {
+      role: 'user' | 'ai';
+      text: string;
+      time: string;
+      powered_by?: string;
+      is_fallback?: boolean;
+    }[]
   >([]);
 
   const handleAskAi = async (customQ?: string) => {
@@ -101,7 +107,13 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
       Haptics.success();
       setChatMessages((prev) => [
         ...prev,
-        { role: 'ai', text: resp.answer, time: timeStr },
+        {
+          role: 'ai',
+          text: resp.answer,
+          time: timeStr,
+          powered_by: resp.powered_by,
+          is_fallback: resp.is_fallback,
+        },
       ]);
     } catch (err: any) {
       Haptics.error();
@@ -111,6 +123,8 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           role: 'ai',
           text: `Could not reach live AI advisor: ${err.message}. Generally, maintaining airflow and dry conditions prevents decay.`,
           time: timeStr,
+          powered_by: 'Cepa Mandi Rule Engine (Offline Fallback)',
+          is_fallback: true,
         },
       ]);
     } finally {
@@ -641,7 +655,31 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     <Text style={styles.chatSenderLabel}>
                       {msg.role === 'user' ? 'You' : 'AI Agronomist'}
                     </Text>
-                    <Text style={styles.chatTimeLabel}>{msg.time}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      {msg.role === 'ai' && msg.powered_by ? (
+                        <View
+                          style={[
+                            styles.chatAttributionPill,
+                            msg.is_fallback ? styles.chatAttributionFallback : styles.chatAttributionLive,
+                          ]}
+                        >
+                          <Feather
+                            name={msg.is_fallback ? 'cpu' : 'zap'}
+                            size={10}
+                            color={msg.is_fallback ? '#d97706' : '#0284c7'}
+                          />
+                          <Text
+                            style={[
+                              styles.chatAttributionText,
+                              msg.is_fallback ? { color: '#b45309' } : { color: '#0369a1' },
+                            ]}
+                          >
+                            {msg.is_fallback ? 'Rule Engine (Offline)' : 'Qwen 27B Vision'}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <Text style={styles.chatTimeLabel}>{msg.time}</Text>
+                    </View>
                   </View>
                   <Text
                     style={[
@@ -2402,6 +2440,29 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.textMuted,
     marginLeft: 8,
+  },
+  chatAttributionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+  },
+  chatAttributionLive: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#bae6fd',
+  },
+  chatAttributionFallback: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+  },
+  chatAttributionText: {
+    fontSize: 8.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   chatText: {
     fontSize: 12,

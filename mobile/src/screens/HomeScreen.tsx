@@ -394,31 +394,72 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </View>
 
                     {/* Caliber Quality Split Bar */}
-                    <View style={styles.caliberBarWrap}>
-                      <View style={styles.caliberBarTrack}>
-                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 75 : 50, backgroundColor: '#059669' }]} />
-                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 18 : 30, backgroundColor: '#d97706' }]} />
-                        <View style={[styles.caliberBarSegment, { flex: isCertified ? 7 : 20, backgroundColor: '#dc2626' }]} />
+                    {item.total_bulbs && item.total_bulbs > 0 ? (
+                      <View style={styles.caliberBarWrap}>
+                        <View style={styles.caliberBarTrack}>
+                          <View
+                            style={[
+                              styles.caliberBarSegment,
+                              {
+                                flex: Math.max(item.grade_a_pct ?? 0, 1),
+                                backgroundColor: '#059669',
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.caliberBarSegment,
+                              {
+                                flex: Math.max(item.urs_pct ?? 0, 0.5),
+                                backgroundColor: '#d97706',
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.caliberBarSegment,
+                              {
+                                flex: Math.max(item.rejected_pct ?? 0, 0.5),
+                                backgroundColor: '#dc2626',
+                              },
+                            ]}
+                          />
+                        </View>
+                        <View style={styles.caliberLegendRow}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#059669' }} />
+                            <Text style={styles.caliberLegendItem}>Grade A {item.grade_a_pct?.toFixed(0)}%</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#d97706' }} />
+                            <Text style={styles.caliberLegendItem}>URS {item.urs_pct?.toFixed(0)}%</Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#dc2626' }} />
+                            <Text style={styles.caliberLegendItem}>Rej {item.rejected_pct?.toFixed(0)}%</Text>
+                          </View>
+                          <View style={styles.inspectActionPill}>
+                            <Text style={styles.caliberLegendAction}>View</Text>
+                            <Feather name="chevron-right" size={12} color="#0f172a" />
+                          </View>
+                        </View>
                       </View>
-                      <View style={styles.caliberLegendRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#059669' }} />
-                          <Text style={styles.caliberLegendItem}>Grade A</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#d97706' }} />
-                          <Text style={styles.caliberLegendItem}>URS</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#dc2626' }} />
-                          <Text style={styles.caliberLegendItem}>Rejection</Text>
-                        </View>
-                        <View style={styles.inspectActionPill}>
-                          <Text style={styles.caliberLegendAction}>View</Text>
-                          <Feather name="chevron-right" size={12} color="#0f172a" />
+                    ) : (
+                      <View style={[styles.caliberBarWrap, { paddingVertical: 4 }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0284c7' }} />
+                            <Text style={[styles.caliberLegendItem, { color: '#0369a1', fontWeight: '600' }]}>
+                              {item.sample_count > 0 ? `${item.sample_count} sample captured · Tap to review` : 'Ready for optical capture'}
+                            </Text>
+                          </View>
+                          <View style={styles.inspectActionPill}>
+                            <Text style={styles.caliberLegendAction}>Open</Text>
+                            <Feather name="chevron-right" size={12} color="#0f172a" />
+                          </View>
                         </View>
                       </View>
-                    </View>
+                    )}
 
                     <View style={styles.cardFooter}>
                       <Text style={styles.officerText}>

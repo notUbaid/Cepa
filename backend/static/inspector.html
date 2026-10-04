@@ -1606,8 +1606,8 @@
         <!-- Floating HUD Readout & Pan-Zoom Dock -->
         <div class="viewport-hud" role="toolbar" aria-label="Canvas HUD Controls">
           <div class="calibration-readout">
-            <span class="status-pulse-dot" style="background:var(--color-sky-400)"></span>
-            <span id="hud-calibration-text">Optical Scale: 1.0805 mm/px · ChArUco Locked</span>
+            <span class="status-pulse-dot" id="hud-calibration-dot" style="background:var(--color-sky-400)"></span>
+            <span id="hud-calibration-text">Optical Scale: Calibrating...</span>
           </div>
           <div class="zoom-controls">
             <button class="hud-icon-btn" onclick="zoomCanvas(-0.15)" aria-label="Zoom Out">
@@ -2144,10 +2144,16 @@
 
       // Calibration status
       const hudCal = document.getElementById('hud-calibration-text');
-      if (sample.scale_mm_per_px) {
-        hudCal.textContent = `Scale: ${sample.scale_mm_per_px.toFixed(4)} mm/px · ${sample.marker_detected ? 'ChArUco Locked' : 'Optical Calibrated'}`;
+      const hudDot = document.getElementById('hud-calibration-dot');
+      if (sample.marker_detected && sample.scale_mm_per_px) {
+        hudCal.textContent = `Scale: ${sample.scale_mm_per_px.toFixed(4)} mm/px · ChArUco Locked (±0.5 mm)`;
+        if (hudDot) hudDot.style.background = 'var(--color-emerald-400)';
+      } else if (sample.scale_mm_per_px) {
+        hudCal.textContent = `Scale: ${sample.scale_mm_per_px.toFixed(4)} mm/px · No Board (Autonomous Heuristic ±5.0 mm [NEEDS REVIEW])`;
+        if (hudDot) hudDot.style.background = 'var(--color-amber-400)';
       } else {
-        hudCal.textContent = 'Optical Scale: Uncalibrated (Heuristic Reference)';
+        hudCal.textContent = 'Optical Scale: Uncalibrated (Heuristic Reference ±5.0 mm [NEEDS REVIEW])';
+        if (hudDot) hudDot.style.background = 'var(--color-rose-400)';
       }
 
       // Populate Telemetry

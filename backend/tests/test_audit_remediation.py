@@ -360,9 +360,13 @@ class TestUncalibratedOverheadRemediation:
 class TestCryptographicSealAndPolicyDecoupling:
     """Verifies HMAC-SHA256 cryptographic seal non-repudiation and dynamic policy thresholds."""
 
-    def test_cryptographic_seal_integrity_binding(self):
+    def test_cryptographic_seal_integrity_binding(self, tmp_path):
         from services.crypto_seal import compute_inspection_seal, verify_inspection_seal
         from unittest.mock import MagicMock
+
+        # Create real sample image file on disk
+        img_file = tmp_path / "test_sample.jpg"
+        img_file.write_bytes(b"optical-onion-capture-bytes-verified")
 
         report = MagicMock(
             report_id="REP-TEST-001",
@@ -372,7 +376,7 @@ class TestCryptographicSealAndPolicyDecoupling:
             rejected_pct=4.8,
             share_token="cepa-demo-token-123",
         )
-        sample = MagicMock(image_path="test_img.jpg", processed_image_path=None)
+        sample = MagicMock(image_path=str(img_file), processed_image_path=None)
         inspection = MagicMock(
             id="insp-seal-uuid-001",
             officer_id="OFF-SEAL-77",
@@ -382,7 +386,7 @@ class TestCryptographicSealAndPolicyDecoupling:
         seal_hex, img_hash = compute_inspection_seal(report, inspection)
         assert len(seal_hex) == 64
         assert len(img_hash) == 64
-        assert verify_inspection_seal(seal_hex, report, inspection) is True
+        assert verify_inspection_seal(seal_hex, report, inspection, require_photo_on_disk=True) is True
 
         # Tampering with officer ID fails verification
         tampered_inspection = MagicMock(
@@ -403,6 +407,16 @@ class TestCryptographicSealAndPolicyDecoupling:
         )
         assert verify_inspection_seal(seal_hex, tampered_report, inspection) is False
 
+        # Missing photo marks seal status as INVALID_MISSING_PHOTO
+        missing_inspection = MagicMock(
+            id="insp-seal-uuid-002",
+            officer_id="OFF-SEAL-77",
+            samples=[MagicMock(image_path="nonexistent_photo.jpg", processed_image_path=None)],
+        )
+        missing_res = compute_inspection_seal(report, missing_inspection)
+        assert missing_res.seal_status == "INVALID_MISSING_PHOTO"
+        assert missing_res.is_photo_verified is False
+
     def test_size_estimator_policy_decoupling(self):
         from cv.size_estimator import estimate_size
         import cv2
@@ -422,8 +436,9 @@ class TestCryptographicSealAndPolicyDecoupling:
         assert custom_est is not None
         assert custom_est.mandi_size_grade == "MADHYAM"
 
-    def test_groq_ai_agronomist_truthfulness(self):
+    def test_groq_ai_agronomist_truthfulness(self, monkeypatch):
         from services.groq_ai_service import ask_ai_agronomist
+        monkeypatch.setattr("services.groq_ai_service._get_groq_api_key", lambda: "")
 
         # 1. Empty lot should never fabricate praise or pretend bulbs were checked
         empty_ans = ask_ai_agronomist("Can I store these onions?", {"total_bulbs": 0})
@@ -446,6 +461,167 @@ class TestCryptographicSealAndPolicyDecoupling:
         )
         assert "Excellent quality lot" in clean_ans
         assert "suitable for strategic buffer storage" in clean_ans
+
+    def test_public_verification_endpoint(self, client):
+        from database import SessionLocal
+        from models import Inspection, Report
+        from services.crypto_seal import compute_inspection_seal
+        import uuid
+
+        db = SessionLocal()
+        try:
+            insp = Inspection(
+                id=str(uuid.uuid4()),
+                lot_id=f"LOT-TEST-{uuid.uuid4().hex[:6]}",
+                procurement_centre="Nashik APMC",
+                officer_id="OFF-TEST-VERIFY",
+                status="FINALIZED",
+            )
+            db.add(insp)
+            db.flush()
+
+            rep = Report(
+                id=str(uuid.uuid4()),
+                report_id=f"RPT-{uuid.uuid4().hex[:8]}",
+                inspection_id=insp.id,
+                total_bulbs=20,
+                grade_a_count=16,
+                urs_count=3,
+                rejected_count=1,
+                ruleset_version="DEMO_ASSUMPTION_v1",
+                model_version="test-model:v1",
+                share_token=f"token-{uuid.uuid4().hex[:8]}",
+            )
+            seal_res = compute_inspection_seal(rep, insp)
+            rep.cryptographic_seal = seal_res.seal_hex
+            rep.image_sha256 = seal_res.image_sha256
+            rep.seal_status = seal_res.seal_status
+            db.add(rep)
+            db.commit()
+            report_id = rep.report_id
+        finally:
+            db.close()
+
+        # 1. Test JSON audit payload
+        res = client.get(f"/api/v1/reports/{report_id}/verify")
+        assert res.status_code == 200
+        data = res.json()
+        assert "is_valid" in data
+        assert "seal_status" in data
+        assert "computed_seal" in data
+        assert len(data["computed_seal"]) == 64
+        assert data["report_id"] == report_id
+
+        # 2. Test HTML certificate verification badge view
+        html_res = client.get(
+            f"/api/v1/reports/{report_id}/verify",
+            headers={"Accept": "text/html"},
+        )
+        assert html_res.status_code == 200
+        assert "Cepa Quality Appraisal Seal" in html_res.text
+        assert "Cryptographically signed by Cepa Sovereign" in html_res.text
+
+
+class TestSampleUploadIdempotency:
+    """Verifies that duplicate mobile uploads or network retries do not duplicate samples."""
+
+    def test_duplicate_image_upload_returns_existing_sample_idempotently(self, client):
+        import cv2
+
+        # 1. Create a draft inspection
+        create_res = client.post("/api/v1/inspections", json={
+            "lot_id": "LOT-IDEMPOTENT-TEST",
+            "procurement_centre": "Lasalgaon Mandi",
+            "officer_name": "Test Officer",
+        })
+        assert create_res.status_code == 201
+        insp_id = create_res.json()["id"]
+
+        # 2. Generate a valid test image (synthetic onion spread)
+        img = np.full((300, 300, 3), (240, 240, 240), dtype=np.uint8)
+        # Add a bulb-like red circle in center
+        cv2.circle(img, (150, 150), 60, (50, 40, 170), -1)
+        _, buf = cv2.imencode(".jpg", img)
+        img_bytes = buf.tobytes()
+
+        # 3. First upload
+        up1 = client.post(
+            f"/api/v1/inspections/{insp_id}/samples",
+            files={"file": ("test_frame.jpg", io.BytesIO(img_bytes), "image/jpeg")},
+        )
+        assert up1.status_code == 201
+        sample1 = up1.json()
+        assert sample1["sample_index"] == 1
+        sample_id1 = sample1["id"]
+
+        # 4. Immediate second upload of IDENTICAL bytes (simulating mobile timeout retry)
+        up2 = client.post(
+            f"/api/v1/inspections/{insp_id}/samples",
+            files={"file": ("test_frame_retry.jpg", io.BytesIO(img_bytes), "image/jpeg")},
+        )
+        assert up2.status_code == 201
+        sample2 = up2.json()
+
+        # Must return the SAME sample without creating a duplicate record or incrementing index
+        assert sample2["id"] == sample_id1
+        assert sample2["sample_index"] == 1
+
+        # 5. Verify inspection sample list has exactly 1 sample, not 2
+        list_res = client.get(f"/api/v1/inspections/{insp_id}")
+        assert list_res.status_code == 200
+        assert len(list_res.json()["sample_ids"]) == 1
+        assert list_res.json()["sample_ids"] == [sample_id1]
+
+
+class TestOnionValidatorHardening:
+    """Verifies that onion validator never fails open and enforces strict botanical constraints."""
+
+    def test_validator_rejects_synthetic_blue_neon_object(self):
+        from cv.onion_validator import OnionAuthenticityValidator
+        # Pure blue neon crop
+        blue_crop = np.full((120, 120, 3), (255, 120, 0), dtype=np.uint8) # BGR: blue dominant
+        res = OnionAuthenticityValidator.validate_candidate(blue_crop)
+        assert not res.is_onion
+
+    def test_validator_accepts_authentic_onion_crop(self):
+        from cv.onion_validator import OnionAuthenticityValidator
+        import cv2
+        # Nashik Red onion patch: purple-red/terracotta tones
+        onion_crop = np.full((120, 120, 3), (45, 35, 160), dtype=np.uint8)
+        mask = np.zeros((120, 120), dtype=np.uint8)
+        cv2.circle(mask, (60, 60), 45, 255, -1)
+        res = OnionAuthenticityValidator.validate_candidate(onion_crop, mask)
+        assert res.is_onion
+
+
+class TestResolutionInvariantParallax:
+    """Verifies that camera standoff parallax uncertainty is resolution invariant."""
+
+    def test_standoff_uncertainty_keyed_to_board_frame_fraction(self):
+        from cv.calibration import compute_calibration
+        from cv.marker_detector import MarkerDetectionResult
+
+        # Simulate 4K frame (3840x2160) where board spans 30% of frame (standard tripod)
+        img_4k = np.zeros((2160, 3840, 3), dtype=np.uint8)
+        # Create corners spanning ~1150 px (approx 30% of 3840)
+        c_x = np.linspace(500, 1650, 6)
+        c_y = np.linspace(500, 1300, 4)
+        xx, yy = np.meshgrid(c_x, c_y)
+        corners = np.stack([xx.flatten(), yy.flatten()], axis=1).reshape(-1, 1, 2).astype(np.float32)
+        ids = np.arange(len(corners), dtype=np.int32).reshape(-1, 1)
+
+        marker_res = MarkerDetectionResult(
+            detected=True,
+            corner_count=len(corners),
+            charuco_corners=corners,
+            charuco_ids=ids,
+        )
+
+        calib = compute_calibration(img_4k, marker_res)
+        # Because board covers ~30% of frame, uncertainty must be standard 2.0 mm (not 3.5 mm)
+        assert calib.uncertainty_mm == 2.0
+
+
 
 
 

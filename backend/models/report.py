@@ -55,6 +55,11 @@ class Report(Base):
     # ── Generated files ───────────────────────────────────────────────────────
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # ── Sovereign Cryptographic Seal ───────────────────────────────────────────
+    cryptographic_seal: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    image_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    seal_status: Mapped[str | None] = mapped_column(String(32), nullable=True, default="PENDING")
+
     # ── Lot-level statistics ──────────────────────────────────────────────────
     total_bulbs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     grade_a_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

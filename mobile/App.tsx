@@ -145,7 +145,8 @@ export default function App() {
 
           {currentScreen === 'NEW_INSPECTION' && (
             <NewInspectionScreen
-              onInspectionCreated={(inspection, mode = 'CAMERA') => {
+              initialMode={captureInitialTab}
+              onInspectionCreated={(inspection, mode = captureInitialTab || 'CAMERA') => {
                 setActiveInspection(inspection);
                 setCaptureInitialTab(mode);
                 navigateTo('CAPTURE');

@@ -25,6 +25,8 @@ class ReportSummary(BaseModel):
     model_version: str
     created_at: datetime
     has_pdf: bool = False
+    cryptographic_seal: str | None = None
+    seal_status: str | None = None
 
 
 class ReportDetail(BaseModel):
@@ -83,6 +85,12 @@ class ReportDetail(BaseModel):
     # Links
     pdf_url: str | None = None
     share_url: str | None = None
+    verify_url: str | None = None
+
+    # Sovereign Cryptographic Seal
+    cryptographic_seal: str | None = None
+    image_sha256: str | None = None
+    seal_status: str | None = None
 
     # Limitations notice (always included in reports)
     limitations_note: str = (

@@ -13,6 +13,10 @@ export interface InspectionSummary {
   created_at: string;
   finalized_at: string | null;
   sample_count: number;
+  total_bulbs?: number;
+  grade_a_pct?: number;
+  urs_pct?: number;
+  rejected_pct?: number;
 }
 
 export interface InspectionDetail extends InspectionSummary {
@@ -201,6 +205,10 @@ export interface ReportDetail {
   finalized_at: string | null;
   pdf_url: string | null;
   share_url: string | null;
+  verify_url?: string | null;
+  cryptographic_seal?: string | null;
+  image_sha256?: string | null;
+  seal_status?: string | null;
   integrity_hash?: string | null;
   limitations_note: string;
 }

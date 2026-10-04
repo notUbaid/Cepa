@@ -80,6 +80,16 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
     }
   };
 
+  const handleVerifySealOnline = () => {
+    Haptics.medium();
+    const url = report?.verify_url
+      ? (resolveMediaUrl(report.verify_url) || report.verify_url)
+      : `${getApiBaseUrl()}/api/v1/reports/${inspection.id}/verify?format=html`;
+    Linking.openURL(url).catch((e: any) =>
+      alert(`Could not open verification audit page: ${e.message}`)
+    );
+  };
+
   const [announcing, setAnnouncing] = useState(false);
 
   const handleBhashiniAnnounce = async (lang = 'hi') => {
@@ -430,31 +440,113 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         </View>
       </FadeInView>
 
-      {/* Share / Verification Link Card with SHA-256 Hash */}
+      {/* Sovereign Cryptographic Seal & Verification Card */}
       <FadeInView delay={300} distance={12}>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>Online Verification & Cryptographic Audit</Text>
-          <Text style={styles.shareDesc}>
-            NAFED gate officers and farmers verify this appraisal via tamper-proof QR code scan:
-          </Text>
-          <AnimatedPressable
-            haptic="selection"
-            style={styles.shareLinkBox}
-            onPress={handleOpenShareLink}
-          >
-            <Text style={styles.shareLinkText} numberOfLines={1}>
-              {report.share_url}
-            </Text>
-          </AnimatedPressable>
-
-          {report.integrity_hash && (
-            <View style={styles.hashContainer}>
-              <Text style={styles.hashLabel}>SHA-256 INTEGRITY STAMP</Text>
-              <Text style={styles.hashValue} numberOfLines={1}>
-                {report.integrity_hash}
+          <View style={styles.sealCardHeader}>
+            <View style={{ flex: 1, paddingRight: Spacing.sm }}>
+              <Text style={styles.cardSectionTag}>TAMPER-PROOF METROLOGY</Text>
+              <Text style={styles.sectionHeaderTitle}>Sovereign Cryptographic Seal · डिजिटल मुहर</Text>
+            </View>
+            <View
+              style={[
+                styles.sealStatusBadge,
+                (report.seal_status === 'VALID_SEALED' || report.seal_status === 'SEALED_DEMO_SAMPLE')
+                  ? styles.sealStatusBadgeValid
+                  : report.seal_status === 'INVALID_MISSING_PHOTO'
+                  ? styles.sealStatusBadgeInvalid
+                  : styles.sealStatusBadgePending,
+              ]}
+            >
+              <Feather
+                name={
+                  (report.seal_status === 'VALID_SEALED' || report.seal_status === 'SEALED_DEMO_SAMPLE')
+                    ? 'shield'
+                    : report.seal_status === 'INVALID_MISSING_PHOTO'
+                    ? 'alert-triangle'
+                    : 'clock'
+                }
+                size={11}
+                color={
+                  (report.seal_status === 'VALID_SEALED' || report.seal_status === 'SEALED_DEMO_SAMPLE')
+                    ? '#059669'
+                    : report.seal_status === 'INVALID_MISSING_PHOTO'
+                    ? '#dc2626'
+                    : '#d97706'
+                }
+              />
+              <Text
+                style={[
+                  styles.sealStatusText,
+                  (report.seal_status === 'VALID_SEALED' || report.seal_status === 'SEALED_DEMO_SAMPLE')
+                    ? styles.sealStatusTextValid
+                    : report.seal_status === 'INVALID_MISSING_PHOTO'
+                    ? styles.sealStatusTextInvalid
+                    : styles.sealStatusTextPending,
+                ]}
+              >
+                {report.seal_status || 'SEALED'}
               </Text>
             </View>
-          )}
+          </View>
+
+          <Text style={styles.shareDesc}>
+            Immutable HMAC-SHA256 signature binding lot grading metrics, raw optical photo SHA-256 digest, and officer credentials:
+          </Text>
+
+          {/* HMAC Sovereign Seal */}
+          <View style={styles.hashContainer}>
+            <View style={styles.hashHeaderRow}>
+              <Text style={styles.hashLabel}>HMAC-SHA256 LOT SIGNATURE</Text>
+              <Feather name="lock" size={11} color={Colors.textMuted} />
+            </View>
+            <Text style={styles.hashValue} selectable>
+              {report.cryptographic_seal || report.integrity_hash || 'PENDING_FINALIZATION'}
+            </Text>
+          </View>
+
+          {/* Optical Photo Digest */}
+          {report.image_sha256 ? (
+            <View style={[styles.hashContainer, { marginTop: Spacing.xs }]}>
+              <View style={styles.hashHeaderRow}>
+                <Text style={styles.hashLabel}>OPTICAL RAW PHOTO SHA-256</Text>
+                <Feather name="image" size={11} color={Colors.textMuted} />
+              </View>
+              <Text style={styles.hashValue} selectable>
+                {report.image_sha256}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Online Verification Web Audit Action */}
+          <AnimatedPressable
+            haptic="medium"
+            style={styles.verifySealBtn}
+            onPress={handleVerifySealOnline}
+          >
+            <View style={styles.verifySealBtnContent}>
+              <Feather name="check-circle" size={14} color="#059669" />
+              <Text style={styles.verifySealBtnText}>Verify Mathematical Proof Online</Text>
+              <Feather name="external-link" size={12} color="#059669" />
+            </View>
+          </AnimatedPressable>
+
+          {/* Public Certificate QR Link */}
+          {report.share_url ? (
+            <View style={{ marginTop: Spacing.sm }}>
+              <Text style={[styles.hashLabel, { marginBottom: 4 }]}>PUBLIC ASSAY CERTIFICATE LINK</Text>
+              <AnimatedPressable
+                haptic="selection"
+                style={styles.shareLinkBox}
+                onPress={handleOpenShareLink}
+              >
+                <Feather name="link" size={12} color={Colors.textMuted} style={{ marginRight: 6 }} />
+                <Text style={styles.shareLinkText} numberOfLines={1}>
+                  {report.share_url}
+                </Text>
+              </AnimatedPressable>
+            </View>
+          ) : null}
         </View>
       </FadeInView>
 
@@ -1150,5 +1242,73 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     color: Colors.accentTeal,
     fontWeight: '600',
+  },
+  sealCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xs,
+  },
+  sealStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+    gap: 4,
+  },
+  sealStatusBadgeValid: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  sealStatusBadgeInvalid: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  sealStatusBadgePending: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+  },
+  sealStatusText: {
+    fontSize: 9.5,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  sealStatusTextValid: {
+    color: '#059669',
+  },
+  sealStatusTextInvalid: {
+    color: '#dc2626',
+  },
+  sealStatusTextPending: {
+    color: '#d97706',
+  },
+  hashHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  verifySealBtn: {
+    marginTop: Spacing.sm,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: Radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  verifySealBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  verifySealBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
   },
 });

@@ -39,12 +39,13 @@ from models.measurement import PROJECTION_NOTE
 logger = logging.getLogger(__name__)
 
 # Specific bulk density of fresh Allium cepa bulbs (g/cm³ -> g/mm³)
-# 0.985 g/cm³ = 0.000985 g/mm³
+# 0.985 g/cm³ = 0.000985 g/mm³ (ICAR-DOGR standard)
 ONION_BULK_DENSITY_G_PER_MM3 = 0.000985
 
-# Grevsen (2009) empirical compactness constant for Allium cepa spheroid modeling
-# [Grevsen-2009] Grevsen, K. "Bulb Morphometry and Yield Components of Onion (Allium cepa L.)."
-GREVSEN_COMPACTNESS_FACTOR: float = 0.93
+# Empirical internal fleshy scale packing coefficient for Allium cepa prolate/oblate modeling
+# (accounts for interstitial airspace between tunic scales, typically 0.90 - 0.95)
+BULB_COMPACTNESS_FACTOR: float = 0.93
+GREVSEN_COMPACTNESS_FACTOR: float = BULB_COMPACTNESS_FACTOR  # Backwards compatibility alias
 
 
 @dataclass

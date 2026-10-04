@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -38,8 +39,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./cepa.db"
 
     # ── Storage ──────────────────────────────────────────────────────────────
-    storage_dir: Path = Path(__file__).resolve().parent.parent / "cepa_storage"
-    weights_dir: Path = Path(__file__).resolve().parent.parent / "weights"
+    storage_dir: Path = (
+        Path(os.environ["STORAGE_DIR"])
+        if "STORAGE_DIR" in os.environ
+        else Path(__file__).resolve().parent / "storage"
+    )
+    weights_dir: Path = Path(__file__).resolve().parent / "weights"
 
     # ── Grading policy ───────────────────────────────────────────────────────
     active_grading_policy: str = "DEMO_ASSUMPTION_v1"
@@ -48,7 +53,8 @@ class Settings(BaseSettings):
     cors_origins: str = (
         "http://localhost:8081,http://localhost:19006,exp://localhost:8081,"
         "http://localhost:8000,http://127.0.0.1:8000,http://localhost:8001,http://127.0.0.1:8001,"
-        "http://localhost:3000,http://localhost:4173,http://127.0.0.1:4173"
+        "http://localhost:3000,http://localhost:4173,http://127.0.0.1:4173,"
+        "https://cepa-app.vercel.app,https://cepa-nine.vercel.app"
     )
 
     @property
@@ -64,8 +70,10 @@ class Settings(BaseSettings):
     cv_use_gpu: bool = False
 
     # ── Groq Multimodal AI ───────────────────────────────────────────────────
+    # Active multimodal model (qwen/qwen3.8-27b on Groq)
     groq_api_key: str = ""
-    groq_vision_model: str = "llama-3.2-11b-vision-preview"
+    groq_vision_model: str = "qwen/qwen3.8-27b"
+    groq_text_model: str = "qwen/qwen3.8-27b"
 
     # ── Bhashini Multilingual Speech Synthesis (NLTM) ────────────────────────
     bhashini_api_key: str = ""
@@ -80,6 +88,8 @@ class Settings(BaseSettings):
     # ── Security & Authentication ────────────────────────────────────────────
     officer_api_key: str = "cepa-officer-secret-key-2026"
     enforce_officer_auth: bool = False  # Set to True in production to strictly require X-Officer-Token
+    # Separate dedicated HMAC secret for tamper-evident report seals
+    hmac_seal_secret_key: str = "cepa-sovereign-seal-secret-2026-v2"
 
     # ── Upload Limits ────────────────────────────────────────────────────────
     max_image_upload_mb: int = 25
@@ -121,6 +131,14 @@ class Settings(BaseSettings):
 
     def ensure_dirs(self) -> None:
         """Create required runtime directories if they don't exist."""
+        try:
+            self.storage_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            fallback = Path(__file__).resolve().parent / "storage"
+            logger.warning("Could not create storage_dir %s (%s). Falling back to %s", self.storage_dir, e, fallback)
+            self.storage_dir = fallback
+            self.storage_dir.mkdir(parents=True, exist_ok=True)
+
         for d in [
             self.storage_dir,
             self.weights_dir,
@@ -137,3 +155,8 @@ class Settings(BaseSettings):
 
 # Module-level singleton -- import this everywhere
 settings = Settings()
+
+import sys
+if __name__ in ("config", "backend.config"):
+    sys.modules["config"] = sys.modules[__name__]
+    sys.modules["backend.config"] = sys.modules[__name__]

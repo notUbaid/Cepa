@@ -51,6 +51,7 @@ class Sample(Base):
     # Paths are relative to settings.storage_dir.
     # Absolute paths are never stored — allows moving storage without DB migration.
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     processed_image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     image_width_px: Mapped[int | None] = mapped_column(Integer, nullable=True)
     image_height_px: Mapped[int | None] = mapped_column(Integer, nullable=True)

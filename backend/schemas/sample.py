@@ -16,6 +16,7 @@ class SampleDetail(BaseModel):
     inspection_id: str
     sample_index: int
     image_path: str | None
+    image_sha256: str | None = None
     processed_image_path: str | None
     original_image_url: str | None = None
     processed_image_url: str | None = None

@@ -59,6 +59,10 @@ class InspectionSummary(BaseModel):
     created_at: datetime
     finalized_at: datetime | None
     sample_count: int = Field(0, description="Number of captured samples")
+    total_bulbs: int = 0
+    grade_a_pct: float = 0.0
+    urs_pct: float = 0.0
+    rejected_pct: float = 0.0
 
 
 class InspectionDetail(BaseModel):

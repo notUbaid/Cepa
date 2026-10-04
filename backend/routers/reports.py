@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -131,6 +132,10 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
             "min_bulb_weight_g": weights.min_bulb_weight_g,
             "max_bulb_weight_g": weights.max_bulb_weight_g,
         },
+        verify_url=f"{settings.report_base_url}/api/v1/reports/{report.report_id}/verify",
+        cryptographic_seal=report.cryptographic_seal,
+        image_sha256=report.image_sha256,
+        seal_status=report.seal_status,
     )
 
 
@@ -160,7 +165,13 @@ def create_or_update_report(inspection: Inspection, db: Session) -> ReportDetail
     # Create or update the Report record
     report = inspection.report
     if report is None:
-        report = Report(inspection_id=inspection.id)
+        report = Report(
+            inspection_id=inspection.id,
+            report_id=str(uuid.uuid4()),
+            share_token=str(uuid.uuid4()),
+            ruleset_version=ruleset_version,
+            model_version=model_version,
+        )
         db.add(report)
 
     report.total_bulbs = agg.total_bulbs
@@ -178,6 +189,14 @@ def create_or_update_report(inspection: Inspection, db: Session) -> ReportDetail
     report.geo_lon = inspection.geo_lon
     report.location_note = inspection.location_note
     report.finalized_at = inspection.finalized_at
+    db.flush()
+
+    # Compute and persist tamper-evident sovereign cryptographic seal
+    from services.crypto_seal import compute_inspection_seal
+    seal_res = compute_inspection_seal(report=report, inspection=inspection)
+    report.cryptographic_seal = seal_res.seal_hex
+    report.image_sha256 = seal_res.image_sha256
+    report.seal_status = seal_res.seal_status
 
     db.commit()
     db.refresh(report)
@@ -308,3 +327,70 @@ async def download_pdf(
         media_type="application/pdf",
         filename=f"inspection-{report.report_id[:8]}.pdf",
     )
+
+
+@router.get("/reports/{report_id}/verify")
+async def verify_report_seal_endpoint(
+    report_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Public verification endpoint to mathematically verify a report's cryptographic HMAC seal.
+    Accessible without authentication for APMC gate officers, traders, banks, and farmers.
+    """
+    report = db.query(Report).filter(
+        (Report.report_id == report_id) | (Report.id == report_id) | (Report.share_token == report_id)
+    ).first()
+    if report is None:
+        raise HTTPException(status_code=404, detail="Inspection report not found")
+
+    inspection = report.inspection
+    from services.crypto_seal import audit_inspection_seal
+    audit = audit_inspection_seal(report, inspection)
+
+    format_param = request.query_params.get("format", "").lower()
+    accept = request.headers.get("accept", "").lower()
+    if format_param == "html" or ("text/html" in accept and "application/json" not in accept):
+        status_color = "#10b981" if audit["is_valid"] else "#ef4444"
+        status_text = "VERIFIED AUTHENTIC" if audit["is_valid"] else f"VERIFICATION ISSUE: {audit['seal_status']}"
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cepa Sovereign Verification — {report.report_id}</title>
+  <style>
+    body {{ font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; display: flex; justify-content: center; }}
+    .card {{ background: #1e293b; border-radius: 16px; padding: 28px; max-width: 600px; width: 100%; border: 1px solid #334155; }}
+    .badge {{ display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 13px; background: {status_color}22; color: {status_color}; border: 1px solid {status_color}; margin-bottom: 20px; }}
+    .row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 14px; }}
+    .label {{ color: #94a3b8; }}
+    .val {{ font-family: monospace; font-weight: 600; word-break: break-all; }}
+    a {{ color: #38bdf8; text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">{status_text}</div>
+    <h2 style="margin: 0 0 16px 0;">Cepa Quality Appraisal Seal</h2>
+    <div class="row"><span class="label">Report ID</span><span class="val">{report.report_id}</span></div>
+    <div class="row"><span class="label">Inspection ID</span><span class="val">{inspection.id}</span></div>
+    <div class="row"><span class="label">Assayer Officer</span><span class="val">{inspection.officer_id or 'OFF-DEFAULT'}</span></div>
+    <div class="row"><span class="label">Bulbs Evaluated</span><span class="val">{report.total_bulbs}</span></div>
+    <div class="row"><span class="label">Grade A %</span><span class="val">{report.grade_a_pct}%</span></div>
+    <div class="row"><span class="label">Seal Status</span><span class="val" style="color: {status_color}">{audit['seal_status']}</span></div>
+    <div class="row"><span class="label">Cryptographic Seal</span><span class="val">{audit['computed_seal']}</span></div>
+    <div class="row"><span class="label">Optical Photo Digest</span><span class="val">{audit['image_sha256'] or 'PHOTO_FILE_MISSING'}</span></div>
+    <div class="row"><span class="label">Photo on Storage</span><span class="val">{'PRESENT' if audit['is_photo_verified_on_disk'] else 'MISSING / EPHEMERAL'}</span></div>
+    <p style="margin-top: 24px; font-size: 13px; color: #94a3b8;">
+      Cryptographically signed by Cepa Sovereign Mandi Assayer Engine using HMAC-SHA256 non-repudiation binding.
+      <br/><a href="/api/v1/reports/share/{report.share_token}?format=html">&larr; Back to Quality Certificate</a>
+    </p>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(content=html)
+
+    return audit
+

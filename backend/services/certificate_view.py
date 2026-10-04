@@ -446,9 +446,12 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </div>
       </div>
 
-      <div class="hash-banner">
-        <span>SOVEREIGN CRYPTOGRAPHIC SEAL:</span>
-        <span class="hash-val">HMAC-SHA256:{cert_seal[:32]}...</span>
+      <div class="hash-banner" style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; letter-spacing: 0.05em; font-size: 11px;">SOVEREIGN CRYPTOGRAPHIC SEAL:</span>
+          <a href="/api/v1/reports/{getattr(r, 'report_id', '')}/verify" style="color: #38bdf8; font-size: 11px; text-decoration: underline;" target="_blank">Verify Mathematical Proof &rarr;</a>
+        </div>
+        <span class="hash-val" style="font-size: 11px; word-break: break-all; font-family: monospace; line-height: 1.4;">HMAC-SHA256:{cert_seal}</span>
       </div>
     </div>
 
@@ -602,7 +605,8 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
     <div class="footer-note">
       Cepa National Produce Quality & Cold Storage Platform - SIH26031 Proof of Concept<br/>
       Policy: <strong>{policy_version}</strong> (verified: {is_policy_verified}) - Segmentation: <strong>YOLO11n-seg</strong> - Defect Model: <strong>{'Mock/Rule-based (DEF_USE_MOCK=true)' if is_mock else 'MobileNetV3 PyTorch'}</strong><br/>
-      Cryptographic Seal: <code>HMAC-SHA256:{cert_seal[:32]}...</code> · Photo Digest: <code>SHA256:{img_sha256[:16]}...</code><br/>
+      Cryptographic Seal: <code style="word-break: break-all;">HMAC-SHA256:{cert_seal}</code><br/>
+      Photo Optical Digest: <code style="word-break: break-all;">SHA256:{img_sha256}</code> · <a href="/api/v1/reports/{getattr(r, 'report_id', '')}/verify" style="color: #38bdf8;" target="_blank">[Independent Tamper Audit]</a><br/>
       (Cryptographically binds sample photo, inspecting officer credential, and quality grading distribution)
     </div>
 

@@ -6,7 +6,7 @@ import platform
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import FileResponse
 
 from services.inspection_service import get_cv_status
@@ -99,12 +99,19 @@ async def get_demo_sample_video():
 
 
 @router.post("/demo/seed-inspection")
-async def seed_demo_inspection(force_reprocess: bool = False):
+async def seed_demo_inspection(
+    force_reprocess: bool = False,
+    x_officer_token: str | None = Header(default=None, alias="X-Officer-Token"),
+):
     """
     Creates or retrieves a verified demo inspection.
     When force_reprocess=True, runs the full live CV pipeline on the demo image.
+    Enforces officer authentication when force_reprocess=True to prevent unauthorized sample deletion.
     """
-    from fastapi import Depends
+    if force_reprocess:
+        from auth import verify_officer_token
+        verify_officer_token(x_officer_token)
+
     from database import get_db, SessionLocal
     from models import Inspection, Sample
     from schemas import InspectionCreate

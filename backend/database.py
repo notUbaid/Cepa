@@ -15,7 +15,10 @@ from collections.abc import Generator
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from config import settings
+try:
+    from backend.config import settings
+except ImportError:
+    from config import settings
 
 
 # SQLite-specific: enable WAL mode and foreign key enforcement.
@@ -24,6 +27,7 @@ def _sqlite_connect_listener(dbapi_connection, connection_record):  # noqa: ANN0
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA busy_timeout=5000")
     cursor.close()
 
 
@@ -86,6 +90,8 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE samples ADD COLUMN is_estimated_scale BOOLEAN DEFAULT 0"))
                 if "calibration_method" not in existing_cols:
                     conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
+                if "image_sha256" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN image_sha256 VARCHAR(64)"))
 
                 res_insp = conn.execute(text("PRAGMA table_info(inspections)")).fetchall()
                 existing_insp_cols = {row[1] for row in res_insp}
@@ -93,6 +99,15 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_id VARCHAR(50)"))
                 if "farmer_name" not in existing_insp_cols:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_name VARCHAR(150)"))
+
+                res_rep = conn.execute(text("PRAGMA table_info(reports)")).fetchall()
+                existing_rep_cols = {row[1] for row in res_rep}
+                if "cryptographic_seal" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN cryptographic_seal VARCHAR(64)"))
+                if "image_sha256" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN image_sha256 VARCHAR(64)"))
+                if "seal_status" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN seal_status VARCHAR(32) DEFAULT 'PENDING'"))
 
                 conn.commit()
             except Exception as e:

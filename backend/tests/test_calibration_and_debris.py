@@ -29,7 +29,7 @@ class TestDualModeCalibration:
         assert calib.calibration_method == "AUTONOMOUS_OVERHEAD_HEURISTIC"
         # 260mm FOV / 1920px ≈ 0.1354 mm/px (mobile close-up benchmark prior)
         assert pytest.approx(calib.scale_mm_per_px, rel=0.05) == (260.0 / 1920.0)
-        assert calib.uncertainty_mm == 3.5
+        assert calib.uncertainty_mm == 5.0
 
     def test_autonomous_scale_produces_valid_size_and_mandi_grade(self):
         # Realistic bulb: 140px diameter circle on 1920x1080 image

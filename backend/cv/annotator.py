@@ -166,7 +166,7 @@ def render_annotated_inspection_image(
     is_estimated = any(getattr(item.size_estimate, 'uncertainty_flag', False) for item in instances) if instances else False
     if scale_mm_per_px:
         if is_estimated:
-            banner_text = f"AUTONOMOUS CALIPER: ~{scale_mm_per_px:.4f} mm/px (+-3.5mm)"
+            banner_text = f"NO BOARD DETECTED: ~{scale_mm_per_px:.4f} mm/px [NEEDS REVIEW]"
         else:
             banner_text = f"CHARUCO 7x5 LOCKED: {scale_mm_per_px:.4f} mm/px (+-0.5mm)"
     else:

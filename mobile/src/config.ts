@@ -29,7 +29,12 @@ function resolveDefaultApiBaseUrl(): string {
     return PRODUCTION_BACKEND_URL;
   }
 
-  // 2. Localhost web development
+  // 2. Explicit environment variable override (e.g. start.bat setting port 8001)
+  if (process.env.EXPO_PUBLIC_API_URL && process.env.EXPO_PUBLIC_API_URL.trim()) {
+    return process.env.EXPO_PUBLIC_API_URL.trim().replace(/\/+$/, '');
+  }
+
+  // 3. Localhost web development fallback
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
@@ -37,7 +42,7 @@ function resolveDefaultApiBaseUrl(): string {
     }
   }
 
-  // 3. User override from localStorage if set (local dev only)
+  // 4. User override from localStorage if set (local dev only)
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const saved = window.localStorage.getItem('cepa_api_base_url');
@@ -47,7 +52,7 @@ function resolveDefaultApiBaseUrl(): string {
     } catch {}
   }
 
-  // 4. Default for native devices (Expo Go / standalone APK on Android & iOS)
+  // 5. Default for native devices (Expo Go / standalone APK on Android & iOS)
   // Always use the robust cloud backend so physical phones connect seamlessly without loopback failures
   return PRODUCTION_BACKEND_URL;
 }
@@ -77,9 +82,22 @@ export const DEFAULT_OFFICER_TOKEN =
   process.env.EXPO_PUBLIC_OFFICER_TOKEN || 'cepa-officer-secret-key-2026';
 
 let currentOfficerToken = DEFAULT_OFFICER_TOKEN;
-export const getOfficerToken = () => currentOfficerToken;
+export const getOfficerToken = (): string => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const saved = window.localStorage.getItem('cepa_officer_token');
+      if (saved && saved.trim()) return saved.trim();
+    } catch {}
+  }
+  return currentOfficerToken;
+};
 export const setOfficerToken = (token: string) => {
   currentOfficerToken = token;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem('cepa_officer_token', token);
+    } catch {}
+  }
 };
 
 /**

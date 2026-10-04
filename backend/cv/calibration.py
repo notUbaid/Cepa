@@ -106,7 +106,7 @@ def compute_calibration(
             perspective_valid=False,
             is_estimated=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
-            uncertainty_mm=3.5,
+            uncertainty_mm=5.0,
             failure_code=marker_result.failure_code,
             failure_message=marker_result.failure_message,
         )
@@ -122,7 +122,7 @@ def compute_calibration(
             perspective_valid=False,
             is_estimated=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
-            uncertainty_mm=3.5,
+            uncertainty_mm=5.0,
             failure_code=FAIL_HOMOGRAPHY_FAILED,
             failure_message="Not enough corners for homography computation.",
         )
@@ -161,7 +161,7 @@ def compute_calibration(
             perspective_valid=False,
             is_estimated=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
-            uncertainty_mm=3.5,
+            uncertainty_mm=5.0,
             failure_code=FAIL_HOMOGRAPHY_FAILED,
             failure_message=(
                 "Homography computation failed. Ensure the calibration board "
@@ -229,7 +229,7 @@ def compute_calibration(
             perspective_valid=False,
             is_estimated=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
-            uncertainty_mm=3.5,
+            uncertainty_mm=5.0,
             failure_code=FAIL_SCALE_UNRELIABLE,
             failure_message=(
                 f"Computed scale {mm_per_px:.4f} mm/px is implausible. "
@@ -243,15 +243,22 @@ def compute_calibration(
         mm_per_px, out_w, out_h,
     )
 
-    # Dynamic Parallax & Standoff Uncertainty:
+    # Dynamic Parallax & Standoff Uncertainty (Resolution-Invariant):
     # An onion's equator sits ~20-35mm above the planar board surface.
-    # At close handheld distances (25-35cm, mm_per_px < 0.20), perspective parallax
-    # magnifies the equatorial silhouette by ~7-10% (Δ ~ 3.5-4.5mm).
-    # At calibrated tripod standoff (50-70cm, 0.20 <= mm_per_px <= 0.60), parallax is ~3-4% (Δ ~ 2.0mm).
-    # At wide packhouse overhead mount (> 70cm, mm_per_px > 0.60), parallax is ~2-3% (Δ ~ 1.5mm).
-    if mm_per_px is not None and mm_per_px < 0.20:
+    # We estimate camera distance from the physical board's apparent span across the frame:
+    board_min = img_pts.min(axis=0)
+    board_max = img_pts.max(axis=0)
+    board_span_px = max(float(board_max[0] - board_min[0]), float(board_max[1] - board_min[1]))
+    frame_dim = max(float(w_img), float(h_img))
+    board_frame_fraction = board_span_px / max(1.0, frame_dim)
+
+    # Resolution-invariant standoff brackets:
+    # 1. Close handheld distance (f > 0.50, camera ~25-35cm over tray): parallax ~10% (Δ ~ 3.5mm)
+    # 2. Standard calibrated bench / tripod standoff (0.25 <= f <= 0.50, camera ~45-70cm): parallax ~4% (Δ ~ 2.0mm)
+    # 3. Packhouse overhead mount (f < 0.25, camera > 75cm): parallax ~2% (Δ ~ 1.5mm)
+    if board_frame_fraction > 0.50:
         parallax_uncertainty_mm = 3.5
-    elif mm_per_px is not None and mm_per_px <= 0.60:
+    elif board_frame_fraction >= 0.25:
         parallax_uncertainty_mm = 2.0
     else:
         parallax_uncertainty_mm = 1.5
@@ -265,3 +272,19 @@ def compute_calibration(
         uncertainty_mm=parallax_uncertainty_mm,
         measured_square_px=px_per_mm * (settings.charuco_square_length_mm),
     )
+
+
+def generate_charuco_board(width_px: int = 1400, height_px: int = 1000) -> np.ndarray:
+    """
+    Generate high-resolution printable ChArUco 7x5 metric calibration board image.
+    Uses DICT_4X4_250 matching system configuration.
+    """
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+    board = cv2.aruco.CharucoBoard(
+        size=(settings.charuco_board_squares_x, settings.charuco_board_squares_y),
+        squareLength=settings.charuco_square_length_mm / 1000.0,
+        markerLength=settings.charuco_marker_length_mm / 1000.0,
+        dictionary=aruco_dict,
+    )
+    return board.generateImage((width_px, height_px), marginSize=20, borderBits=1)
+

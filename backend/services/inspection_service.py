@@ -200,6 +200,43 @@ async def process_sample_image(
     if inspection is None:
         raise ValueError(f"Inspection {inspection_id} not found")
 
+    global _seg_provider, _defect_classifier, _active_policy
+    if _seg_provider is None or _defect_classifier is None or _active_policy is None:
+        initialize_cv_components()
+
+    import hashlib
+    image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+
+    # Idempotency check: prevent duplicate sample insertion on mobile retries or timeout drops
+    existing_sample = (
+        db.query(Sample)
+        .filter(
+            Sample.inspection_id == inspection_id,
+            Sample.image_sha256 == image_sha256,
+        )
+        .first()
+    )
+    if existing_sample is not None:
+        if existing_sample.processing_status == "DONE":
+            logger.info(
+                "Idempotent upload match: returning completed sample %s (sha256=%s)",
+                existing_sample.id,
+                image_sha256,
+            )
+            return existing_sample
+        elif existing_sample.processing_status == "RUNNING":
+            logger.info(
+                "Concurrent upload retry: sample %s already running (sha256=%s)",
+                existing_sample.id,
+                image_sha256,
+            )
+            for _ in range(30):
+                await asyncio.sleep(0.5)
+                db.refresh(existing_sample)
+                if existing_sample.processing_status in ("DONE", "FAILED"):
+                    return existing_sample
+            return existing_sample
+
     # Count existing samples to determine sample_index
     existing_count = (
         db.query(Sample).filter(Sample.inspection_id == inspection_id).count()
@@ -215,6 +252,7 @@ async def process_sample_image(
         inspection_id=inspection_id,
         sample_index=sample_index,
         image_path=image_path,
+        image_sha256=image_sha256,
         processing_status="RUNNING",
         processing_started_at=datetime.now(timezone.utc),
         geo_lat=geo_lat,
@@ -280,6 +318,9 @@ def _run_pipeline_sync(
     sample_id: str,
 ) -> PipelineResult:
     """Synchronous wrapper called from thread pool."""
+    global _seg_provider, _defect_classifier, _active_policy
+    if _seg_provider is None or _defect_classifier is None or _active_policy is None:
+        initialize_cv_components()
     return run_pipeline(
         image_bytes=image_bytes,
         inspection_id=inspection_id,

@@ -71,6 +71,9 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Backend Connection Status"
+          accessibilityHint="Tap to view backend endpoint and server status"
           onPress={() => {
             const endpoint = getApiBaseUrl();
             alert(`Cepa Grading Engine:\nStatus: ${serverConnected ? 'ONLINE (Connected)' : 'OFFLINE (Connecting)'}\nEndpoint: ${endpoint}`);
@@ -106,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
-    paddingTop: Platform.OS === 'android' ? 40 : 14,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,

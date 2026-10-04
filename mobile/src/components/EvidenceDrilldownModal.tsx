@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -55,6 +55,18 @@ export const EvidenceDrilldownModal: React.FC<EvidenceDrilldownModalProps> = ({
   );
   const [officerRemarks, setOfficerRemarks] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Synchronize modal state whenever the active bulb changes
+  useEffect(() => {
+    if (onion) {
+      setDamagedInput(((onion.damaged_prob ?? 0) * 100).toFixed(0));
+      setRottenInput(((onion.rotten_prob ?? 0) * 100).toFixed(0));
+      setSproutedInput(((onion.sprouted_prob ?? 0) * 100).toFixed(0));
+      setOfficerRemarks(onion.corrected_by ? `Correction by ${onion.corrected_by}` : '');
+      setIsCorrecting(false);
+      setShowMask(false);
+    }
+  }, [onion?.id]);
 
   const handleSaveCorrection = async () => {
     Haptics.heavy();

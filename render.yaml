@@ -12,21 +12,31 @@ services:
         value: production
       - key: ACTIVE_GRADING_POLICY
         value: DEMO_ASSUMPTION_v1
-      # Exact localhost origins only — Vercel wildcard is matched via allow_origin_regex in main.py
+      # Explicit container storage directory matching non-root appuser ownership (/app/storage)
+      - key: STORAGE_DIR
+        value: "/app/storage"
+      # Production CORS origins including live PoC domains and local dev
       - key: CORS_ORIGINS
-        value: "http://localhost:8081,http://localhost:3000"
-      # IMPORTANT: Replace with your actual Render service URL before deploying
+        value: "https://cepa-app.vercel.app,https://cepa-nine.vercel.app,http://localhost:8081,http://localhost:3000,http://localhost:8000,http://localhost:8001"
+      # Service URLs
       - key: REPORT_BASE_URL
         value: "https://cepa-backend.onrender.com"
       - key: SHARE_LINK_BASE_URL
         value: "https://cepa-backend.onrender.com/api/v1/reports/share"
-      # Set true in production to require X-Officer-Token on all protected routes
+      # Authentication and Sovereign Cryptographic Seal (separated keys)
+      # ENFORCE_OFFICER_AUTH=false enables frictionless hackathon evaluation; enable for enterprise deployment
       - key: ENFORCE_OFFICER_AUTH
         value: "false"
       - key: OFFICER_API_KEY
-        value: "cepa-officer-secret-key-2026"
-      # Set to false when real defect_classifier.pt weights are deployed
-      - key: DEF_USE_MOCK
-        value: "false"
+        sync: false
+      - key: HMAC_SEAL_SECRET_KEY
+        generateValue: true
+      # Active Multimodal Groq AI Models
+      - key: GROQ_VISION_MODEL
+        value: "qwen/qwen3.8-27b"
+      - key: GROQ_TEXT_MODEL
+        value: "qwen/qwen3.8-27b"
       - key: GROQ_API_KEY
         sync: false
+      - key: DEF_USE_MOCK
+        value: "false"

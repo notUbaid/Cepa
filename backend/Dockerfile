@@ -23,13 +23,14 @@ COPY . .
 
 # Ensure storage, weights, and static directories exist and configure non-root user
 RUN useradd -u 10001 -m -s /bin/bash appuser && \
-    mkdir -p storage weights static && \
+    mkdir -p storage/crops storage/masks storage/reports storage/images weights static && \
     chown -R appuser:appuser /app
 
 USER appuser
 
 # Configure production environment
 ENV BACKEND_ENV=production \
+    STORAGE_DIR=/app/storage \
     PYTHONUNBUFFERED=1 \
     PORT=8000
 
