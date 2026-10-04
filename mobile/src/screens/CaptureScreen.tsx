@@ -47,7 +47,13 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [capturing, setCapturing] = useState(false);
   const [guideVisible, setGuideVisible] = useState(false);
   const [activeMode, setActiveMode] = useState<'SINGLE' | 'BATCH' | 'CALIBRATE'>('SINGLE');
-  const [torchOn, setTorchOn] = useState(false);
+  const [flashMode, setFlashMode] = useState<'off' | 'auto' | 'on' | 'torch'>('off');
+  const [flashToast, setFlashToast] = useState<string | null>(null);
+  const flashToastTimeout = useRef<any>(null);
+  const [gridEnabled, setGridEnabled] = useState(true);
+  const [autofocusState, setAutofocusState] = useState<'on' | 'off'>('on');
+  const shutterSnapAnim = useRef(new Animated.Value(0)).current;
+
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [activeTab, setActiveTab] = useState<'CAMERA' | 'UPLOAD' | 'VIDEO'>(initialTab);
@@ -62,6 +68,41 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const toggleFacing = () => {
     Haptics.selection();
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
+  };
+
+  const cycleFlashMode = () => {
+    Haptics.selection();
+    const modes: ('off' | 'auto' | 'on' | 'torch')[] = ['off', 'auto', 'on', 'torch'];
+    const nextIdx = (modes.indexOf(flashMode) + 1) % modes.length;
+    const next = modes[nextIdx];
+    setFlashMode(next);
+
+    // Apply torch on web video track if supported
+    if (Platform.OS === 'web') {
+      try {
+        const video = document.querySelector('video') as HTMLVideoElement | null;
+        if (video && video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          const track = stream.getVideoTracks()[0];
+          const caps: any = track.getCapabilities?.() || {};
+          if (caps.torch) {
+            track.applyConstraints({ advanced: [{ torch: next === 'torch' } as any] }).catch(() => {});
+          }
+        }
+      } catch {}
+    }
+
+    const labels: Record<string, string> = {
+      off: 'Flash Off',
+      auto: 'Flash Auto',
+      on: 'Flash On',
+      torch: 'Torch Light On',
+    };
+    setFlashToast(labels[next]);
+    if (flashToastTimeout.current) clearTimeout(flashToastTimeout.current);
+    flashToastTimeout.current = setTimeout(() => {
+      setFlashToast(null);
+    }, 1500);
   };
 
   // Automatically trigger native camera permission dialog when camera tab mounts
@@ -361,7 +402,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   // Optical / Digital Zoom Presets
   const [zoom, setZoom] = useState(0);
   const ZOOM_PRESETS = [
-    { label: '0.5x', value: 0 },
+    { label: '.5', value: 0 },
     { label: '1x', value: 0.15 },
     { label: '2x', value: 0.35 },
   ];
@@ -373,21 +414,42 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const handleTapToFocus = (e: any) => {
     const { locationX, locationY } = e.nativeEvent;
     if (locationX === undefined || locationY === undefined) return;
-    Haptics.light();
+    Haptics.selection();
     setFocusPoint({ x: locationX, y: locationY });
+
+    // Briefly pulse autofocus state so camera sensor recalibrates
+    setAutofocusState('off');
+    setTimeout(() => {
+      setAutofocusState('on');
+    }, 250);
+
+    // If web browser media track supports continuous focus constraints
+    if (Platform.OS === 'web') {
+      try {
+        const video = document.querySelector('video') as HTMLVideoElement | null;
+        if (video && video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          const track = stream.getVideoTracks()[0];
+          const caps: any = track.getCapabilities?.() || {};
+          if (caps.focusMode && caps.focusMode.includes('continuous')) {
+            track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] }).catch(() => {});
+          }
+        }
+      } catch {}
+    }
 
     focusAnim.setValue(0);
     Animated.sequence([
       Animated.spring(focusAnim, {
         toValue: 1,
         friction: 5,
-        tension: 100,
+        tension: 110,
         useNativeDriver: true,
       }),
-      Animated.delay(1200),
+      Animated.delay(1800),
       Animated.timing(focusAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 350,
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
@@ -401,6 +463,15 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     if (capturing) return;
     Haptics.heavy();
     setCapturing(true);
+
+    // Trigger optical aperture shutter snap simulation
+    shutterSnapAnim.setValue(0.85);
+    Animated.timing(shutterSnapAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+
     try {
       // 1. Direct Web canvas capture from live <video> stream
       if (Platform.OS === 'web') {
@@ -1015,15 +1086,27 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
           facing={facing}
-          enableTorch={torchOn}
+          flash={flashMode === 'torch' ? 'off' : flashMode}
+          enableTorch={flashMode === 'torch'}
           zoom={zoom}
-          autofocus="on"
+          autofocus={autofocusState}
+          animateShutter={false}
           onMountError={(e) => setCameraError(e?.message || 'Camera stream failed to mount')}
         >
+          {/* Full-screen optical aperture shutter flash simulation */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: '#ffffff', opacity: shutterSnapAnim, zIndex: 999 },
+            ]}
+          />
+
           <View style={styles.overlayContainer}>
-            {/* Top Floating Clean HUD */}
+            {/* Top Floating Sleek Phone Camera Bar */}
             <FadeInView delay={50} distance={-10}>
               <View style={styles.topHudBar}>
+                {/* Close Button */}
                 <AnimatedPressable
                   haptic="light"
                   onPress={onCancel}
@@ -1033,20 +1116,60 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   <Feather name="x" size={18} color="#ffffff" />
                 </AnimatedPressable>
 
-                <View style={styles.hudCenterBadge}>
-                  <View style={styles.hudDotLive} />
-                  <View>
-                    <Text style={styles.hudLotId}>
-                      {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA OPTICAL SCANNER'}
-                    </Text>
-                    <Text style={styles.hudCentreText}>
-                      {inspection.procurement_centre || 'Mandi Caliper Node'}
+                {/* Center Native Controls: Flash + Grid + Minimalist Lot Badge */}
+                <View style={styles.topCenterControls}>
+                  {/* Flash Mode Cycler (Off -> Auto -> On -> Torch) */}
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={cycleFlashMode}
+                    style={[
+                      styles.hudCircleBtn,
+                      (flashMode === 'on' || flashMode === 'torch') && styles.hudFlashActive,
+                    ]}
+                    accessibilityLabel="Toggle Flash Mode"
+                  >
+                    {flashMode === 'off' ? (
+                      <Feather name="zap-off" size={16} color="rgba(255, 255, 255, 0.75)" />
+                    ) : flashMode === 'auto' ? (
+                      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                        <Feather name="zap" size={15} color="#fbbf24" />
+                        <Text style={styles.flashAutoBadgeText}>A</Text>
+                      </View>
+                    ) : flashMode === 'on' ? (
+                      <Feather name="zap" size={16} color="#0f172a" />
+                    ) : (
+                      <Feather name="sun" size={16} color="#0f172a" />
+                    )}
+                  </AnimatedPressable>
+
+                  {/* Grid / Horizon Level Toggle */}
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setGridEnabled(!gridEnabled)}
+                    style={[
+                      styles.hudCircleBtn,
+                      gridEnabled && styles.hudGridActive,
+                    ]}
+                    accessibilityLabel="Toggle Grid and Horizon Level"
+                  >
+                    <Feather
+                      name="grid"
+                      size={15}
+                      color={gridEnabled ? '#10b981' : 'rgba(255, 255, 255, 0.75)'}
+                    />
+                  </AnimatedPressable>
+
+                  {/* Compact Lot Identifier */}
+                  <View style={styles.compactLotBadge}>
+                    <Text style={styles.compactLotText} numberOfLines={1}>
+                      {inspection.lot_id ? `LOT: ${inspection.lot_id}` : 'CEPA CALIPER'}
                     </Text>
                   </View>
                 </View>
 
+                {/* Right Actions: Lens Switch + Station Guide */}
                 <View style={styles.hudRightActions}>
-                  {/* Switch Camera Lens (Front/Back) */}
+                  {/* Switch Front/Back Lens */}
                   <AnimatedPressable
                     haptic="selection"
                     onPress={toggleFacing}
@@ -1056,61 +1179,25 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     <Feather name="refresh-cw" size={16} color="#ffffff" />
                   </AnimatedPressable>
 
-                  {/* Guide Button */}
+                  {/* Calibration Guide Sheet */}
                   <AnimatedPressable
                     haptic="selection"
                     onPress={() => setGuideVisible(true)}
                     style={styles.hudCircleBtn}
-                    accessibilityLabel="Calibration Guide"
+                    accessibilityLabel="Optical Calibration Guide"
                   >
                     <Feather name="help-circle" size={16} color="#ffffff" />
-                  </AnimatedPressable>
-
-                  {/* Torch Toggle */}
-                  <AnimatedPressable
-                    haptic="selection"
-                    onPress={() => setTorchOn(!torchOn)}
-                    style={[styles.hudCircleBtn, torchOn && styles.hudTorchActive]}
-                    accessibilityLabel="Toggle Torch"
-                  >
-                    <Feather name="zap" size={16} color={torchOn ? '#0f172a' : '#ffffff'} />
                   </AnimatedPressable>
                 </View>
               </View>
             </FadeInView>
 
-            {/* 3-Way Mode Switcher */}
-            <View style={styles.modeSwitcherWrap}>
-              <View style={styles.modeSwitcherTrack}>
-                <AnimatedPressable
-                  haptic="selection"
-                  onPress={() => setActiveTab('CAMERA')}
-                  style={[styles.modeSwitcherBtn, styles.modeSwitcherBtnActive]}
-                >
-                  <Text style={[styles.modeSwitcherBtnText, styles.modeSwitcherBtnTextActive]}>
-                    Camera
-                  </Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  haptic="selection"
-                  onPress={() => setActiveTab('VIDEO')}
-                  style={styles.modeSwitcherBtn}
-                >
-                  <Text style={styles.modeSwitcherBtnText}>
-                    Video Sweep
-                  </Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  haptic="selection"
-                  onPress={() => setActiveTab('UPLOAD')}
-                  style={styles.modeSwitcherBtn}
-                >
-                  <Text style={styles.modeSwitcherBtnText}>
-                    Upload
-                  </Text>
-                </AnimatedPressable>
-              </View>
-            </View>
+            {/* Flash Status Toast Banner */}
+            {flashToast && (
+              <Animated.View style={styles.flashToastBanner} pointerEvents="none">
+                <Text style={styles.flashToastText}>{flashToast}</Text>
+              </Animated.View>
+            )}
 
             {/* Viewport: Interactive Tap-to-Focus Surface */}
             <Pressable
@@ -1119,12 +1206,23 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               accessibilityLabel="Tap to focus camera"
             >
               {/* Subtle Rule-of-Thirds Grid */}
-              <View style={styles.gridOverlay} pointerEvents="none">
-                <View style={styles.gridLineH1} />
-                <View style={styles.gridLineH2} />
-                <View style={styles.gridLineV1} />
-                <View style={styles.gridLineV2} />
-              </View>
+              {gridEnabled && (
+                <View style={styles.gridOverlay} pointerEvents="none">
+                  <View style={styles.gridLineH1} />
+                  <View style={styles.gridLineH2} />
+                  <View style={styles.gridLineV1} />
+                  <View style={styles.gridLineV2} />
+                </View>
+              )}
+
+              {/* 90° Overhead Horizon Crosshair Leveler */}
+              {gridEnabled && (
+                <View style={styles.overheadLevelReticle} pointerEvents="none">
+                  <View style={styles.levelCrosshairH} />
+                  <View style={styles.levelCrosshairV} />
+                  <View style={styles.levelCenterDot} />
+                </View>
+              )}
 
               {/* Viewport Framing Brackets */}
               <View style={styles.framingFrame} pointerEvents="none">
@@ -1134,50 +1232,47 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                 <View style={[styles.cleanCorner, styles.cBottomRight]} />
               </View>
 
-              {/* Animated Tap-to-Focus Reticle */}
+              {/* Iconic Smartphone Yellow Tap-to-Focus Reticle */}
               {focusPoint && (
                 <Animated.View
                   pointerEvents="none"
                   style={[
-                    styles.focusReticle,
+                    styles.nativeFocusBox,
                     {
-                      left: focusPoint.x - 36,
-                      top: focusPoint.y - 36,
+                      left: focusPoint.x - 32,
+                      top: focusPoint.y - 32,
                       opacity: focusAnim,
                       transform: [
                         {
                           scale: focusAnim.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [1.3, 1],
+                            outputRange: [1.35, 1],
                           }),
                         },
                       ],
                     },
                   ]}
                 >
-                  <View style={[styles.focusReticleCorner, styles.fCornerTL]} />
-                  <View style={[styles.focusReticleCorner, styles.fCornerTR]} />
-                  <View style={[styles.focusReticleCorner, styles.fCornerBL]} />
-                  <View style={[styles.focusReticleCorner, styles.fCornerBR]} />
-                  <View style={styles.focusReticlePip} />
+                  <View style={styles.nativeFocusSquare} />
+                  <View style={styles.exposureIndicator}>
+                    <View style={styles.exposureTrack} />
+                    <Feather name="sun" size={13} color="#facc15" />
+                  </View>
                 </Animated.View>
               )}
 
-              {/* Dynamic Live Sensor Guidance Pill */}
+              {/* Minimalist Smart Guidance Pill */}
               <View
                 style={[
                   styles.guidancePill,
-                  liveOnionsDetected > 0 && {
-                    backgroundColor: 'rgba(6, 78, 59, 0.88)',
-                    borderColor: '#10b981',
-                  },
+                  liveOnionsDetected > 0 && styles.guidancePillActive,
                 ]}
                 pointerEvents="none"
               >
                 <Feather
-                  name={liveOnionsDetected > 0 ? 'check-circle' : 'maximize'}
+                  name={liveOnionsDetected > 0 ? 'check-circle' : 'crosshair'}
                   size={12}
-                  color={liveOnionsDetected > 0 ? '#34d399' : '#fbbf24'}
+                  color={liveOnionsDetected > 0 ? '#34d399' : '#facc15'}
                   style={{ marginRight: 6 }}
                 />
                 <Text
@@ -1191,10 +1286,10 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </View>
             </Pressable>
 
-            {/* Bottom Industrial Controls Deck */}
+            {/* Bottom Native Camera Deck */}
             <FadeInView delay={100} distance={15}>
               <View style={styles.bottomDeck}>
-                {/* Lens / Zoom Selector Pills */}
+                {/* 1. Zoom Selector Pills (.5, 1x, 2x) */}
                 <View style={styles.zoomPillsRow}>
                   {ZOOM_PRESETS.map((preset) => {
                     const isSelected = zoom === preset.value;
@@ -1221,33 +1316,43 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                   })}
                 </View>
 
-                {/* Mode Selector Tabs */}
-                <View style={styles.modeTabsRow}>
-                  {(['SINGLE', 'BATCH', 'CALIBRATE'] as const).map((mode) => {
-                    const active = activeMode === mode;
-                    const labelMap = {
-                      SINGLE: 'Single Lot',
-                      BATCH: 'Rapid Batch',
-                      CALIBRATE: 'Check Card',
-                    };
-                    return (
-                      <AnimatedPressable
-                        key={mode}
-                        haptic="selection"
-                        onPress={() => setActiveMode(mode)}
-                        style={[styles.modeTab, active && styles.modeTabActive]}
-                      >
-                        <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>
-                          {labelMap[mode]}
-                        </Text>
-                      </AnimatedPressable>
-                    );
-                  })}
+                {/* 2. Seamless Native Mode Carousel: PHOTO | VIDEO SWEEP | UPLOAD */}
+                <View style={styles.cameraModeCarousel}>
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setActiveTab('CAMERA')}
+                    style={styles.carouselModeTab}
+                  >
+                    <Text style={[styles.carouselModeText, styles.carouselModeTextActive]}>
+                      PHOTO
+                    </Text>
+                    <View style={styles.carouselActiveDot} />
+                  </AnimatedPressable>
+
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setActiveTab('VIDEO')}
+                    style={styles.carouselModeTab}
+                  >
+                    <Text style={styles.carouselModeText}>
+                      VIDEO SWEEP
+                    </Text>
+                  </AnimatedPressable>
+
+                  <AnimatedPressable
+                    haptic="selection"
+                    onPress={() => setActiveTab('UPLOAD')}
+                    style={styles.carouselModeTab}
+                  >
+                    <Text style={styles.carouselModeText}>
+                      UPLOAD
+                    </Text>
+                  </AnimatedPressable>
                 </View>
 
-                {/* Primary Control Deck */}
+                {/* 3. Primary Shutter Bar */}
                 <View style={styles.controlsRow}>
-                  {/* Photo Upload Button */}
+                  {/* Left: Gallery / Upload shortcut */}
                   <AnimatedPressable
                     haptic="light"
                     style={styles.deckSideBtn}
@@ -1255,33 +1360,29 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     disabled={capturing}
                     accessibilityLabel="Upload Image File"
                   >
-                    <View style={[styles.sideBtnIconBox, styles.uploadIconBox]}>
-                      <Feather name="upload-cloud" size={15} color="#ffffff" />
+                    <View style={styles.sideBtnIconBox}>
+                      <Feather name="image" size={18} color="#ffffff" />
                     </View>
-                    <Text style={styles.sideBtnLabel}>Upload</Text>
+                    <Text style={styles.sideBtnLabel}>Gallery</Text>
                   </AnimatedPressable>
 
-                  {/* Tactile Shutter Button */}
+                  {/* Center: Iconic Native Camera Shutter */}
                   <AnimatedPressable
                     haptic="heavy"
-                    scaleTo={0.90}
-                    style={styles.shutterOuterRing}
+                    scaleTo={0.88}
+                    style={styles.nativeShutterRing}
                     onPress={takePhoto}
                     disabled={capturing}
                     accessibilityLabel="Capture Photo"
                   >
-                    <View style={styles.shutterMiddleHalo}>
-                      <View style={styles.shutterCoreButton}>
-                        {capturing ? (
-                          <ActivityIndicator color="#0c0c0e" size="small" />
-                        ) : (
-                          <View style={styles.shutterCenterPip} />
-                        )}
-                      </View>
+                    <View style={styles.nativeShutterButton}>
+                      {capturing ? (
+                        <ActivityIndicator color="#0c0c0e" size="small" />
+                      ) : null}
                     </View>
                   </AnimatedPressable>
 
-                  {/* Native Phone Camera Direct Launcher */}
+                  {/* Right: Phone Native Camera Launcher */}
                   <AnimatedPressable
                     haptic="medium"
                     style={styles.deckSideBtn}
@@ -1289,8 +1390,8 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     disabled={capturing}
                     accessibilityLabel="Launch Device Camera"
                   >
-                    <View style={[styles.sideBtnIconBox, { backgroundColor: 'rgba(37, 99, 235, 0.4)' }]}>
-                      <Feather name="aperture" size={15} color="#60a5fa" />
+                    <View style={[styles.sideBtnIconBox, styles.phoneCamIconBox]}>
+                      <Feather name="aperture" size={18} color="#38bdf8" />
                     </View>
                     <Text style={styles.sideBtnLabel}>Phone Cam</Text>
                   </AnimatedPressable>
@@ -1524,6 +1625,59 @@ const styles = StyleSheet.create({
     backgroundColor: '#f59e0b',
     borderColor: '#f59e0b',
   },
+  topCenterControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hudFlashActive: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#fbbf24',
+  },
+  flashAutoBadgeText: {
+    position: 'absolute',
+    bottom: -3,
+    right: -3,
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#fbbf24',
+  },
+  hudGridActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  compactLotBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  compactLotText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#e4e4e7',
+    letterSpacing: 0.5,
+  },
+  flashToastBanner: {
+    position: 'absolute',
+    top: 72,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(20, 20, 24, 0.88)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    zIndex: 90,
+  },
+  flashToastText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   hudCenterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1670,6 +1824,68 @@ const styles = StyleSheet.create({
     backgroundColor: '#fbbf24',
   },
 
+  /* Native Tap-to-Focus Reticle & Exposure Slider */
+  nativeFocusBox: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nativeFocusSquare: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderWidth: 1.5,
+    borderColor: '#facc15',
+    borderRadius: 2,
+  },
+  exposureIndicator: {
+    position: 'absolute',
+    right: -24,
+    top: 6,
+    bottom: 6,
+    width: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exposureTrack: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(250, 204, 21, 0.4)',
+  },
+
+  /* Overhead 90-Degree Horizon Crosshair Leveler */
+  overheadLevelReticle: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelCrosshairH: {
+    position: 'absolute',
+    width: 32,
+    height: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 1,
+  },
+  levelCrosshairV: {
+    position: 'absolute',
+    height: 32,
+    width: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 1,
+  },
+  levelCenterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+
   /* Guidance Pill */
   guidancePill: {
     position: 'absolute',
@@ -1682,6 +1898,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  guidancePillActive: {
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
   },
   guidancePillText: {
     fontSize: 11.5,
@@ -1756,6 +1976,38 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+
+  /* Native Mode Carousel: PHOTO | VIDEO SWEEP | UPLOAD */
+  cameraModeCarousel: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: 14,
+  },
+  carouselModeTab: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  carouselModeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#71717a',
+    letterSpacing: 0.8,
+  },
+  carouselModeTextActive: {
+    color: '#fbbf24',
+    fontWeight: '800',
+  },
+  carouselActiveDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fbbf24',
+    marginTop: 4,
+  },
+
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1777,6 +2029,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     marginBottom: 4,
   },
+  phoneCamIconBox: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
   sideBtnIcon: {
     fontSize: 18,
   },
@@ -1794,6 +2050,26 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '600',
     color: '#a1a1aa',
+  },
+
+  /* Native Shutter Ring & Aperture Core */
+  nativeShutterRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  nativeShutterButton: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   /* Shutter Ring */
