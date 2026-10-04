@@ -138,6 +138,24 @@ class TestOnionAuthenticityRealImages:
         auth, _ = OnionAuthenticityValidator.filter_detections(img, res.detections)
         assert len(auth) >= 1, "At least one authentic onion must be validated from demo spread"
 
+    def test_real_red_onions_authenticated(self):
+        """Authentic red onions from real-world mandi capture must not be rejected by ImageNet sphere-mimic."""
+        img_path = Path(__file__).parent.parent / "static" / "test_red_onions.jpg"
+        if not img_path.exists():
+            pytest.skip("test_red_onions.jpg not available")
+        img = cv2.imread(str(img_path))
+        assert img is not None
+
+        from cv.providers.yolo11_provider import YOLO11SegmentationProvider
+        from config import settings
+        yolo = YOLO11SegmentationProvider(model_path=settings.seg_model_path)
+        res = yolo.detect(img)
+        assert res.count > 0, "YOLO must detect candidate bulbs in real red onion image"
+
+        auth, rejected = OnionAuthenticityValidator.filter_detections(img, res.detections)
+        assert len(auth) >= 1, f"Authentic red onions must pass verification (got rejected: {rejected})"
+
+
 
 class TestPipelineNonOnionRejection:
     """Verifies end-to-end pipeline failure when non-onion objects are presented."""

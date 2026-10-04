@@ -48,6 +48,7 @@ filterwarnings = [
     "ignore::starlette.exceptions.StarletteDeprecationWarning",
 ]
 addopts = "-v --strict-markers"
+norecursedirs = ["storage*", "data*", "build", "dist", ".git", ".venv", "env"]
 
 [tool.ruff]
 target-version = "py311"

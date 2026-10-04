@@ -407,21 +407,53 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     { label: '2x', value: 0.35 },
   ];
 
+  const setCameraZoom = (val: number) => {
+    Haptics.selection();
+    setZoom(val);
+    if (Platform.OS === 'web') {
+      try {
+        const video = document.querySelector('video') as HTMLVideoElement | null;
+        if (video && video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          const track = stream.getVideoTracks()[0];
+          const caps: any = track.getCapabilities?.() || {};
+          if (caps.zoom) {
+            const minZ = caps.zoom.min || 1;
+            const maxZ = caps.zoom.max || 3;
+            const scaled = minZ + (val / 0.35) * (Math.min(maxZ, 3.0) - minZ);
+            track.applyConstraints({ advanced: [{ zoom: scaled } as any] }).catch(() => {});
+          }
+        }
+      } catch {}
+    }
+  };
+
   // Animated Tap-to-Focus Reticle
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const focusAnim = useRef(new Animated.Value(0)).current;
 
   const handleTapToFocus = (e: any) => {
-    const { locationX, locationY } = e.nativeEvent;
-    if (locationX === undefined || locationY === undefined) return;
+    const ne = e.nativeEvent || {};
+    let x = ne.locationX;
+    let y = ne.locationY;
+    if (x === undefined && ne.offsetX !== undefined) {
+      x = ne.offsetX;
+      y = ne.offsetY;
+    }
+    if (x === undefined && e.clientX !== undefined && e.currentTarget?.getBoundingClientRect) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+    if (x === undefined || y === undefined) return;
     Haptics.selection();
-    setFocusPoint({ x: locationX, y: locationY });
+    setFocusPoint({ x, y });
 
     // Briefly pulse autofocus state so camera sensor recalibrates
     setAutofocusState('off');
     setTimeout(() => {
       setAutofocusState('on');
-    }, 250);
+    }, 200);
 
     // If web browser media track supports continuous focus constraints
     if (Platform.OS === 'web') {
@@ -1297,7 +1329,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                       <AnimatedPressable
                         key={preset.label}
                         haptic="selection"
-                        onPress={() => setZoom(preset.value)}
+                        onPress={() => setCameraZoom(preset.value)}
                         style={[
                           styles.zoomPill,
                           isSelected && styles.zoomPillActive,
