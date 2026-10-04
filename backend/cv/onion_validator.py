@@ -308,6 +308,10 @@ def _check_imagenet_food(bgr_img: np.ndarray, onion_pigment_frac: float = 0.0) -
         None: Weights offline or unavailable (activates strict botanical fallback).
     """
     global _imagenet_model, _imagenet_transforms
+    from config import settings
+    if not getattr(settings, "enable_imagenet_validator", False):
+        return None
+
     import torch
     from torchvision import models, transforms
     from PIL import Image

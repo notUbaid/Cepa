@@ -98,6 +98,7 @@ class Settings(BaseSettings):
 
     def_model_path: Path = Path(__file__).resolve().parent / "weights" / "defect_classifier.pt"
     def_use_mock: bool = False         # Real trained deep model is active
+    enable_imagenet_validator: bool = False  # Keep false on 512MB RAM instances to avoid downloading torchvision weights
 
     # ── ChArUco calibration board ────────────────────────────────────────────
     charuco_square_length_mm: float = 40.0

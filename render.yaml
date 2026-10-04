@@ -40,3 +40,5 @@ services:
         sync: false
       - key: DEF_USE_MOCK
         value: "false"
+      - key: ENABLE_IMAGENET_VALIDATOR
+        value: "false"

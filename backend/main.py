@@ -37,6 +37,14 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Initializing Cepa backend service (env=%s)...", settings.backend_env)
 
+    # Bound PyTorch CPU threads to reduce thread pool memory overhead on resource-constrained containers (Render 512MB free tier)
+    try:
+        import torch
+        torch.set_num_threads(1)
+        torch.set_num_interop_threads(1)
+    except Exception:
+        pass
+
     # 1. Ensure required runtime storage directories exist
     settings.ensure_dirs()
 
