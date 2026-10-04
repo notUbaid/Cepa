@@ -43,7 +43,7 @@ class YOLO11SegmentationProvider(SegmentationProvider):
     def __init__(
         self,
         model_path: str | Path,
-        conf_threshold: float = 0.30,
+        conf_threshold: float = 0.25,
         iou_threshold: float = 0.45,
         device: str = "cpu",
     ) -> None:
@@ -120,8 +120,8 @@ class YOLO11SegmentationProvider(SegmentationProvider):
         if h < 20 or w < 20:
             return SegmentationResult(provider_name="yolo11", model_version=self._version_str)
 
-        effective_conf = max(0.35, self._conf)
-        effective_iou = min(0.25, self._iou)
+        effective_conf = max(0.20, self._conf)
+        effective_iou = self._iou
         target_classes_list = list(self._target_class_ids)
         
         # If we couldn't find any valid target classes, do not fall back to None (which detects EVERYTHING)
@@ -185,7 +185,10 @@ class YOLO11SegmentationProvider(SegmentationProvider):
                 ix2, iy2 = min(x2, kx2), min(y2, ky2)
                 if ix2 > ix1 and iy2 > iy1:
                     inter = (ix2 - ix1) * (iy2 - iy1)
-                    if inter / min(area, k_area) > 0.22:
+                    union = area + k_area - inter
+                    iou = inter / max(1.0, union)
+                    containment = inter / min(area, k_area)
+                    if iou > 0.50 or containment > 0.70:
                         is_dup = True
                         break
             if not is_dup:
@@ -204,7 +207,7 @@ class YOLO11SegmentationProvider(SegmentationProvider):
 
             # Edge sliver guard: reject small fragments cut off by the camera frame edge
             touches_edge = (bbox_x <= 2 or bbox_y <= 2 or bbox_x + bbox_w >= w - 2 or bbox_y + bbox_h >= h - 2)
-            if touches_edge and (min(bbox_w, bbox_h) < 60 or (bbox_w * bbox_h) < 5000):
+            if touches_edge and (min(bbox_w, bbox_h) < 30 or (bbox_w * bbox_h) < 1200):
                 logger.debug("Filtered out edge sliver: %s", (bbox_x, bbox_y, bbox_w, bbox_h))
                 continue
 

@@ -139,6 +139,12 @@ export class ApiClient {
     return `${getApiBaseUrl()}/api/v1/demo/sample-image`;
   }
 
+  static async seedDemoInspection(forceReprocess: boolean = false): Promise<InspectionDetail> {
+    return this.request<InspectionDetail>(`/api/v1/demo/seed-inspection?force_reprocess=${forceReprocess}`, {
+      method: 'POST',
+    });
+  }
+
   static getDemoSampleVideoUrl(): string {
     return `${getApiBaseUrl()}/api/v1/demo/sample-video`;
   }

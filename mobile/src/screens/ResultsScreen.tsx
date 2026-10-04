@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
   bulbImgWrapper: {
     width: '100%',
     height: 122,
-    backgroundColor: Colors.cardBgElevated,
+    backgroundColor: '#ffffff',
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',

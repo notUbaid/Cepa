@@ -91,8 +91,8 @@ def extract_crops(
         cv2.drawContours(mask_filled, contours, -1, 255, thickness=-1)
 
         # Anti-aliased alpha feathering for crisp, editorial packhouse crop presentation
-        # Background is warm off-white stone (#f4f3ef -> BGR: [239, 243, 244])
-        bg_color = np.array([239, 243, 244], dtype=np.float32)
+        # Background is pure clean studio white (#ffffff -> BGR: [255, 255, 255])
+        bg_color = np.array([255, 255, 255], dtype=np.float32)
         mask_feather = cv2.GaussianBlur(mask_filled, (5, 5), 1.5).astype(np.float32) / 255.0
         alpha = mask_feather[:, :, np.newaxis]
 

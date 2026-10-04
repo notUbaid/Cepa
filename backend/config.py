@@ -82,7 +82,7 @@ class Settings(BaseSettings):
 
     # ── Segmentation model ───────────────────────────────────────────────────
     seg_model_path: Path = Path(__file__).resolve().parent / "weights" / "yolo11n-seg.pt"
-    seg_confidence_threshold: float = 0.35
+    seg_confidence_threshold: float = 0.25
     seg_iou_threshold: float = 0.45
 
     # ── Security & Authentication ────────────────────────────────────────────

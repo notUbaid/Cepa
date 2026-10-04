@@ -44,15 +44,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     Haptics.heavy();
     setLoadingDemoLot(true);
     try {
+      // 1. Try to load the verified canonical demo inspection directly
+      try {
+        const demoInsp = await ApiClient.seedDemoInspection(false);
+        if (demoInsp && demoInsp.id && (demoInsp.total_bulbs || 0) >= 10) {
+          onSelectInspection(demoInsp.id);
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct seedDemoInspection failed, falling back to upload flow:', err);
+      }
+
+      // 2. Fallback: check existing list for a valid multi-bulb inspection
       const list = await ApiClient.listInspections();
-      const existing = list.find((i) => (i.lot_id || '').includes('DEMO') && i.sample_count > 0);
+      const existing = list.find((i) => (i.lot_id || '').includes('DEMO') && (i.total_bulbs || 0) >= 10);
       if (existing) {
         onSelectInspection(existing.id);
         return;
       }
 
+      // 3. Create fresh inspection and upload verified demo sample image
       const insp = await ApiClient.createInspection({
-        lot_id: 'MANDI-DEMO-VERIFIED-01',
+        lot_id: `MANDI-DEMO-VERIFIED-${Date.now().toString().slice(-4)}`,
         farmer_name: 'Devidas Sonawane',
         farmer_id: 'MH-NSK-2026-084',
         procurement_centre: 'Lasalgaon APMC Yard, Nashik',

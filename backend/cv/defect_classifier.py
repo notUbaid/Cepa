@@ -297,12 +297,16 @@ class PipelineDefectClassifier(DefectClassifier):
     Genuine ML pipeline integrating trained PyTorch model + RAM++
     """
     def __init__(self, config_path: str = "ml/config.yaml"):
-        from ml.inference import QualityInferencePipeline
         import os
+        import sys
         from pathlib import Path
         
         # Resolve config path relative to project root
-        root_dir = Path(__file__).parent.parent.parent
+        root_dir = Path(__file__).resolve().parent.parent.parent
+        if str(root_dir) not in sys.path:
+            sys.path.insert(0, str(root_dir))
+            
+        from ml.inference import QualityInferencePipeline
         abs_config = str(root_dir / config_path)
         
         self.pipeline = QualityInferencePipeline(abs_config)
