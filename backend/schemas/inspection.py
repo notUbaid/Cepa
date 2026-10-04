@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class InspectionCreate(BaseModel):
     """Request body for creating a new inspection."""
     lot_id: str | None = Field(None, max_length=100, description="Farmer's lot identifier")
-    farmer_id: str | None = Field(None, max_length=50, description="12-digit AgriStack Indian Farmer ID")
+    farmer_id: str | None = Field(None, max_length=50, description="AgriStack Indian Farmer ID / State Mandi ID")
     farmer_name: str | None = Field(None, max_length=150, description="Farmer name")
     procurement_centre: str | None = Field(None, max_length=200)
     officer_name: str | None = Field(None, max_length=100)

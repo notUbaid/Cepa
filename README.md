@@ -13,9 +13,9 @@
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.9+-5C3EE8?style=flat-square&logo=opencv&logoColor=white)](https://opencv.org)
 [![React Native](https://img.shields.io/badge/React_Native-0.86-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactnative.dev)
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
-[![eNAM](https://img.shields.io/badge/eNAM-Schema_v2.1-2E7D32?style=flat-square)](https://enam.gov.in)
-[![AgriStack](https://img.shields.io/badge/AgriStack-12--Digit_FID-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-172%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![eNAM](https://img.shields.io/badge/eNAM-Trade_Assaying_Standard-2E7D32?style=flat-square)](https://enam.gov.in)
+[![AgriStack](https://img.shields.io/badge/AgriStack-Farmer_ID_Binding-F57C00?style=flat-square)](https://agristack.gov.in)
+[![Tests Passing](https://img.shields.io/badge/Tests-196%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
 [![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Type Checked](https://img.shields.io/badge/Mypy-Strict-blue?style=flat-square)](backend/pyproject.toml)
@@ -24,13 +24,13 @@
 
 | Dimension | Specification |
 |:---|:---|
-| **Problem Statement** | **SIH26031**: AI-Powered Automated Quality Inspection and Grading of Agricultural Commodities |
+| **Problem Statement** | **SIH26031**: Quality assessment and grading of onions |
 | **Team Name** | **Better Call Coders** |
 | **Team Leader** | Ubaid Khan |
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
-| **Verification State** | 172 of 173 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
+| **Verification State** | 196 of 197 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
 
@@ -42,7 +42,7 @@
 
 | Sub-Millimeter Caliper | Acoustic Resonance NDT | Policy Decoupling | DPI Interoperability |
 |:---:|:---:|:---:|:---:|
-| **Planar Homography**<br />ChArUco 7x5 board<br />`~2 mm` diameter uncertainty (board-plane parallax) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research API endpoint (/acoustic) | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`Illustrative XML v2.1` + Farmer ID<br />Direct Benefit Transfer ready |
+| **Planar Homography**<br />ChArUco 7x5 board<br />`~2 mm` diameter uncertainty (board-plane parallax) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research API endpoint (/acoustic) | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`Trade Assaying XML / JSON Integration`<br />Direct Benefit Transfer ready |
 
 </div>
 
@@ -162,7 +162,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals modeled on statistical sampling principles. |
 | **Volumetric Mass Estimation** | Physical weighbridge gross weight only | 2D silhouette area proxy without depth modeling | High-speed individual load cell cups ($\pm 1.0\text{ g}$) | **Triaxial Prolate Spheroid Model:** Calibrated with ICAR-DOGR bulk density ($0.985\text{ g/cm}^3$) using the geometric formulation $V = \frac{\pi}{6} D_{\text{eq}}^2 L_{\text{polar}}$. |
 | **Cold Storage Survival Modeling** | None (Immediate visual judgment) | None (Immediate defect label only) | None (Sorting destination bin assignment only) | **ICAR-DOGR Post-Harvest Engine:** Storageability score ($S \in [0, 100]$) and safe preservation horizons ($90-120$ days). |
-| **DPI & Government DBT Interoperability** | Handwritten carbon-copy receipts (prone to tampering) | Proprietary closed PDF with vendor watermark | Proprietary factory SCADA / CSV export | **Illustrative eNAM Schema v2.1 XML/JSON**, AgriStack FID / State APMC ID binding for DBT, and sovereign HMAC-SHA256 seal. |
+| **DPI & Government DBT Interoperability** | Handwritten carbon-copy receipts (prone to tampering) | Proprietary closed PDF with vendor watermark | Proprietary factory SCADA / CSV export | **eNAM Assaying Trade Parameter XML/JSON**, AgriStack FID / State APMC ID binding for DBT, and sovereign HMAC-SHA256 seal. |
 
 ---
 
@@ -175,7 +175,7 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 [ Invariant 2: Sovereign Seal ]      ---> HMAC-SHA256 binds optical capture hash, officer ID & defect metrics
 [ Invariant 3: Explicit Boundaries ] ---> Physical surface limits documented; +/-3mm margins trigger review
 [ Invariant 4: Async Metrology ]     ---> Heavy PyTorch/OpenCV tasks isolated in managed ThreadPoolExecutor
-[ Invariant 5: Native DPI Stack ]    ---> Formatted to eNAM XML v2.1 and linked to AgriStack / APMC Farmer ID
+[ Invariant 5: Native DPI Stack ]    ---> Formatted to eNAM Trade Assaying XML & JSON linked to AgriStack / APMC Farmer ID
 ```
 
 - **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**
@@ -187,7 +187,7 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 - **Invariant 4: Asynchronous Non-Blocking Execution Model**
   Heavy computer vision inference is computationally intensive and synchronous. The FastAPI backend dispatches all CV pipeline executions into a managed `ThreadPoolExecutor`, completely shielding the asynchronous event loop from blocking and maintaining sub-ten-millisecond responsiveness for administrative REST queries.
 - **Invariant 5: Open Digital Public Infrastructure (DPI) Native**
-  Assaying payloads are formatted to illustrative eNAM Schema Version 2.1 XML and JSON standards, with binding to Indian Farmer IDs (AgriStack FID / State APMC registrations) to facilitate Direct Benefit Transfer (DBT) payments. eNAM schema compliance is structural; production integration requires official government endpoint access upon gazette accreditation.
+  Assaying payloads are formatted to illustrative eNAM Trade Assaying XML and JSON standards, with binding to Indian Farmer IDs (AgriStack FID / State APMC registrations) to facilitate Direct Benefit Transfer (DBT) payments. eNAM schema compliance is structural; production integration requires official government endpoint access upon gazette accreditation.
 
 ---
 
@@ -241,8 +241,8 @@ graph TB
   end
 
   subgraph DPITier ["Government Digital Public Infrastructure"]
-    ENAM["eNAM Assaying Schema v2.1 XML"]
-    AGRI["AgriStack 12-Digit Farmer ID Binding"]
+    ENAM["eNAM Assaying XML / JSON Integration"]
+    AGRI["AgriStack Farmer ID (FID) Binding"]
     CERT["Vector QR Code & SHA-256 Seal"]
   end
 
@@ -660,8 +660,8 @@ Buffer stock longevity is evaluated using empirical physiological decay models d
 
 ## 8. Digital Public Infrastructure (DPI) Integrations
 
-- **Ministry of Agriculture eNAM Assaying Schema v2.1:** Native export of digital assaying certificates under `urn:gov:in:enam:assaying:v2.1` (Commodity: `AGMARK-19-ONION`) in XML and JSON formats.
-- **AgriStack 12-Digit Indian Farmer ID (FID) Binding:** Links inspection records directly to the national farmer registry, land records, and Aadhaar-seeded accounts to automate Direct Benefit Transfer (DBT) payments.
+- **Ministry of Agriculture eNAM Assaying Integration:** Native export of digital assaying certificates conforming to trade parameters (Commodity: `AGMARK-19-ONION`) in XML and JSON formats.
+- **AgriStack Indian Farmer ID (FID) Binding:** Links inspection records directly to the national farmer registry and state APMC records to streamline procurement traceability and Direct Benefit Transfer (DBT) workflows.
 - **Cryptographic Sovereign Seal Certificates and Vector QR Codes:** Embeds a tamper-evident HMAC-SHA256 seal computed over the optical sample photo digest, officer ID, and defect metrics alongside an offline-scannable vector QR code inside ReportLab PDF vouchers.
 
 ---
@@ -889,7 +889,7 @@ The mobile application is structured around a streamlined, 6-screen transactiona
 
 2. **`NewInspectionScreen.tsx` (Intake Gate Registration):**
    - Collects consignment metadata: Mandi Yard selector, declared truck consignment weight, and farmer credentials.
-   - **AgriStack 12-Digit FID Verification:** Integrates Indian Farmer ID validation, linking inspection lots to Aadhaar-seeded Direct Benefit Transfer (DBT) accounts.
+   - **AgriStack FID Verification:** Integrates Indian Farmer ID validation (e.g. `MH-NSK-2026-084`), linking inspection lots to state-registered Direct Benefit Transfer (DBT) profiles.
    - **Offline Draft Resilience:** If network connectivity drops inside a remote mandi shed, the screen automatically generates an offline local inspection session (`insp-offline-...`), allowing the officer to proceed with optical captures without stalling truck throughput.
 
 3. **`CaptureScreen.tsx` (Aerospace Mandi Viewfinder HUD):**
@@ -957,8 +957,8 @@ For exhaustive engineering compliance, academic auditability, and regulatory vet
 | Document | Scope & Specification Summary | Target Authority / Standard |
 |:---|:---|:---|
 | [**Architecture Specification**](docs/ARCHITECTURE.md) | End-to-end component topology, 8-stage synchronous CV pipeline, and SQLite WAL edge persistence. | SIH26031 Architectural Invariants |
-| [**Metrology Specification**](docs/METROLOGY_SPECIFICATION.md) | Formal ISO/IEC Guide 98-3 (GUM) measurement uncertainty derivation, pinhole projection, and Brown-Conrady lens distortion. | ISO/IEC Guide 98-3 (GUM) & ISO 17025 |
-| [**Regulatory Compliance Matrix**](docs/REGULATORY_COMPLIANCE.md) | Statutory alignment with BIS IS 17912:2022 grades, NAFED PSF Fair Average Quality (FAQ) dockage schedules, and eNAM XML Schema v2.1. | BIS IS 17912:2022 · eNAM v2.1 · NAFED |
+| [**Metrology Specification**](docs/METROLOGY_SPECIFICATION.md) | Analytical ISO/IEC Guide 98-3 (GUM) measurement uncertainty derivation, pinhole projection, and Brown-Conrady lens distortion. | ISO/IEC Guide 98-3 (GUM) Framework |
+| [**Regulatory Compliance Matrix**](docs/REGULATORY_COMPLIANCE.md) | Statutory alignment with BIS IS 17912:2022 grades, NAFED PSF Fair Average Quality (FAQ) dockage schedules, and eNAM trade assaying specifications. | BIS IS 17912:2022 · eNAM · NAFED |
 | [**Hardware Station Specification**](docs/HARDWARE_SETUP.md) | Physical gantry setup, 2020 extrusion dimensions, nadir optical alignment, diffuse ring lighting, and acoustic transducer integration. | Mandi Intake Station Engineering |
 | [**Architecture Decision Records (ADRs)**](docs/adr/README.md) | Index and rationale for architectural decisions ADR-0001 through ADR-0005. | Michael Nygard ADR Standard |
 | [**Security Policy & Threat Model**](SECURITY.md) | Formal STRIDE threat model, FIPS 198-1 sovereign HMAC-SHA256 non-repudiation signature equation, and key isolation rules. | FIPS 198-1 · OWASP Top 10 |
@@ -1245,7 +1245,7 @@ Cepa/
 │   │   ├── bhashini_service.py   # NLTM Multilingual TTS (7 languages, mandi district geofencing)
 │   │   ├── certificate_view.py   # Public responsive HTML certificate generator
 │   │   ├── crypto_seal.py        # Sovereign HMAC-SHA256 non-repudiation cryptographic seal
-│   │   ├── enam_export_service.py# eNAM Assaying Schema v2.1 XML and JSON exporter
+│   │   ├── enam_export_service.py# eNAM trade assaying parameter XML/JSON exporter
 │   │   ├── groq_ai_service.py    # Multimodal Groq Vision LLM agronomist integration
 │   │   ├── image_storage.py      # Disk path to HTTP URL translation utilities
 │   │   ├── inspection_service.py # High-level inspection sample orchestration
@@ -1264,8 +1264,8 @@ Cepa/
 ├── docs/                         # Engineering architectural documentation
 │   ├── ARCHITECTURE.md           # Master system architecture & metrology pipeline
 │   ├── HARDWARE_SETUP.md         # Mandi workstation rig assembly & sensor integration
-│   ├── METROLOGY_SPECIFICATION.md# Formal ISO/GUM measurement uncertainty derivation
-│   ├── REGULATORY_COMPLIANCE.md  # BIS IS 17912:2022, NAFED PSF FAQ, eNAM v2.1 alignment
+│   ├── METROLOGY_SPECIFICATION.md# Analytical GUM measurement uncertainty derivation
+│   ├── REGULATORY_COMPLIANCE.md  # BIS IS 17912:2022, NAFED PSF FAQ, eNAM assaying alignment
 │   ├── adr/                      # Architecture Decision Records (ADR-0001 through ADR-0005)
 │   ├── CV_PIPELINE.md            # Computer vision algorithm breakdown
 │   ├── DATASET.md                # Dataset collection protocol
@@ -1433,7 +1433,7 @@ STORAGE_DIR=./storage
 1. **[DoCA-PSF-2024]** Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution. *"Price Stabilisation Fund - Onion Procurement Norms 2024, Annexure I."* Government of India, New Delhi, 2024.
 2. **[BIS-IS17912-2022]** Bureau of Indian Standards. *"IS 17912:2022 - Supply Chain of Onions - Guidelines for Grading and Handling."* BIS, New Delhi, 2022.
 3. **[AGMARK-SchedXIX]** Directorate of Marketing and Inspection (DMI), Ministry of Agriculture & Farmers Welfare. *"Fruits and Vegetables Grading and Marking Rules, 2004 - Schedule XIX: Grade Designation and Quality of Onions."* Government of India.
-4. **[eNAM-SOP-2024]** Small Farmers' Agribusiness Consortium (SFAC), Ministry of Agriculture & Farmers Welfare. *"Standard Operating Procedure for e-NAM Digital Assaying & Quality Testing v2.1."* New Delhi, 2024.
+4. **[eNAM-SOP-2024]** Small Farmers' Agribusiness Consortium (SFAC), Ministry of Agriculture & Farmers Welfare. *"Standard Operating Procedure for e-NAM Digital Assaying & Quality Testing."* New Delhi, 2024.
 5. **[AgriStack-DPI-2024]** Department of Agriculture & Farmers Welfare (DA&FW), Government of India. *"AgriStack Architecture and Farmer Registry Standards."* Digital Public Infrastructure India, 2024.
 6. **[Fitzgibbon-1996]** Fitzgibbon, A., Pilu, M., and Fisher, R. B. *"Direct Least Squares Fitting of Ellipses."* IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 21, No. 5, pp. 476-480, 1996.
 7. **[Jocher-YOLO11-2025]** Jocher, G., et al. *"Ultralytics YOLO11 - Real-Time Object Detection and Segmentation."* Ultralytics, 2025.

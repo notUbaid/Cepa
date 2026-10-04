@@ -1,6 +1,6 @@
 # CEPA Optical Metrology Specification & Uncertainty Budget
 
-> **Standard Compliance**: ISO/IEC Guide 98-3 (GUM: Evaluation of Measurement Data) · ISO/IEC 17025:2017  
+> **Metrology Framework**: ISO/IEC Guide 98-3 (GUM: Evaluation of Measurement Data) Analytical Uncertainty Model  
 > **Target Commodity**: *Allium cepa* L. (Rabi / Kharif Commercial Onion Cultivars)  
 > **Regulatory Reference**: Bureau of Indian Standards (BIS) **IS 17912:2022**
 

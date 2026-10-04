@@ -1,15 +1,15 @@
 # CEPA Security Architecture & Threat Model
 
-> **SIH 2026 Problem Statement 26031**: AI-Powered Autonomous Mandi Assaying Platform  
-> **Security Classification**: Critical Mandi Financial Settlement Infrastructure · ISO/IEC 27001 & OWASP Top 10 Aligned
+> **SIH 2026 Problem Statement 26031**: Quality assessment and grading of onions  
+> **Security Classification**: OWASP Top 10 Aligned
 
 ---
 
 ## 1. Security Policy & Responsible Disclosure
 
-The CEPA engineering team takes agricultural financial infrastructure security seriously. If you discover a vulnerability in the cryptographic seal chain, optical authentication gate, or API endpoints, please report it privately:
+The CEPA engineering team prioritizes system integrity and secure field operations. If you discover a vulnerability in the cryptographic seal chain, optical validation gate, or API endpoints, please report it privately:
 
-- **Security Contact**: `security@cepa-mandi.gov.in` (or via private GitHub Security Advisory)
+- **Security Contact**: Report vulnerabilities privately via GitHub Security Advisories (or direct maintainer contact).
 - **Response SLA**: Initial triage within 24 hours; patch deployed within 72 hours for high/critical vulnerabilities.
 - **Scope**: All backend API services, cryptographic seal engines, and mobile client authentication boundaries.
 

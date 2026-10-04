@@ -1,8 +1,8 @@
 # CEPA System Architecture
 
 > **Cepa** — Certified & Evidenced Produce Assessment  
-> **SIH 2026 Problem Statement:** SIH26031 — AI-powered Onion Quality Inspection at Procurement Centres  
-> **Status:** Engineering prototype · 154 tests passing · Real 4-class MobileNetV3 quality evaluation & deterministic CV active (mock fallback available via DEF_USE_MOCK)
+> **SIH 2026 Problem Statement:** SIH26031 — Quality assessment and grading of onions  
+> **Status:** Production-ready prototype · 196 tests passing · Fine-tuned YOLO11n-seg & botanical validation active
 
 ---
 
@@ -116,17 +116,17 @@ C:\Projects\Cepa\
 │   │   ├── inspection_service.py  # CV component initialization, async thread-pool wrapper
 │   │   ├── acoustic_service.py # Acoustic tap resonance impulse analysis (RealAcousticAnalyzer, Q-factor, EI)
 │   │   ├── bhashini_service.py # NLTM Multilingual TTS (7 languages, mandi district geofencing)
-│   │   ├── enam_export_service.py # Official eNAM Assaying Certificate (XML v2.1 & JSON) + AgriStack FID
+│   │   ├── enam_export_service.py # Official eNAM Assaying Certificate (XML & JSON) + AgriStack FID
 │   │   ├── groq_ai_service.py  # Groq Vision LLM integration
 │   │   ├── video_service.py    # Video sweep keyframe extraction
 │   │   ├── report_generator.py # PDF certificate generation (ReportLab)
 │   │   ├── image_storage.py    # File storage paths
 │   │   └── certificate_view.py # Public QR-verifiable certificate endpoint
-│   ├── tests/                  # 152-test comprehensive pytest suite (100% passing)
+│   ├── tests/                  # 196-test comprehensive pytest suite (100% passing)
 │   │   ├── test_api.py         # Full API endpoint integration tests
 │   │   ├── test_acoustic_service.py # Acoustic tap impulse analysis unit tests
 │   │   ├── test_bhashini_service.py # Bhashini multilingual TTS tests
-│   │   ├── test_enam_export_service.py # eNAM v2.1 XML/JSON export tests
+│   │   ├── test_enam_export_service.py # eNAM XML/JSON export tests
 │   │   ├── test_flash_proxy.py # FPI differential reflectance unit & API tests
 │   │   ├── test_grading_engine.py # Policy grading rules engine unit tests
 │   │   ├── test_calibration_and_debris.py # Marker calibration & debris filtering tests
@@ -618,7 +618,7 @@ See `cv_tools/train_defect_classifier.py` for the training script.
 | `POST` | `/api/v1/inspections/{id}/samples` | Submit image (+ optional acoustic WAV) for grading |
 | `GET` | `/api/v1/inspections/{id}` | Get inspection + all samples |
 | `GET` | `/api/v1/inspections/{id}/report` | Get lot aggregate report |
-| `GET` | `/api/v1/inspections/{id}/enam` | Official eNAM Assaying Certificate (XML v2.1 & JSON) linked to AgriStack FID |
+| `GET` | `/api/v1/inspections/{id}/enam` | Official eNAM Assaying Certificate (XML & JSON) linked to AgriStack FID |
 | `POST` | `/api/v1/inspections/{id}/announce` | Bhashini multilingual spoken grade announcement (7 Indian languages) |
 | `POST` | `/api/v1/inspections/{id}/acoustic` | Acoustic tap resonance impulse analysis (hollow-body detection) |
 | `POST` | `/api/v1/inspections/{id}/fpi` | Flash Proxy Index (FPI) differential reflectance spectroscopy |

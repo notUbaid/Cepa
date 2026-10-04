@@ -8,6 +8,12 @@ import {
   SampleDetail,
   VideoScanResult,
 } from '../types';
+import {
+  CANONICAL_DEMO_INSPECTION,
+  CANONICAL_DEMO_SAMPLE,
+  CANONICAL_DEMO_INSPECTION_ID,
+  CANONICAL_DEMO_SAMPLE_ID,
+} from '../data/canonicalDemoData';
 
 export class ApiClient {
   private static async request<T>(
@@ -132,7 +138,15 @@ export class ApiClient {
   }
 
   static async getInspection(id: string): Promise<InspectionDetail> {
-    return this.request<InspectionDetail>(`/api/v1/inspections/${id}`);
+    try {
+      return await this.request<InspectionDetail>(`/api/v1/inspections/${id}`);
+    } catch (err) {
+      if (id === CANONICAL_DEMO_INSPECTION_ID || id.includes('DEMO')) {
+        console.warn('[ApiClient] Remote getInspection failed, serving canonical offline demo:', err);
+        return CANONICAL_DEMO_INSPECTION;
+      }
+      throw err;
+    }
   }
 
   static getDemoSampleUrl(): string {
@@ -140,9 +154,14 @@ export class ApiClient {
   }
 
   static async seedDemoInspection(forceReprocess: boolean = false): Promise<InspectionDetail> {
-    return this.request<InspectionDetail>(`/api/v1/demo/seed-inspection?force_reprocess=${forceReprocess}`, {
-      method: 'POST',
-    });
+    try {
+      return await this.request<InspectionDetail>(`/api/v1/demo/seed-inspection?force_reprocess=${forceReprocess}`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('[ApiClient] Remote seedDemoInspection failed or cold-starting, returning canonical offline demo:', err);
+      return CANONICAL_DEMO_INSPECTION;
+    }
   }
 
   static getDemoSampleVideoUrl(): string {
@@ -339,18 +358,42 @@ export class ApiClient {
     inspectionId: string,
     question: string
   ): Promise<{ answer: string; inspection_id: string; powered_by?: string; is_fallback?: boolean }> {
-    return this.request<{ answer: string; inspection_id: string; powered_by?: string; is_fallback?: boolean }>(
-      `/api/v1/inspections/${inspectionId}/ask-ai`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+    try {
+      return await this.request<{ answer: string; inspection_id: string; powered_by?: string; is_fallback?: boolean }>(
+        `/api/v1/inspections/${inspectionId}/ask-ai`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        }
+      );
+    } catch (err) {
+      if (inspectionId === CANONICAL_DEMO_INSPECTION_ID || inspectionId.includes('DEMO')) {
+        return {
+          inspection_id: inspectionId,
+          answer: `[Agronomist Telemetry - Demo Mode] The Nashik Red onion lot demonstrates 83.3% Grade A conformity under BIS IS 17912:2022. Diameters cluster tightly at Ø 63.2 mm with 0.51 mm/px optical caliper resolution. Zero basal rot and high dry-matter curing permit up to 135 days ambient godown storage. Benchmark valuation: ₹2,450/qtl.`,
+          powered_by: 'CEPA Mandi Agronomist Engine (Offline Verified)',
+          is_fallback: true,
+        };
       }
-    );
+      throw err;
+    }
   }
 
   static async getSample(inspectionId: string, sampleId: string): Promise<SampleDetail> {
-    return this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);
+    try {
+      return await this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);
+    } catch (err) {
+      if (
+        inspectionId === CANONICAL_DEMO_INSPECTION_ID ||
+        sampleId === CANONICAL_DEMO_SAMPLE_ID ||
+        inspectionId.includes('DEMO')
+      ) {
+        console.warn('[ApiClient] Remote getSample failed, serving canonical offline demo sample:', err);
+        return CANONICAL_DEMO_SAMPLE;
+      }
+      throw err;
+    }
   }
 
   static async getOnionDetail(

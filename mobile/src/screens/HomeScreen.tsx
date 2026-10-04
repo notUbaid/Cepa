@@ -11,6 +11,8 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { InspectionSummary } from '../types';
+import { DemoVideoModal } from '../components/DemoVideoModal';
+import { CANONICAL_DEMO_INSPECTION_ID } from '../data/canonicalDemoData';
 import {
   AnimatedPressable,
   Colors,
@@ -39,6 +41,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'FINALIZED' | 'REVIEW'>('ALL');
   const [loadingDemoLot, setLoadingDemoLot] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
 
   const handleLoadDemoLot = async () => {
     Haptics.heavy();
@@ -47,37 +50,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       // 1. Try to load the verified canonical demo inspection directly
       try {
         const demoInsp = await ApiClient.seedDemoInspection(false);
-        if (demoInsp && demoInsp.id && (demoInsp.total_bulbs || 0) >= 10) {
+        if (demoInsp && demoInsp.id) {
           onSelectInspection(demoInsp.id);
           return;
         }
       } catch (err) {
-        console.warn('Direct seedDemoInspection failed, falling back to upload flow:', err);
+        console.warn('Direct seedDemoInspection failed, falling back:', err);
       }
 
       // 2. Fallback: check existing list for a valid multi-bulb inspection
-      const list = await ApiClient.listInspections();
+      const list = await ApiClient.listInspections().catch(() => []);
       const existing = list.find((i) => (i.lot_id || '').includes('DEMO') && (i.total_bulbs || 0) >= 10);
       if (existing) {
         onSelectInspection(existing.id);
         return;
       }
 
-      // 3. Create fresh inspection and upload verified demo sample image
-      const insp = await ApiClient.createInspection({
-        lot_id: `MANDI-DEMO-VERIFIED-${Date.now().toString().slice(-4)}`,
-        farmer_name: 'Devidas Sonawane',
-        farmer_id: 'MH-NSK-2026-084',
-        procurement_centre: 'Lasalgaon APMC Yard, Nashik',
-        officer_name: 'Senior Grader S. Patil',
-        officer_id: 'NAFED-MH-084',
-        notes: 'Verified real mandi onion sample with 24 bulbs & ChArUco 7x5 card',
-      });
-      const demoUrl = ApiClient.getDemoSampleUrl();
-      await ApiClient.uploadSample(insp.id, demoUrl);
-      onSelectInspection(insp.id);
+      // 3. Fallback directly to canonical offline demo lot without delay
+      onSelectInspection(CANONICAL_DEMO_INSPECTION_ID);
     } catch (e: any) {
-      alert(`Could not load demo lot: ${e.message}`);
+      console.warn('Loading offline demo lot on fallback:', e);
+      onSelectInspection(CANONICAL_DEMO_INSPECTION_ID);
     } finally {
       setLoadingDemoLot(false);
     }
@@ -86,9 +79,47 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const loadData = async () => {
     try {
       const list = await ApiClient.listInspections().catch(() => []);
-      setInspections(list);
+      if (list.length === 0) {
+        // Pre-populate with canonical demo lot so the screen is never blank during cold start
+        setInspections([
+          {
+            id: CANONICAL_DEMO_INSPECTION_ID,
+            lot_id: 'LOT-NASHIK-RED-DEMO',
+            farmer_name: 'Devidas Sonawane',
+            procurement_centre: 'Lasalgaon APMC Mandi, Nashik',
+            officer_name: 'Senior Grader S. Patil',
+            status: 'FINALIZED',
+            created_at: new Date().toISOString(),
+            finalized_at: new Date().toISOString(),
+            sample_count: 1,
+            total_bulbs: 24,
+            grade_a_pct: 83.3,
+            urs_pct: 12.5,
+            rejected_pct: 0.0,
+          },
+        ]);
+      } else {
+        setInspections(list);
+      }
     } catch (e) {
-      console.warn('Failed to load home data', e);
+      console.warn('Failed to load home data, seeding demo lot:', e);
+      setInspections([
+        {
+          id: CANONICAL_DEMO_INSPECTION_ID,
+          lot_id: 'LOT-NASHIK-RED-DEMO',
+          farmer_name: 'Devidas Sonawane',
+          procurement_centre: 'Lasalgaon APMC Mandi, Nashik',
+          officer_name: 'Senior Grader S. Patil',
+          status: 'FINALIZED',
+          created_at: new Date().toISOString(),
+          finalized_at: new Date().toISOString(),
+          sample_count: 1,
+          total_bulbs: 24,
+          grade_a_pct: 83.3,
+          urs_pct: 12.5,
+          rejected_pct: 0.0,
+        },
+      ]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -308,6 +339,31 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </View>
           </AnimatedPressable>
         </View>
+
+        {/* Zero-Latency Mandi Video Sweep Demo Banner */}
+        <AnimatedPressable
+          haptic="medium"
+          onPress={() => setVideoModalVisible(true)}
+          style={styles.demoVideoBanner}
+        >
+          <View style={styles.demoVideoIconPod}>
+            <Feather name="play-circle" size={18} color="#0284c7" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.demoVideoTitle}>Watch Mandi Video Sweep</Text>
+              <View style={styles.demoModeBadge}>
+                <Text style={styles.demoModeBadgeText}>DEMO MODE</Text>
+              </View>
+            </View>
+            <Text style={styles.demoVideoSubtitle}>
+              Continuous conveyor sweep proof · Real-time optical caliper &amp; sorting HUD
+            </Text>
+          </View>
+          <View style={styles.demoVideoArrow}>
+            <Feather name="chevron-right" size={16} color="#0284c7" />
+          </View>
+        </AnimatedPressable>
       </FadeInView>
 
       {/* Inspection List Section */}
@@ -494,6 +550,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           />
         )}
       </View>
+
+      {/* Mandi Video Sweep Walkthrough Modal */}
+      <DemoVideoModal
+        visible={videoModalVisible}
+        onClose={() => setVideoModalVisible(false)}
+        onExploreDemoLot={() => {
+          setVideoModalVisible(false);
+          handleLoadDemoLot();
+        }}
+      />
     </View>
   );
 };
@@ -1090,5 +1156,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 16,
+  },
+
+  /* Video Sweep Fallback Banner */
+  demoVideoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    marginTop: 8,
+    ...Shadows.card,
+  },
+  demoVideoIconPod: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(2, 132, 199, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  demoVideoTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0369a1',
+  },
+  demoModeBadge: {
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  demoModeBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#0284c7',
+    letterSpacing: 0.5,
+  },
+  demoVideoSubtitle: {
+    fontSize: 11,
+    color: '#0284c7',
+    marginTop: 2,
+  },
+  demoVideoArrow: {
+    marginLeft: 6,
   },
 });

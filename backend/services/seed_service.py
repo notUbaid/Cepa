@@ -4,7 +4,7 @@ Automated database seeding service for ephemeral container hosting (e.g. Render)
 When the backend boots on an ephemeral instance where the local SQLite database
 was wiped, this service seeds a known-good, verified demo inspection complete with:
 1. Static inspection ID matching the README API examples and curl commands.
-2. Verified farmer details and 12-digit AgriStack Farmer ID.
+2. Verified farmer details and AgriStack Farmer ID / State Mandi ID.
 3. Pre-generated report and share token for immediate public verification.
 4. Auto-generated PDF voucher in storage.
 """

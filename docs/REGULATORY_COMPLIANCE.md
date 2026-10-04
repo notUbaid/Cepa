@@ -3,7 +3,7 @@
 > **Authoritative References**:  
 > - Bureau of Indian Standards: **BIS IS 17912:2022** (*Onion Bulbs — Specification and Grading*)  
 > - Department of Consumer Affairs / NAFED: **Price Stabilisation Fund (PSF) FAQ Guidelines**  
-> - Ministry of Agriculture & Farmers Welfare: **eNAM Assaying Schema v2.1 (XML)**  
+> - Ministry of Agriculture & Farmers Welfare: **eNAM Assaying Trade Standards (XML / JSON)**  
 > - Directorate of Marketing and Inspection (DMI): **Agmark Grading & Marking Rules**
 
 ---
@@ -40,13 +40,13 @@ Under government market intervention operations for onion buffer creation (e.g. 
 
 ---
 
-## 3. eNAM XML Schema v2.1 Verification & Export Matrix
+## 3. eNAM Assaying Export & Verification Matrix
 
 CEPA provides full export compliance for the National Agriculture Market (eNAM) automated assaying interface (`GET /api/v1/inspections/{id}/enam?format=xml`):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<eNAMQualityAssayingReport version="2.1" xmlns="http://enam.gov.in/schema/assaying/v2.1">
+<eNAMQualityAssayingReport xmlns="http://enam.gov.in/schema/assaying">
   <Header>
     <MandiCode>MH-NSK-001</MandiCode>
     <LotID>LOT-2026-9812</LotID>

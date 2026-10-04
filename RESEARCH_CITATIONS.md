@@ -119,8 +119,8 @@
 | Reference | Key Finding | Used In |
 |-----------|------------|---------|
 | **[Bhashini-2024]** MeitY, Government of India. *"Bhashini -- National Language Translation Mission (NLTM)."* API Documentation, 2024. https://bhashini.gov.in | Dhruva inference API; TTS pipeline: taskType "tts", BCP-47 language codes; 22 Indian languages; free for government/educational use | Fully implemented in `services/bhashini_service.py` (7 languages, mandi district geofencing) and `POST /api/v1/inspections/{id}/announce` |
-| **[eNAM-2024]** Ministry of Agriculture & Farmers Welfare, GoI. *"National Agriculture Market (eNAM) -- Standard Operating Procedure for Assaying & Quality Testing v2.1."* DMI/SFAC, 2024. | Standard XML schema (`urn:gov:in:enam:assaying:v2.1`) for digital quality certificates; commodity AGMARK-19-ONION. | Fully implemented in `services/enam_export_service.py` and `GET /api/v1/inspections/{id}/enam` (XML and JSON exports) |
-| **[AgriStack-2024]** Department of Agriculture & Farmers Welfare (DA&FW), GoI. *"AgriStack Architecture & Farmer Registry Standards."* DPI India, 2024. | 12-digit Indian Farmer ID (FID) linked to digital land records and DBT bank accounts for automated MSP settlement. | Database schema `inspections.farmer_id`, `inspections.farmer_name`, inspector UI modal, and eNAM XML exports |
+| **[eNAM-2024]** Ministry of Agriculture & Farmers Welfare, GoI. *"National Agriculture Market (eNAM) -- Standard Operating Procedure for Assaying & Quality Testing."* DMI/SFAC, 2024. | Standard XML schema for digital quality certificates; commodity AGMARK-19-ONION. | Fully implemented in `services/enam_export_service.py` and `GET /api/v1/inspections/{id}/enam` (XML and JSON exports) |
+| **[AgriStack-2024]** Department of Agriculture & Farmers Welfare (DA&FW), GoI. *"AgriStack Architecture & Farmer Registry Standards."* DPI India, 2024. | Indian Farmer ID (FID) linked to digital land records and DBT bank accounts for automated MSP settlement. | Database schema `inspections.farmer_id`, `inspections.farmer_name`, inspector UI modal, and eNAM XML exports |
 | **[ONDC-Agri-2025]** Open Network for Digital Commerce. *"ONDC Agriculture Network Protocol Specification v1.3."* 2025. https://ondc.org | Open buyer-seller discovery for FPO lot listings; graded lot badges as trust signals | Integration design: CEPA grades → ONDC lot badge |
 
 ---
@@ -141,8 +141,8 @@
 |----------|-------------|-----------|
 | **ISO/IEC 7810:2003** | ID-1 card dimensions: 85.60 × 53.98mm, corner radius 3.18mm | Alternative calibration reference (credit card) -- not used; ArUco/ChArUco preferred for accuracy |
 | **IS 4452:2019** | BIS standard for dehydrated onions | Process-grade (Goli < 35mm) onions; referenced in `mandi_size_grade` GOLI classification |
-| **DPDP Act 2023** | Digital Personal Data Protection Act, Government of India | Farmer data handling policy; officer authentication required for access |
-| **ISO/IEC 27001:2022** | Information security management | SHA-256 report summary fingerprinting |
+| **DPDP Act 2023** | Digital Personal Data Protection Act, Government of India | Farmer data privacy and consent handling |
+| **FIPS 180-4 / FIPS 198-1** | Secure Hash & Keyed-Hash Message Authentication (NIST) | SHA-256 image digest & HMAC report tamper verification |
 
 ---
 

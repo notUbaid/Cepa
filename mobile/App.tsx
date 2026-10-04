@@ -57,6 +57,13 @@ export default function App() {
     setCurrentScreen(screen);
   };
 
+  // Set clean web browser tab title on web platforms
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.title = 'CEPA - Quality Assessment & Grading of Onions';
+    }
+  }, []);
+
   // Poll health on startup and periodically with overlap guard
   useEffect(() => {
     let active = true;
