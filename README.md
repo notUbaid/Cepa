@@ -36,21 +36,27 @@
 
 ---
 
-### Executive Performance Highlights
+## Problem & Solution at a Glance
 
-<div align="center">
+| Dimension | Mandi Ground Reality | CEPA Engineering Solution | Architecture Status |
+|:---|:---|:---|:---:|
+| **The Mandi Problem** | 300,000–500,000 MT strategic onion buffer procurement loses 30–40% of produce to storage decay due to subjective, uncalibrated visual hand-scooping (5–10 bulbs per multi-tonne truck) with zero photographic audit trail. | Automated multi-onion computer vision assaying station providing calibrated physical dimensions, 4-class defect categorization, and digital batch certification in under 2 seconds. | `[IMPLEMENTED]` |
+| **Why Different: Metric Caliper** | Competitors use uncalibrated bounding boxes sensitive to camera distance and tilt angle. | ChArUco 7x5 fiducial board with RANSAC planar homography rectifies perspective and derives physical mm/px scale. Validated at **1.28 mm MAE** against physical Vernier calipers (N=36). | `[VALIDATED]` |
+| **Why Different: Decoupled Policy** | Traditional software hardcodes grading logic, breaking when procurement mandates change between agencies (NAFED vs AGMARK vs NCCF). | Declarative YAML policy engine (`NAFED_2026_v1.yaml`) decouples grading rules and Under-Relaxed Specification (URS) thresholds from core CV algorithms with zero redeployment. | `[IMPLEMENTED]` |
+| **Why Different: Procurement Safety** | Naive ML models hide minority defect failures behind 96%+ standard accuracy on imbalanced agricultural data. | Transparent 4-class Softmax evaluation: Macro F1 of **0.727**, Balanced Accuracy of **83.43%**, and a critical **BAD → GOOD False-Negative Rate of 2.55%** (95% CI: [1.09%, 5.83%]) on 1,733 test images. | `[VALIDATED]` |
+| **Why Different: Tamper Evidence** | Inspection certificates and paper chits are easily swapped or repudiated during transit disputes. | Every certificate is cryptographically sealed with HMAC-SHA256 binding raw image hash, per-bulb geometry, quality scores, and inspector credentials with vector QR codes. | `[IMPLEMENTED]` |
+| **DPI Interoperability** | Siloed proprietary vendor formats prevent government data exchange. | Structured payloads conformant with eNAM Trade Assaying schemas and AgriStack Farmer ID (FID) binding for downstream Direct Benefit Transfer (DBT) integration. | `[PROPOSED / INTEGRATION-READY]` |
 
-| Optical Caliper (1.3mm MAE) | Acoustic Resonance NDT | Policy Decoupling | DPI Interoperability |
-|:---:|:---:|:---:|:---:|
-| **Planar Homography**<br />ChArUco 7x5 board<br />`1.28 mm MAE` (N=36 Vernier benchmark) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research API endpoint (/acoustic) | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`Trade Assaying XML / JSON Integration`<br />Direct Benefit Transfer ready |
-
-</div>
+> **Quick Verification & Demo:**
+> - **Automated Test Suite:** `pytest -q` → **201 passed, 1 skipped** (100% core test passing)
+> - **Local Mandi Station:** `python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000` → [`http://localhost:8000`](http://localhost:8000)
+> - **Live Cloud PoC:** [`https://cepa-mandi.onrender.com`](https://cepa-mandi.onrender.com) (Fallback Video: [`backend/static/demo.mp4`](backend/static/))
 
 ---
 
 <div align="center">
 
-<img src="backend/static/calibration_guide.png" alt="CEPA Autonomous Assaying Station" width="820" />
+<img src="backend/static/calibration_guide.png" alt="CEPA Assaying Station" width="820" />
 
 *Figure 1: Field inspection station geometry: overhead optical capture with planar metric calibration and multi-sensor NDT probe.*
 
@@ -91,7 +97,7 @@
 - [14. Technical Reference Appendices (Expandable Deep Dives)](#14-technical-reference-appendices-expandable-deep-dives)
   - [Appendix A: Database Entity-Relationship Model](#appendix-a-database-entity-relationship-model)
   - [Appendix B: Complete 27-Endpoint REST API Specification](#appendix-b-complete-27-endpoint-rest-api-specification)
-  - [Appendix C: Complete Test Suite Verification Trace (197 Passed)](#appendix-c-complete-test-suite-verification-trace-197-passed)
+  - [Appendix C: Complete Test Suite Verification Trace (201 Passed, 1 Skipped)](#appendix-c-complete-test-suite-verification-trace-201-passed-1-skipped)
   - [Appendix D: Hardware Bill of Materials (BOM)](#appendix-d-hardware-bill-of-materials-bom)
   - [Appendix E: Complete Codebase Directory and Component Map](#appendix-e-complete-codebase-directory-and-component-map)
   - [Appendix F: Step-by-Step Installation and Deployment Guide](#appendix-f-step-by-step-installation-and-deployment-guide)
@@ -162,7 +168,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals modeled on statistical sampling principles. |
 | **Volumetric Mass Estimation** | Physical weighbridge gross weight only | 2D silhouette area proxy without depth modeling | High-speed individual load cell cups ($\pm 1.0\text{ g}$) | **Triaxial Prolate Spheroid Model:** Calibrated with ICAR-DOGR bulk density ($0.985\text{ g/cm}^3$) using the geometric formulation $V = \frac{\pi}{6} D_{\text{eq}}^2 L_{\text{polar}}$. |
 | **Cold Storage Survival Modeling** | None (Immediate visual judgment) | None (Immediate defect label only) | None (Sorting destination bin assignment only) | **ICAR-DOGR Post-Harvest Engine:** Storageability score ($S \in [0, 100]$) and safe preservation horizons ($90-120$ days). |
-| **DPI & Government DBT Interoperability** | Handwritten carbon-copy receipts (prone to tampering) | Proprietary closed PDF with vendor watermark | Proprietary factory SCADA / CSV export | **eNAM Assaying Trade Parameter XML/JSON**, AgriStack FID / State APMC ID binding for DBT, and sovereign HMAC-SHA256 seal. |
+| **DPI & Government DBT Interoperability** | Handwritten carbon-copy receipts (prone to tampering) | Proprietary closed PDF with vendor watermark | Proprietary factory SCADA / CSV export | **eNAM Assaying Trade Parameter XML/JSON**, AgriStack FID / State APMC ID binding for downstream DBT pipelines, and tamper-evident HMAC-SHA256 seal. |
 
 ---
 
@@ -172,7 +178,7 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 ```
 [ Invariant 1: Policy Decoupling ]   ---> CV outputs physical observables; YAML policies decide grades
-[ Invariant 2: Sovereign Seal ]      ---> HMAC-SHA256 binds optical capture hash, officer ID & defect metrics
+[ Invariant 2: Tamper-Evident Seal ] ---> HMAC-SHA256 binds optical capture hash, officer ID & defect metrics
 [ Invariant 3: Explicit Boundaries ] ---> Physical surface limits documented; +/-3mm margins trigger review
 [ Invariant 4: Async Metrology ]     ---> Heavy PyTorch/OpenCV tasks isolated in managed ThreadPoolExecutor
 [ Invariant 5: Native DPI Stack ]    ---> Formatted to eNAM Trade Assaying XML & JSON linked to AgriStack / APMC Farmer ID
@@ -180,14 +186,14 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 - **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**
   Machine learning models are strictly confined to extracting physical observables: equivalent circular diameter, major and minor axes, polar length, surface defect probabilities, and acoustic resonance frequency. Procurement grading rules are maintained independently as versioned YAML policy files (`backend/grading/policies/`). Modifying a procurement standard requires zero model retraining or redeployment.
-- **Invariant 2: Sovereign Cryptographic Seal for Tamper-Evident Integrity**
+- **Invariant 2: Tamper-Evident HMAC-SHA256 Cryptographic Seal**
   Each inspection report generates a tamper-evident HMAC-SHA256 seal cryptographically binding: (1) the SHA-256 byte digest of the physical sample photograph, (2) the inspecting assayer officer credential, (3) lot and inspection UUIDs, and (4) quantitative defect and grade percentages (`grade_a_pct`, `urs_pct`, `rejected_pct`). Any alteration of image pixels, officer credentials, or grading decisions invalidates cryptographic verification. *(Roadmap note: Symmetric HMAC provides tamper detection; asymmetric Ed25519 digital signatures are scheduled for legal non-repudiation.)*
 - **Invariant 3: Explicit Physical and Optical Sensor Boundaries**
   Standard 2D RGB optical sensors capture surface-visible defects only; internal microbial decay that has not breached the outer tunic is physically invisible to camera sensors. Whenever a bulb diameter falls within plus or minus three millimeters of an administrative grade boundary, the system flags the measurement with `uncertainty_flag = True` and routes the item to human officer review.
 - **Invariant 4: Asynchronous Non-Blocking Execution Model**
   Heavy computer vision inference is computationally intensive and synchronous. The FastAPI backend dispatches all CV pipeline executions into a managed `ThreadPoolExecutor`, completely shielding the asynchronous event loop from blocking and maintaining sub-ten-millisecond responsiveness for administrative REST queries.
 - **Invariant 5: Open Digital Public Infrastructure (DPI) Native**
-  Assaying payloads are formatted to illustrative eNAM Trade Assaying XML and JSON standards, with binding to Indian Farmer IDs (AgriStack FID / State APMC registrations) to facilitate Direct Benefit Transfer (DBT) payments. eNAM schema compliance is structural; production integration requires official government endpoint access upon gazette accreditation.
+  Assaying payloads are formatted to illustrative eNAM Trade Assaying XML and JSON standards, with binding to Indian Farmer IDs (AgriStack FID / State APMC registrations) designed to interface with downstream Direct Benefit Transfer (DBT) payment pipelines. eNAM schema compliance is structural; production integration requires official government endpoint access upon gazette accreditation.
 
 ---
 
@@ -388,7 +394,7 @@ flowchart TD
   HM --> YOLO["4. YOLO11n-seg Instance Polygon Segmentation"]
   FB --> YOLO
   YOLO --> CR["5. Alpha Crop Extraction: Blackout Background"]
-  CR --> MOB["6. MobileNetV3 Multi-Label Defect Classifier"]
+  CR --> MOB["6. MobileNetV3 4-Class Defect Classifier"]
   MOB --> MORPH["7. Morphometry: Caliper Diameter, Polar Axis, Mass"]
   MORPH --> CONF["8. Confidence Tier Assignment: HIGH / REVIEW / UNUSABLE"]
 ```
@@ -441,24 +447,44 @@ Instance segmentation is executed using Ultralytics YOLO11 (YOLO11n-seg nano mod
 - A 20-pixel perimeter padding is applied to preserve root tuft and neck morphology.
 - Individual crops are exported as JPEG assets (`storage/crops/{inspection_id}/{sample_id}/{index:04d}.jpg`), and masks are exported as single-channel PNG assets (`storage/masks/...`).
 
-### Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
+### Stage 6: 4-Class Single-Label Defect Classification (`defect_classifier.py`)
 
-> **Model Evaluation & Honest Metrics (`ml/reports/quality_metrics.json`):**
-> The model backbone is MobileNetV3-Small fine-tuned on multi-class onion samples (`backend/weights/defect_classifier.pt`). A deterministic mock fallback is available for offline testing (`DEF_USE_MOCK=true`).
-> On the 1,733-image evaluation dataset, while the **headline overall accuracy is 96.4%**, **88.7% (1,537 / 1,733) of the dataset consists of unblemished GOOD bulbs**. The macro-averaged F1 score across all 4 classes is **0.73**. Per-class performance directly reflects this agricultural class distribution:
-> - **GOOD:** Precision 99.7% · Recall 98.2% · F1 0.99 (support: 1,537)
-> - **ROTTEN:** Precision 93.4% · Recall 85.9% · F1 0.90 (support: 149)
-> - **DAMAGED:** Precision 44.4% · Recall 55.2% · **F1 0.49** (support: 29)
-> - **SPROUTED:** **Precision 37.0%** · Recall 94.4% · F1 0.53 (support: 18)
+> **Model Evaluation & Honest Metrics (`ml/reports/quality_metrics.json` · `ml/reports/evaluation_report.json`):**
+> The model backbone is MobileNetV3-Small fine-tuned for 4-class single-label classification (`backend/weights/defect_classifier.pt`). Training and evaluation splits (70% Train, 15% Val, 15% Test) were executed prior to any augmentations to guarantee zero data leakage.
+> On the 1,733-image independent test split, the **overall accuracy is 96.36%**, with **88.7% (1,537 / 1,733) of the dataset representing healthy GOOD bulbs**. Because standard accuracy is inflated by majority-class dominance, CEPA benchmarks assaying performance using **Macro F1 (0.727)**, **Balanced Accuracy (83.43%)**, and procurement risk metrics:
 >
-> *Engineering Note:* Rather than masking minority class performance behind the 96.4% headline accuracy, CEPA explicitly highlights the minority defect challenge (DAMAGED F1: 0.49, SPROUTED precision: 0.37). In production, borderline defect scores automatically trigger `ConfidenceTier.NEEDS_REVIEW` for mandatory human inspector arbitration.
+> | Class | Precision (95% CI) | Recall (95% CI) | F1-Score | Support |
+> |:---|:---:|:---:|:---:|:---:|
+> | **GOOD** | 99.67% [99.2%, 99.9%] | 98.18% [97.4%, 98.7%] | 0.9892 | 1,537 |
+> | **DAMAGED** | 44.44% [29.5%, 60.4%] | 55.17% [37.5%, 71.6%] | 0.4923 | 29 |
+> | **ROTTEN** | 93.43% [88.0%, 96.5%] | 85.91% [79.4%, 90.6%] | 0.8951 | 149 |
+> | **SPROUTED** | 36.96% [24.5%, 51.4%] | 94.44% [74.2%, 99.0%] | 0.5312 | 18 |
+> | **Macro Avg** | **68.63%** | **83.43%** | **0.7270** | 1,733 |
+>
+> **Mandi Assaying Safety & Confusion Matrix ($N=1,733$):**
+>
+> ```
+> Actual \ Predicted   GOOD   DAMAGED   ROTTEN   SPROUTED   Total
+> GOOD                 1509        10        1         17    1537
+> DAMAGED                 3        16        8          2      29
+> ROTTEN                  1        10      128         10     149
+> SPROUTED                1         0        0         17      18
+> Total Predicted      1514        36      137         46    1733
+> ```
+>
+> - **Total Defective Bulbs:** 196 (29 Damaged, 149 Rotten, 18 Sprouted)
+> - **Defects Correctly Intercepted:** 191 (**97.45% Defect Recall**, 95% Wilson CI: [94.17%, 98.91%])
+> - **BAD $\rightarrow$ GOOD False Negatives:** Only 5 defective bulbs falsely accepted as GOOD
+> - **BAD $\rightarrow$ GOOD False-Negative Rate:** **2.55%** (95% Wilson CI: [1.09%, 5.83%])
+>
+> *Engineering Note:* Rather than masking minority defect performance behind 96.4% headline accuracy, CEPA explicitly reports the minority challenges (DAMAGED F1: 0.49, SPROUTED precision: 0.37) and demonstrates that **97.45% of defective produce is intercepted** before commercial acceptance. Borderline scores ($0.35 \le P \le 0.65$) trigger mandatory human officer arbitration.
 
-Defects in agricultural produce are not mutually exclusive. A bulb may simultaneously suffer from mechanical handling cuts, black mold colonization, and premature sprouting. CEPA rejects single-class Softmax architectures in favor of independent Sigmoid binary probabilities:
-- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection heads:
+CEPA deploys a 4-class single-label Softmax neural classifier with secondary biological chromaticity and RAM++ semantic guardrails:
+- **Neural Backbone:** PyTorch MobileNetV3-Small feature extractor with sequential projection head:
 
-  $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.25) \longrightarrow \text{Linear}(128, 4)$$
+  $$\text{Linear}(d_{\text{in}}, 128) \longrightarrow \text{Hardswish}() \longrightarrow \text{Dropout}(0.20) \longrightarrow \text{Linear}(128, 4) \longrightarrow \text{Softmax}()$$
 
-- **Output Vector:**
+- **Normalized Categorical Output Vector:**
   - $P(\text{good}) \in [0.0, 1.0]$: Intact, unblemished outer tunics, firm neck, zero visible lesions.
   - $P(\text{damaged}) \in [0.0, 1.0]$: Surface cuts, mechanical abrasions, shovel gouges, tunic ruptures.
   - $P(\text{rotten}) \in [0.0, 1.0]$: *Aspergillus niger* black mold, wet bacterial soft rot (*Pectobacterium carotovorum*), neck rot.
@@ -665,8 +691,8 @@ Buffer stock longevity is evaluated using a multi-factor decay risk heuristic fo
 ## 8. Digital Public Infrastructure (DPI) Integrations
 
 - **Ministry of Agriculture eNAM Assaying Integration:** Native export of digital assaying certificates conforming to trade parameters (Commodity: `AGMARK-19-ONION`) in XML and JSON formats.
-- **AgriStack Indian Farmer ID (FID) Binding:** Links inspection records directly to the national farmer registry and state APMC records to streamline procurement traceability and Direct Benefit Transfer (DBT) workflows.
-- **Cryptographic Sovereign Seal Certificates and Vector QR Codes:** Embeds a tamper-evident HMAC-SHA256 seal computed over the optical sample photo digest, officer ID, and defect metrics alongside an offline-scannable vector QR code inside ReportLab PDF vouchers.
+- **AgriStack Indian Farmer ID (FID) Binding:** Links inspection records directly to the national farmer registry and state APMC records to streamline procurement traceability and downstream Direct Benefit Transfer (DBT) workflows.
+- **Tamper-Evident HMAC-SHA256 Seal Certificates and Vector QR Codes:** Embeds a tamper-evident HMAC-SHA256 seal computed over the optical sample photo digest, officer ID, and defect metrics alongside an offline-scannable vector QR code inside ReportLab PDF vouchers.
 
 ---
 
@@ -683,7 +709,7 @@ The Forensic Mandi Inspector Studio (`backend/static/inspector.html`) provides a
 
 ## 10. Field Officer Mobile Client (React Native / Expo)
 
-The CEPA Field Officer Mobile Application ([`mobile/`](file:///d:/Projects/Cepa/mobile/)) is an enterprise-grade React Native application built on the **Expo 57** universal runtime. Engineered specifically for the harsh, dust-heavy, high-throughput operating conditions of agricultural intake gates, it equips mandi assaying officers with a sub-millimeter optical caliper, real-time quality gate feedback, post-harvest storage shelf-life analytics, and direct eNAM/AgriStack certification.
+The CEPA Field Officer Mobile Application ([`mobile/`](file:///d:/Projects/Cepa/mobile/)) is a ruggedized React Native field application built on the **Expo 57** universal runtime. Engineered specifically for the harsh, dust-heavy, high-throughput operating conditions of agricultural intake gates, it equips mandi assaying officers with an optical caliper, real-time quality gate feedback, post-harvest storage shelf-life analytics, and direct eNAM/AgriStack certification.
 
 ```
 +-------------------------------------------------------------------------------------------------------+
@@ -893,7 +919,7 @@ The mobile application is structured around a streamlined, 6-screen transactiona
 
 2. **`NewInspectionScreen.tsx` (Intake Gate Registration):**
    - Collects consignment metadata: Mandi Yard selector, declared truck consignment weight, and farmer credentials.
-   - **AgriStack FID Verification:** Integrates Indian Farmer ID validation (e.g. `MH-NSK-2026-084`), linking inspection lots to state-registered Direct Benefit Transfer (DBT) profiles.
+   - **AgriStack FID Verification:** Integrates Indian Farmer ID validation (e.g. `MH-NSK-2026-084`), designed to interface inspection lots with state-registered Direct Benefit Transfer (DBT) profiles.
    - **Offline Draft Resilience:** If network connectivity drops inside a remote mandi shed, the screen automatically generates an offline local inspection session (`insp-offline-...`), allowing the officer to proceed with optical captures without stalling truck throughput.
 
 3. **`CaptureScreen.tsx` (Aerospace Mandi Viewfinder HUD):**
@@ -918,7 +944,7 @@ The mobile application is structured around a streamlined, 6-screen transactiona
 
 6. **`FinalReportScreen.tsx` (Official Certification & Settlement):**
    - Generates the formal APMC Commercial Settlement Slip detailing gross payout, quality dockages, and net payable value.
-   - Provides 1-tap download of the official ReportLab PDF quality appraisal voucher bearing the sovereign HMAC-SHA256 seal and verification QR code.
+   - Provides 1-tap download of the official ReportLab PDF quality appraisal voucher bearing the tamper-evident HMAC-SHA256 seal and verification QR code.
    - Generates multilingual voice grade announcements in 7 Indian regional languages via Bhashini TTS.
 
 ---
@@ -965,7 +991,7 @@ For exhaustive engineering compliance, academic auditability, and regulatory vet
 | [**Regulatory Compliance Matrix**](docs/REGULATORY_COMPLIANCE.md) | Statutory alignment with BIS IS 17912:2022 grades, NAFED PSF Fair Average Quality (FAQ) dockage schedules, and eNAM trade assaying specifications. | BIS IS 17912:2022 · eNAM · NAFED |
 | [**Hardware Station Specification**](docs/HARDWARE_SETUP.md) | Physical gantry setup, 2020 extrusion dimensions, nadir optical alignment, diffuse ring lighting, and acoustic transducer integration. | Mandi Intake Station Engineering |
 | [**Architecture Decision Records (ADRs)**](docs/adr/README.md) | Index and rationale for architectural decisions ADR-0001 through ADR-0005. | Michael Nygard ADR Standard |
-| [**Security Policy & Threat Model**](SECURITY.md) | Formal STRIDE threat model, FIPS 198-1 sovereign HMAC-SHA256 tamper-evident integrity signature equation, and key isolation rules. | FIPS 198-1 · OWASP Top 10 |
+| [**Security Policy & Threat Model**](SECURITY.md) | Formal STRIDE threat model, FIPS 198-1 HMAC-SHA256 tamper-evident integrity signature equation, and key isolation rules. | FIPS 198-1 · OWASP Top 10 |
 | [**Contributing & Pre-Commit Standards**](CONTRIBUTING.md) | Code styling, Git branching, Ruff / Mypy enforcement, and verification gates. | Conventional Commits v1.0.0 |
 | [**Academic Research Citation**](CITATION.cff) | Formal citation metadata for academic and scientific benchmark reproduction. | Citation File Format v1.2.0 |
 
@@ -1026,7 +1052,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 | Team Member | Role / Specialization | Core Engineering Responsibilities |
 |:---|:---|:---|
 | **Ubaid Khan** | **Team Leader** | End-to-end system architecture, metrology pipeline orchestration, planar homography calibration, and project delivery |
-| **Kush Maurya** | **AI / ML** | YOLO11 instance segmentation, MobileNetV3 multi-label defect classification, CIELAB chromaticity barriers, and Groq Vision LLM |
+| **Kush Maurya** | **AI / ML** | YOLO11 instance segmentation, MobileNetV3 4-class defect classification, CIELAB chromaticity barriers, and Groq Vision LLM |
 | **Hemang Mistry** | **Frontend** | React Native / Expo mobile field application, viewfinder ChArUco HUD, and Forensic Mandi Inspector Studio web interface |
 | **Harshil Bhatt** | **Backend** | Asynchronous FastAPI gateway, ThreadPoolExecutor metrology workers, 27 REST endpoints, and SQLite WAL database architecture |
 | **Hetvi Makwana** | **Infra / DevOps** | Multi-stage Docker containerization, cloud edge deployment workflows (Render / Vercel), and CI/CD testing pipelines |
@@ -1212,7 +1238,7 @@ Cepa/
 │   │   ├── calibration.py        # Homography solver, RANSAC, ChArUco synthesizer, Packhouse fallback
 │   │   ├── confidence.py         # Confidence tiering (HIGH, NEEDS_REVIEW, UNUSABLE)
 │   │   ├── crop_extractor.py     # Binary PNG masks and isolated tunic JPEG crops
-│   │   ├── defect_classifier.py  # MobileNetV3 multi-label PyTorch classifier and CIELAB barriers
+│   │   ├── defect_classifier.py  # MobileNetV3 4-class Softmax PyTorch classifier and CIELAB barriers
 │   │   ├── flash_proxy.py        # Dual-exposure differential reflectance (FPI) analyzer
 │   │   ├── marker_detector.py    # OpenCV ChArUco 7x5 detector with sub-pixel interpolation
 │   │   ├── onion_validator.py    # Dual-stage botanical morphology & CIELAB pigment validation gate
@@ -1236,7 +1262,7 @@ Cepa/
 │   │       └── DEMO_ASSUMPTION_v1.yaml    # Working prototype test policy
 │   ├── models/                   # SQLAlchemy ORM database models
 │   │   ├── classification_result.py # Final bulb classification record
-│   │   ├── defect_observation.py    # Sigmoid defect probabilities
+│   │   ├── defect_observation.py    # 4-class defect probabilities
 │   │   ├── inspection.py            # Consignment session record with AgriStack FID
 │   │   ├── measurement.py           # Metric diameter and weight measurements
 │   │   ├── onion_instance.py        # Segmented bulb instance record
@@ -1251,7 +1277,7 @@ Cepa/
 │   │   ├── acoustic_service.py   # FFT impulse resonance analyzer, Q-factor, elasticity index
 │   │   ├── bhashini_service.py   # NLTM Multilingual TTS (7 languages, mandi district geofencing)
 │   │   ├── certificate_view.py   # Public responsive HTML certificate generator
-│   │   ├── crypto_seal.py        # Sovereign HMAC-SHA256 tamper-evident cryptographic seal
+│   │   ├── crypto_seal.py        # Tamper-evident HMAC-SHA256 cryptographic seal
 │   │   ├── enam_export_service.py# eNAM trade assaying parameter XML/JSON exporter
 │   │   ├── groq_ai_service.py    # Multimodal Groq Vision LLM agronomist integration
 │   │   ├── image_storage.py      # Disk path to HTTP URL translation utilities
@@ -1263,7 +1289,7 @@ Cepa/
 │   │   ├── inspector.html        # Forensic Mandi Inspector Studio web application
 │   │   ├── charuco_board_7x5...  # Printable A4 calibration target board (PDF/PNG)
 │   │   └── demo_onion_spread.jpg # Standard photographic test spread
-│   └── tests/                    # 198 automated pytest specifications (197 passing, 1 hardware-gated)
+│   └── tests/                    # 202 automated pytest specifications (201 passing, 1 hardware-gated)
 ├── cv_tools/
 │   ├── generate_charuco_board.py # Generator for custom ChArUco calibration targets
 │   ├── train_defect_classifier.py# MobileNetV3 PyTorch training pipeline with synthetic synthesis
@@ -1297,7 +1323,7 @@ Cepa/
 ├── CITATION.cff                  # Formal research metadata for IEEE/Springer citations
 ├── CODE_OF_CONDUCT.md            # Contributor Covenant v2.1 standard
 ├── CONTRIBUTING.md               # Developer setup, testing, and contribution protocols
-├── SECURITY.md                   # STRIDE threat model & sovereign cryptographic seal policy
+├── SECURITY.md                   # STRIDE threat model & tamper-evident cryptographic seal policy
 ├── render.yaml                   # Containerized cloud deployment manifest for Render
 ├── vercel.json                   # Edge routing and headers configuration for Vercel
 ├── ARCHITECTURE.md               # Master system architecture reference

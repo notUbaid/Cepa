@@ -33,7 +33,7 @@ CEPA decouples sensor telemetry, optical computer vision, statutory grading poli
 |                       v                    v                    v                    v                 |
 |   +------------------------------------+  +------------------------------------+  +----------------+   |
 |   |      8-Stage CV & ML Pipeline      |  |     Grading & Policy Engine        |  | FIPS 198-1     |   |
-|   |   - Quality Gate & Blur Reject     |  |  - BIS IS 17912:2022 Grades        |  | Sovereign Seal |   |
+|   |   - Quality Gate & Blur Reject     |  |  - BIS IS 17912:2022 Grades        |  | Tamper Seal    |   |
 |   |   - Planar Homography (ChArUco)    |  |  - NAFED PSF Fair Average Quality  |  | - HMAC-SHA256  |   |
 |   |   - CIELAB Anthocyanin Filter      |  |  - Decoupled YAML Rule Engine      |  | - Raw Hash Bind|   |
 |   |   - Prolate Spheroid Metrology     |  |  - Dynamic Dockage Deduction       |  | - Tamper Guard |   |
@@ -117,7 +117,7 @@ Every photographic frame captured at the intake station passes through a strictl
   - Cumulative dockage calculation and fair payout determination
           |
           v
-[Stage 8: Sovereign Cryptographic Sealing & DPI Egress]
+[Stage 8: Tamper-Evident Cryptographic Sealing & DPI Egress]
   - SHA-256 Hash Computation over pristine raw input JPEG bytes
   - Canonical JSON payload serialization
   - FIPS 198-1 HMAC-SHA256 signature generation with isolated master key
@@ -126,7 +126,7 @@ Every photographic frame captured at the intake station passes through a strictl
 
 ---
 
-## 3. Cryptographic Sovereign Seal Protocol
+## 3. Tamper-Evident Cryptographic Seal Protocol
 
 To guarantee that assaying certificates generated at rural mandis cannot be tampered with or modified post-hoc:
 

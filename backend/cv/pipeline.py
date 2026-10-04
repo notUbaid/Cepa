@@ -10,7 +10,7 @@ Pipeline stages:
   3. Scale Calibration       - compute mm/px ratio, rectify image
   4. Instance Segmentation   - detect individual onion bulbs
   5. Crop Extraction         - save masks and crops to disk
-  6. Defect Classification   - multi-label defect probs per onion
+  6. Defect Classification   - 4-class defect probabilities per onion (GOOD/DAMAGED/ROTTEN/SPROUTED)
   7. Size Estimation         - geometric mm measurements per onion
   8. Confidence Assessment   - tier assignment (HIGH/NEEDS_REVIEW/UNUSABLE)
 

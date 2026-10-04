@@ -2,9 +2,7 @@
 DefectObservation ORM model.
 
 Records the per-onion defect probabilities from the CV defect classifier.
-Defects are treated as independent binary attributes (multi-label), not as
-mutually exclusive classes. A single onion can be simultaneously damaged
-AND sprouted AND rotten.
+Stores model predictions for visible defect categories (damaged, rotten, sprouted).
 
 Preserves both the original model output and any human corrections separately.
 The final_decision field records what was actually used for grading.
@@ -39,9 +37,8 @@ class DefectObservation(Base):
         unique=True,  # 1:1 with OnionInstance
     )
 
-    # ── Model predictions (sigmoid probabilities, 0.0–1.0 each) ──────────────
-    # These are INDEPENDENT probabilities, not a softmax distribution.
-    # Each value answers: "How likely is this specific defect visible?"
+    # ── Model predictions (probabilities, 0.0–1.0 each) ────────────────────────
+    # Each value records: "What is the probability this defect is present?"
     damaged_prob: Mapped[float] = mapped_column(Float, nullable=False)
     rotten_prob: Mapped[float] = mapped_column(Float, nullable=False)
     sprouted_prob: Mapped[float] = mapped_column(Float, nullable=False)

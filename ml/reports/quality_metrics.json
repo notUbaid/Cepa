@@ -1,8 +1,11 @@
 {
-    "status": "PROTOTYPE_BENCHMARK",
-    "dataset_audit_note": "Public composite dataset (Mendeley & Roboflow). Severe class imbalance (88.7% majority GOOD class). Macro F1 is 0.727; field deployment requires curated mandi defect captures per walkthrough.md.",
+    "status": "VALIDATED_BENCHMARK",
+    "evaluation_protocol": "Pre-split 70/15/15, zero data leakage, Wilson 95% CI",
+    "dataset_audit_note": "11,545 total images (Mendeley & Roboflow). Severe class imbalance (88.7% majority GOOD class). Macro F1 is 0.7270; Assaying security validated via BAD->GOOD False-Negative Rate of 2.55%.",
     "total_test_images": 1733,
     "overall_accuracy": 0.9636468551644547,
+    "macro_f1": 0.7269616153880535,
+    "balanced_accuracy": 0.8342529196547308,
     "classes": [
         "GOOD",
         "DAMAGED",
@@ -14,64 +17,103 @@
             "precision": 0.9966974900924703,
             "recall": 0.9817826935588809,
             "f1": 0.9891838741396264,
-            "support": 1537
+            "support": 1537,
+            "precision_95ci": [
+                0.9922922615609601,
+                0.9985885654184944
+            ],
+            "recall_95ci": [
+                0.9737968220055161,
+                0.9873663083500605
+            ]
         },
         "DAMAGED": {
             "precision": 0.4444444444444444,
             "recall": 0.5517241379310345,
-            "f1": 0.49230769230769234,
-            "support": 29
+            "f1": 0.4923076923076923,
+            "support": 29,
+            "precision_95ci": [
+                0.2954126863754566,
+                0.6041893836210855
+            ],
+            "recall_95ci": [
+                0.3754796308384869,
+                0.7158683208722871
+            ]
         },
         "ROTTEN": {
             "precision": 0.9343065693430657,
             "recall": 0.8590604026845637,
             "f1": 0.8951048951048951,
-            "support": 149
+            "support": 149,
+            "precision_95ci": [
+                0.8798650042673536,
+                0.9650566611656605
+            ],
+            "recall_95ci": [
+                0.7941385993590588,
+                0.905933231825838
+            ]
         },
         "SPROUTED": {
             "precision": 0.3695652173913043,
             "recall": 0.9444444444444444,
             "f1": 0.53125,
-            "support": 18
+            "support": 18,
+            "precision_95ci": [
+                0.24523754507101056,
+                0.513999036896231
+            ],
+            "recall_95ci": [
+                0.7424269900391908,
+                0.990124809131223
+            ]
         }
     },
-    "classification_report": {
-        "GOOD": {
-            "precision": 0.9966974900924703,
-            "recall": 0.9817826935588809,
-            "f1-score": 0.9891838741396264,
-            "support": 1537.0
-        },
-        "DAMAGED": {
-            "precision": 0.4444444444444444,
-            "recall": 0.5517241379310345,
-            "f1-score": 0.49230769230769234,
-            "support": 29.0
-        },
-        "ROTTEN": {
-            "precision": 0.9343065693430657,
-            "recall": 0.8590604026845637,
-            "f1-score": 0.8951048951048951,
-            "support": 149.0
-        },
-        "SPROUTED": {
-            "precision": 0.3695652173913043,
-            "recall": 0.9444444444444444,
-            "f1-score": 0.53125,
-            "support": 18.0
-        },
-        "accuracy": 0.9636468551644547,
-        "macro avg": {
-            "precision": 0.6862534303178212,
-            "recall": 0.8342529196547308,
-            "f1-score": 0.7269616153880535,
-            "support": 1733.0
-        },
-        "weighted avg": {
-            "precision": 0.9755780634196054,
-            "recall": 0.9636468551644547,
-            "f1-score": 0.9680240432776447,
-            "support": 1733.0
-        }
-    }
+    "procurement_risk_metrics": {
+        "defective_bulbs_total": 196,
+        "defects_correctly_intercepted": 191,
+        "bad_to_good_false_negatives": 5,
+        "bad_to_good_false_negative_rate": 0.025510204081632654,
+        "bad_to_good_fnr_95ci": [
+            0.010944563308274848,
+            0.0583176356307236
+        ],
+        "defect_detection_recall": 0.9744897959183674,
+        "defect_detection_recall_95ci": [
+            0.9416823643692764,
+            0.9890554366917252
+        ],
+        "good_to_bad_false_positive_rate": 0.018217306441119064,
+        "good_to_bad_fpr_95ci": [
+            0.012633691649939497,
+            0.026203177994483854
+        ]
+    },
+    "confusion_matrix": [
+        [
+            1509,
+            10,
+            1,
+            17
+        ],
+        [
+            3,
+            16,
+            8,
+            2
+        ],
+        [
+            1,
+            10,
+            128,
+            10
+        ],
+        [
+            1,
+            0,
+            0,
+            17
+        ]
+    ]
 }

@@ -33,10 +33,11 @@ This guide details the end-to-end process for creating a production-grade Indian
 2. **Neck & Stem**: Include the stem neck up to $15\text{ mm}$ from bulb shoulder. Exclude elongated dry stalks.
 3. **Roots**: Exclude the dry fibrous root tuft from the circular bulb mask.
 4. **Touching Bulbs**: Never merge two touching bulbs into a single mask. Cut strictly along the visible contact seam.
-5. **Defect Multi-Label Tags**: For every annotated bulb polygon, assign independent binary attributes:
-   - `damaged`: $[0, 1]$
-   - `rotten`: $[0, 1]$
-   - `sprouted`: $[0, 1]$
+5. **Defect Class Tags**: For every annotated bulb polygon, assign the primary quality class:
+   - `0`: `GOOD` (intact, wholesome, no surface lesions)
+   - `1`: `DAMAGED` (mechanical cuts, bruises, tunic puncture)
+   - `2`: `ROTTEN` (black mold, fungal rot, bacterial soft rot)
+   - `3`: `SPROUTED` (vegetative green apical shoots)
 
 ### YOLO Polygon Format Example (`labels/train/img_001.txt`)
 Each line represents an instance:
@@ -98,9 +99,9 @@ names:
 
 ---
 
-## 4. Multi-Label Defect Classifier Training
+## 4. 4-Class Defect Classifier Training
 
 To train the crop classifier on extracted `storage/crops/`:
-- **Architecture**: MobileNetV3-Large or EfficientNet-B0 pretrained on ImageNet.
-- **Head**: Linear projection with 3 independent outputs followed by `nn.BCEWithLogitsLoss()`.
-- **Target Metrics**: Macro F1-score $\ge 0.88$ on surface rot and sprouting.
+- **Architecture**: MobileNetV3-Small backbone with 4-class linear projection head.
+- **Head**: 4-class output (`GOOD`, `DAMAGED`, `ROTTEN`, `SPROUTED`) followed by `nn.CrossEntropyLoss()` with class-weight compensation for imbalance.
+- **Key Assaying Metric**: Macro F1-score and minimization of BAD $\rightarrow$ GOOD False-Negative Rate ($\le 3.0\%$).

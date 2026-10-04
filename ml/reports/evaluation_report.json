@@ -1,12 +1,124 @@
 {
-    "dataset_size": 35,
-    "class_distribution": {
-        "Healthy": 10,
-        "Damaged": 9,
-        "Rotten": 5,
-        "Sprouted": 11
+    "dataset_split": {
+        "train_ratio": 0.7,
+        "val_ratio": 0.15,
+        "test_ratio": 0.15,
+        "leakage_safeguard": "Partitioned prior to augmentation, zero source overlap"
     },
-    "bad_images": 25,
-    "bad_as_good_errors": 1,
-    "bad_recall": 0.96
+    "total_test_samples": 1733,
+    "overall_accuracy": 0.9636468551644547,
+    "macro_f1": 0.7269616153880535,
+    "macro_precision": 0.6862534303178212,
+    "macro_recall": 0.8342529196547308,
+    "balanced_accuracy": 0.8342529196547308,
+    "per_class": {
+        "GOOD": {
+            "precision": 0.9966974900924703,
+            "recall": 0.9817826935588809,
+            "f1": 0.9891838741396264,
+            "support": 1537,
+            "precision_95ci": [
+                0.9922922615609601,
+                0.9985885654184944
+            ],
+            "recall_95ci": [
+                0.9737968220055161,
+                0.9873663083500605
+            ]
+        },
+        "DAMAGED": {
+            "precision": 0.4444444444444444,
+            "recall": 0.5517241379310345,
+            "f1": 0.4923076923076923,
+            "support": 29,
+            "precision_95ci": [
+                0.2954126863754566,
+                0.6041893836210855
+            ],
+            "recall_95ci": [
+                0.3754796308384869,
+                0.7158683208722871
+            ]
+        },
+        "ROTTEN": {
+            "precision": 0.9343065693430657,
+            "recall": 0.8590604026845637,
+            "f1": 0.8951048951048951,
+            "support": 149,
+            "precision_95ci": [
+                0.8798650042673536,
+                0.9650566611656605
+            ],
+            "recall_95ci": [
+                0.7941385993590588,
+                0.905933231825838
+            ]
+        },
+        "SPROUTED": {
+            "precision": 0.3695652173913043,
+            "recall": 0.9444444444444444,
+            "f1": 0.53125,
+            "support": 18,
+            "precision_95ci": [
+                0.24523754507101056,
+                0.513999036896231
+            ],
+            "recall_95ci": [
+                0.7424269900391908,
+                0.990124809131223
+            ]
+        }
+    },
+    "procurement_risk_metrics": {
+        "defective_bulbs_total": 196,
+        "defects_correctly_intercepted": 191,
+        "bad_to_good_false_negatives": 5,
+        "bad_to_good_false_negative_rate": 0.025510204081632654,
+        "bad_to_good_fnr_95ci": [
+            0.010944563308274848,
+            0.0583176356307236
+        ],
+        "defect_detection_recall": 0.9744897959183674,
+        "defect_detection_recall_95ci": [
+            0.9416823643692764,
+            0.9890554366917252
+        ],
+        "good_to_bad_false_positive_rate": 0.018217306441119064,
+        "good_to_bad_fpr_95ci": [
+            0.012633691649939497,
+            0.026203177994483854
+        ]
+    },
+    "confusion_matrix": [
+        [
+            1509,
+            10,
+            1,
+            17
+        ],
+        [
+            3,
+            16,
+            8,
+            2
+        ],
+        [
+            1,
+            10,
+            128,
+            10
+        ],
+        [
+            1,
+            0,
+            0,
+            17
+        ]
+    ],
+    "classes": [
+        "GOOD",
+        "DAMAGED",
+        "ROTTEN",
+        "SPROUTED"
+    ]
 }

@@ -1,16 +1,17 @@
 """
-Real Multi-Label Onion Defect Classifier Trainer (Trained on Real Mandi & Field Onions)
+4-Class Onion Defect Classifier Trainer (Trained on Real Mandi & Field Onions)
 
-Trains MobileNetV3 multi-label neural network on:
+Trains MobileNetV3 4-class neural network on:
 1. Authentic real onion crops harvested from open agricultural collections (Wikimedia Commons)
    in cv_tools/dataset/real_onions/crops/{healthy, sprouted, rotten, damaged}
 2. Procedurally augmented authentic Indian varieties (Nashik Red, Bellary, Lasalgaon Yellow, White)
-   with multi-label defect mixtures (Botrytis/Aspergillus black mold, soft rot, apical sprouts, mechanical gouges)
+   with defect mixtures (Botrytis/Aspergillus black mold, soft rot, apical sprouts, mechanical gouges)
 
-Predicts 3 independent sigmoid probabilities:
-  1. P(damaged)   - Mechanical impact cuts, punctures, shovel strikes, tunic rupture
-  2. P(rotten)    - Aspergillus niger black mold, bacterial soft rot, neck rot
-  3. P(sprouted)  - Apical vegetative green shoots
+Predicts 4 normalized categorical classes via Softmax:
+  0. GOOD     - Intact, unblemished outer tunics, firm neck, zero visible lesions
+  1. DAMAGED  - Mechanical impact cuts, punctures, shovel strikes, tunic rupture
+  2. ROTTEN   - Aspergillus niger black mold, bacterial soft rot, neck rot
+  3. SPROUTED - Apical vegetative green shoots
 
 Saves trained model state_dict directly to:
   backend/weights/defect_classifier.pt
@@ -39,7 +40,7 @@ REAL_CROPS_DIR = Path(__file__).parent / "dataset" / "real_onions" / "crops"
 
 
 class OnionDefectClassifierNet(nn.Module):
-    """MobileNetV3-Small backbone with multi-label sigmoid classifier."""
+    """MobileNetV3-Small backbone with 4-class classifier."""
     def __init__(self) -> None:
         super().__init__()
         backbone = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.DEFAULT)
@@ -47,8 +48,8 @@ class OnionDefectClassifierNet(nn.Module):
         backbone.classifier = nn.Sequential(
             nn.Linear(in_features, 128),
             nn.Hardswish(),
-            nn.Dropout(p=0.25),
-            nn.Linear(128, 3),
+            nn.Dropout(p=0.20),
+            nn.Linear(128, 4),
         )
         self.net = backbone
 

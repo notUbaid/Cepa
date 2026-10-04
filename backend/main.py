@@ -45,7 +45,10 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    # 1. Ensure required runtime storage directories exist
+    # 1. Validate security posture
+    settings.validate_security_configuration()
+
+    # 2. Ensure required runtime storage directories exist
     settings.ensure_dirs()
 
     # 2. Ensure database tables exist

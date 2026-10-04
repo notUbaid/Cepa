@@ -3,22 +3,20 @@ Stage 6: Defect Classifier
 
 Classifies visible defects on each onion bulb crop.
 
-Architecture decision: MULTI-LABEL sigmoid output (not softmax).
-Each defect is an independent binary probability:
-  damaged_prob:  P(visible mechanical damage / cuts / bruising)
-  rotten_prob:   P(visible surface rot / decay / mold)
-  sprouted_prob: P(visible sprouting / green shoots)
+Architecture decision: 4-Class Softmax classifier (MobileNetV3-Small backbone).
+Predicts normalized categorical probability distribution over mutually exclusive classes:
+  good_prob:     P(intact, healthy bulb with no surface lesions)
+  damaged_prob:  P(visible mechanical damage / cuts / punctures / tunic rupture)
+  rotten_prob:   P(visible surface rot / Aspergillus niger black mold / soft decay)
+  sprouted_prob: P(visible apical vegetative green shoots)
 
-These probabilities are independent — a single bulb can simultaneously
-have damaged=0.9, rotten=0.1, sprouted=0.8 (old sprouted damaged bulb).
+The argmax gives the primary quality classification, with secondary biological
+heuristic and RAM++ semantic verification for edge cases.
 
 Important limitation:
   Camera-based detection can only identify VISIBLE surface defects.
-  Internal rot not visible from the exterior CANNOT be detected.
+  Internal rot not visible from the exterior CANNOT be detected without cut-testing.
   This limitation is architecturally acknowledged and stated in every report.
-
-Phase 1 uses MockDefectClassifier (deterministic, image-hash-seeded).
-Replace with RealDefectClassifier once training data is collected.
 """
 from __future__ import annotations
 
@@ -78,7 +76,7 @@ class DefectClassifier(ABC):
                         Typically ~(150-300, 150-300, 3).
 
         Returns:
-            DefectPrediction with sigmoid probabilities for each defect.
+            DefectPrediction with softmax probabilities for [good, damaged, rotten, sprouted].
         """
         ...
 
@@ -187,11 +185,11 @@ class OnionDefectClassifierNet(nn.Module if _TORCH_AVAILABLE else object):
 
 class RealDefectClassifier(DefectClassifier):
     """
-    Real MobileNetV3 multi-label defect classifier.
+    Real MobileNetV3 4-class single-label defect classifier.
 
     Loads trained weights from defect_classifier.pt.
     Input: (224, 224, 3) crop normalized to ImageNet stats.
-    Output: sigmoid probabilities for [damaged, rotten, sprouted].
+    Output: Softmax probabilities for [GOOD, DAMAGED, ROTTEN, SPROUTED].
     """
 
     def __init__(self, model_path: str) -> None:
@@ -243,8 +241,10 @@ class RealDefectClassifier(DefectClassifier):
         import torch
 
         if self._model is None:
-            logger.warning("Real defect classifier not loaded — falling back to mock")
-            return MockDefectClassifier().classify(crop_image)
+            raise RuntimeError(
+                "RealDefectClassifier error: PyTorch weights are not loaded. "
+                "Production inference cannot proceed without verified model weights."
+            )
 
         # OpenCV BGR → RGB for torchvision transforms
         rgb = _cv2.cvtColor(crop_image, _cv2.COLOR_BGR2RGB)
@@ -292,80 +292,33 @@ class RealDefectClassifier(DefectClassifier):
         )
 
 
-class PipelineDefectClassifier(DefectClassifier):
-    """
-    Genuine ML pipeline integrating trained PyTorch model + RAM++
-    """
-    def __init__(self, config_path: str = "ml/config.yaml"):
-        import os
-        import sys
-        from pathlib import Path
-        
-        # Resolve config path relative to project root
-        root_dir = Path(__file__).resolve().parent.parent.parent
-        if str(root_dir) not in sys.path:
-            sys.path.insert(0, str(root_dir))
-            
-        from ml.inference import QualityInferencePipeline
-        abs_config = str(root_dir / config_path)
-        
-        self.pipeline = QualityInferencePipeline(abs_config)
-        self._version_str = self.pipeline.model_version
-
-    @property
-    def model_version(self) -> str:
-        return self._version_str
-
-    @property
-    def is_mock(self) -> bool:
-        return False
-
-    def classify(self, crop_image: np.ndarray) -> DefectPrediction:
-        try:
-            result = self.pipeline.predict(crop_image)
-            probs = result.get("probabilities", {})
-            good_p = float(probs.get("GOOD", probs.get("good_prob", 0.0)))
-            damaged_p = float(probs.get("DAMAGED", probs.get("damaged_prob", 0.0)))
-            rotten_p = float(probs.get("ROTTEN", probs.get("rotten_prob", 0.0)))
-            sprouted_p = float(probs.get("SPROUTED", probs.get("sprouted_prob", 0.0)))
-            
-            return DefectPrediction(
-                good_prob=good_p,
-                damaged_prob=damaged_p,
-                rotten_prob=rotten_p,
-                sprouted_prob=sprouted_p,
-                model_version=self._version_str,
-                is_mock=False,
-            )
-        except Exception as e:
-            logger.exception("Pipeline classification failed, falling back to mock")
-            return MockDefectClassifier().classify(crop_image)
-
 def get_classifier(use_mock: bool, model_path: str | None = None) -> DefectClassifier:
     """
     Factory function: returns the appropriate defect classifier.
+    In production (use_mock=False), strictly loads RealDefectClassifier.
+    Never silently falls back to MockDefectClassifier when real ML is requested.
     """
     if use_mock:
-        logger.info("Using MockDefectClassifier — results will be labelled [MOCK]")
+        logger.warning("[MOCK DEMO MODE ACTIVE] Using MockDefectClassifier — results labeled is_mock=True")
         return MockDefectClassifier()
-    
-    # Try Pipeline Classifier first if ml directory exists
+
+    if not model_path:
+        raise ValueError(
+            "Production defect classifier error: model_path is required when use_mock=False. "
+            "Set DEF_USE_MOCK=true only if explicitly running in mock development mode."
+        )
+
     from pathlib import Path
-    root_dir = Path(__file__).parent.parent.parent
-    if (root_dir / "ml" / "config.yaml").exists():
-        try:
-            logger.info("Loading Genuine ML Pipeline (Trained Model + RAM++)")
-            return PipelineDefectClassifier()
-        except Exception:
-            logger.exception("Failed to load PipelineDefectClassifier")
-            
-    if model_path:
-        try:
-            clf = RealDefectClassifier(model_path)
-            if clf._model is not None:
-                return clf
-        except Exception:
-            logger.exception("RealDefectClassifier failed to load")
-            
-    logger.warning("Falling back to MockDefectClassifier — no valid model found")
-    return MockDefectClassifier()
+    model_p = Path(model_path)
+    if not model_p.exists():
+        raise FileNotFoundError(
+            f"Production defect classifier weights not found at '{model_path}'. "
+            "Ensure backend/weights/defect_classifier.pt exists or configure DEF_MODEL_PATH."
+        )
+
+    clf = RealDefectClassifier(str(model_p))
+    if clf._model is None:
+        raise RuntimeError(f"Failed to load production defect classifier from '{model_path}'.")
+
+    logger.info("Loaded production RealDefectClassifier (%s) on %s", clf.model_version, clf._device)
+    return clf

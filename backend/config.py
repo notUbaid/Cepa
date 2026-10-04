@@ -153,6 +153,22 @@ class Settings(BaseSettings):
             except OSError as e:
                 logger.warning("Could not ensure directory %s: %s", d, e)
 
+    def validate_security_configuration(self) -> None:
+        """
+        Validate security posture:
+        - In production with enforce_officer_auth=True, prevents using the default or blank officer key.
+        - Warns clearly in development if default secrets are active.
+        """
+        is_prod = self.backend_env.lower() == "production"
+        if is_prod and self.enforce_officer_auth:
+            if self.officer_api_key in ("cepa-officer-secret-key-2026", "") or len(self.officer_api_key) < 16:
+                raise RuntimeError(
+                    "Production Security Invariant Violation: OFFICER_API_KEY must be configured with a strong, "
+                    "non-default secret key (min 16 chars) when ENFORCE_OFFICER_AUTH=true in production."
+                )
+        elif not self.enforce_officer_auth:
+            logger.info("Security Posture: Officer auth is open (demo/evaluation mode). Destructive actions still require token.")
+
 
 # Module-level singleton -- import this everywhere
 settings = Settings()

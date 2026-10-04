@@ -31,6 +31,7 @@ backend/test.db
 
 # Model weights (allow production trained model weights < 10MB)
 *.pt
+*.cache
 backend/weights/*.onnx
 backend/weights/*.tflite
 cv_tools/weights/

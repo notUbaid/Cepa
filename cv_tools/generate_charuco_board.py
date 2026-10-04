@@ -20,8 +20,8 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from PIL import Image
 
-# Output directory
-OUT_DIR = Path(__file__).parent / "calibration_board"
+# Canonical Output directory (served by backend and public web app)
+OUT_DIR = Path(__file__).parent.parent / "backend" / "static"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 SQUARES_X = 7

@@ -71,12 +71,15 @@ For each detected onion instance:
 
 ---
 
-## Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
+## Stage 6: 4-Class Defect Classification (`defect_classifier.py`)
 
-Defects are treated as independent binary probabilities (Sigmoid activation, not Softmax):
-- $P(\text{damaged})$: Visible cuts, mechanical abrasions, bruising ($\ge 0.50$).
-- $P(\text{rotten})$: Visible surface decay, mold, black mold spores (*Aspergillus niger*) ($\ge 0.50$).
-- $P(\text{sprouted})$: Protruding green vegetative shoot tips ($\ge 0.50$).
+Visible defects are categorized using a MobileNetV3-Small neural network trained for 4-class single-label classification with Softmax output:
+- $P(\text{GOOD})$: Intact, undamaged healthy onion with uniform papery tunic.
+- $P(\text{DAMAGED})$: Mechanical impact damage, cuts, abrasions, bruises ($\ge 0.50$).
+- $P(\text{ROTTEN})$: Visible surface decay, black mold spores (*Aspergillus niger*), or bacterial soft rot ($\ge 0.50$).
+- $P(\text{SPROUTED})$: Emergent vegetative green shoots protruding from apex ($\ge 0.50$).
+
+The argmax determines the primary prediction. Borderline defect probabilities ($0.35 \le P \le 0.65$) trigger review flags, and secondary color/semantic checks (chlorophyll hue, black mold L-channel, RAM++ produce tags) protect against dry papery neck false-positives.
 
 ---
 
