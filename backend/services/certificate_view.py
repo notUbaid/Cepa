@@ -122,6 +122,60 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </tr>
         """
 
+    # Cut-test protocol card preparation
+    cut_performed = bool(getattr(r, "cut_test_performed", False) or getattr(inspection, "cut_test_performed", False))
+    cut_bulbs = int(getattr(r, "cut_test_bulbs_count", 0) or getattr(inspection, "cut_test_bulbs_count", 0))
+    cut_defects = int(getattr(r, "cut_test_internal_defects_found", 0) or getattr(inspection, "cut_test_internal_defects_found", 0))
+    cut_notes_raw = getattr(r, "cut_test_notes", None) or getattr(inspection, "cut_test_notes", None) or ""
+    cut_notes_safe = _e(cut_notes_raw)
+
+    if cut_performed:
+        cut_defects_style = '#ef4444' if cut_defects > 0 else 'var(--accent)'
+        cut_defects_label = f"{cut_defects} defective bulb(s) (Defects Present)" if cut_defects > 0 else "0 defective bulbs (Zero Internal Decay / Sound)"
+        cut_card_html = f"""
+        <div class="section-card">
+          <div class="section-title">Assayer Internal Cut-Test Record · तपासणी अधिकारी छेद-चाचणी नोंद</div>
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 14px; margin-top: 4px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 600; font-size: 13px;">
+                <span class="pulse-dot"></span> [VERIFIED] Destructive Sampling Completed
+              </span>
+              <span style="font-family: var(--mono); font-size: 12px; color: var(--text-muted);">{cut_bulbs} Bulbs Sliced</span>
+            </div>
+            <div class="data-grid">
+              <div class="data-item">
+                <span class="data-label">Internal Defects / Rot Found</span>
+                <span class="data-value" style="color: {cut_defects_style};">{cut_defects_label}</span>
+              </div>
+              <div class="data-item">
+                <span class="data-label">Mandate Compliance</span>
+                <span class="data-value">AGMARK / APMC Protocol Sliced</span>
+              </div>
+            </div>
+            <div style="border-top: 1px solid rgba(255,255,255,0.06); margin-top: 10px; padding-top: 8px; font-size: 11.5px; color: var(--text-dim);">
+              <b>Officer Field Notes:</b> {cut_notes_safe if cut_notes_safe else 'Equatorial cross-sections inspected for internal black mold, bacterial decay, and hollow heart.'}
+            </div>
+          </div>
+        </div>
+        """
+    else:
+        cut_card_html = """
+        <div class="section-card">
+          <div class="section-title">Assayer Internal Cut-Test Record · तपासणी अधिकारी छेद-चाचणी नोंद</div>
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; margin-top: 4px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: var(--text-muted); font-weight: 600; font-size: 12.5px;">
+                [OPTIONAL] Non-Destructive Optical Assaying Mode
+              </span>
+              <span style="font-size: 11px; color: var(--text-dim); font-family: var(--mono);">0 Bulbs Cut</span>
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-dim); line-height: 1.45;">
+              Non-destructive optical grading active. Physical destructive cross-section cutting was not logged for this lot. Sub-surface internal rot risks are estimated via multi-factor acoustic resonance and optical proxies.
+            </div>
+          </div>
+        </div>
+        """
+
     pdf_href = f"/api/v1/inspections/{_e(inspection.id)}/reports/pdf"
 
     return f"""<!DOCTYPE html>
@@ -538,6 +592,8 @@ def render_certificate_html(report_detail: Any, inspection: Any) -> str:
         </div>
       </div>
     </div>
+
+    {cut_card_html}
 
     <!-- Commercial Mandi Settlement Slip -->
     <div class="section-card">

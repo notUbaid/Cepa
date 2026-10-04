@@ -27,6 +27,7 @@ class ReportSummary(BaseModel):
     has_pdf: bool = False
     cryptographic_seal: str | None = None
     seal_status: str | None = None
+    cut_test_performed: bool = False
 
 
 class ReportDetail(BaseModel):
@@ -44,6 +45,12 @@ class ReportDetail(BaseModel):
     officer_name: str | None
     officer_id: str | None
     officer_notes: str | None
+
+    # Assayer Destructive Cut-Test Protocol
+    cut_test_performed: bool = False
+    cut_test_bulbs_count: int = 0
+    cut_test_internal_defects_found: int = 0
+    cut_test_notes: str | None = None
 
     # Sample info
     sample_count: int

@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, Float, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -44,6 +44,12 @@ class Inspection(Base):
     officer_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     officer_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # ── Assayer Manual Destructive Cut-Test Protocol ──────────────────────────
+    cut_test_performed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cut_test_bulbs_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cut_test_internal_defects_found: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cut_test_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Workflow state ────────────────────────────────────────────────────────
     status: Mapped[str] = mapped_column(

@@ -97,6 +97,10 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
         officer_name=inspection.officer_name,
         officer_id=inspection.officer_id,
         officer_notes=report.officer_notes,
+        cut_test_performed=getattr(report, "cut_test_performed", False),
+        cut_test_bulbs_count=getattr(report, "cut_test_bulbs_count", 0),
+        cut_test_internal_defects_found=getattr(report, "cut_test_internal_defects_found", 0),
+        cut_test_notes=getattr(report, "cut_test_notes", None),
         sample_count=report.sample_count,
         sampling_note=report.sampling_note,
         total_bulbs=report.total_bulbs,
@@ -188,6 +192,10 @@ def create_or_update_report(inspection: Inspection, db: Session) -> ReportDetail
     report.geo_lat = inspection.geo_lat
     report.geo_lon = inspection.geo_lon
     report.location_note = inspection.location_note
+    report.cut_test_performed = getattr(inspection, "cut_test_performed", False)
+    report.cut_test_bulbs_count = getattr(inspection, "cut_test_bulbs_count", 0)
+    report.cut_test_internal_defects_found = getattr(inspection, "cut_test_internal_defects_found", 0)
+    report.cut_test_notes = getattr(inspection, "cut_test_notes", None)
     report.finalized_at = inspection.finalized_at
     db.flush()
 

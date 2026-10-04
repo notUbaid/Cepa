@@ -99,6 +99,14 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_id VARCHAR(50)"))
                 if "farmer_name" not in existing_insp_cols:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN farmer_name VARCHAR(150)"))
+                if "cut_test_performed" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_performed BOOLEAN DEFAULT 0"))
+                if "cut_test_bulbs_count" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_bulbs_count INTEGER DEFAULT 0"))
+                if "cut_test_internal_defects_found" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_internal_defects_found INTEGER DEFAULT 0"))
+                if "cut_test_notes" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_notes TEXT"))
 
                 res_rep = conn.execute(text("PRAGMA table_info(reports)")).fetchall()
                 existing_rep_cols = {row[1] for row in res_rep}
@@ -108,6 +116,14 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE reports ADD COLUMN image_sha256 VARCHAR(64)"))
                 if "seal_status" not in existing_rep_cols:
                     conn.execute(text("ALTER TABLE reports ADD COLUMN seal_status VARCHAR(32) DEFAULT 'PENDING'"))
+                if "cut_test_performed" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_performed BOOLEAN DEFAULT 0"))
+                if "cut_test_bulbs_count" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_bulbs_count INTEGER DEFAULT 0"))
+                if "cut_test_internal_defects_found" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_internal_defects_found INTEGER DEFAULT 0"))
+                if "cut_test_notes" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_notes TEXT"))
 
                 conn.commit()
             except Exception as e:

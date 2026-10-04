@@ -21,11 +21,10 @@
 version: "NAFED_2026_v1"
 label: "NAFED 2026 Procurement Policy (Illustrative Relaxed Specifications)"
 source_note: >
-  Illustrative procurement specification reflecting NAFED relaxed norms:
-  minimum onion size relaxed to 45 mm (from 55 mm) to support farmers affected
-  by adverse weather, with URS lower threshold down to 35 mm and large culinary
-  bulbs (>65-80 mm) accepted as Jumbo rather than summarily rejected.
-  Based on NAFED/NCCF buffer procurement guidelines.
+  Illustrative procurement specification reflecting NAFED Price Stabilisation Fund norms:
+  Grade A standard size bracket is 45.0 to 65.0 mm, with relaxed specification (URS)
+  thresholds spanning 35.0 to 70.0 mm. Bulbs below 35 mm (Goli) or above 70 mm (Jumbo)
+  follow tender dockage schedules. Based on NAFED/NCCF buffer procurement guidelines.
 verified: false   # CHANGE TO true ONLY AFTER AUDITING AGAINST SPECIFIC SEASON EOI GAZETTE
 created: "2026-09-22"
 

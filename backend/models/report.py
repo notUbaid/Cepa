@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -89,6 +89,12 @@ class Report(Base):
 
     # ── Officer notes ─────────────────────────────────────────────────────────
     officer_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # ── Assayer Manual Destructive Cut-Test Protocol ──────────────────────────
+    cut_test_performed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cut_test_bulbs_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cut_test_internal_defects_found: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cut_test_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Timestamps ─────────────────────────────────────────────────────────────
     created_at: Mapped[datetime] = mapped_column(

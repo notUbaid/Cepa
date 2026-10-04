@@ -15,7 +15,7 @@
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![eNAM](https://img.shields.io/badge/eNAM-Trade_Assaying_Standard-2E7D32?style=flat-square)](https://enam.gov.in)
 [![AgriStack](https://img.shields.io/badge/AgriStack-Farmer_ID_Binding-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-197%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-201%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
 [![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Type Checked](https://img.shields.io/badge/Mypy-Strict-blue?style=flat-square)](backend/pyproject.toml)
@@ -30,7 +30,7 @@
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
-| **Verification State** | 197 of 198 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
+| **Verification State** | 201 of 202 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
 
@@ -156,7 +156,7 @@ Field investigations across major Indian agricultural marketing yards demonstrat
 | **Unit Capital Expenditure (Capex)** | ₹0 (High hidden corruption and dispute loss) | ₹2,00,000 to ₹5,00,000 / year recurring cloud subscription | ₹1,50,00,000 to ₹3,50,00,000+ fixed industrial machinery | **Sub-₹5,000** (Field Kit) / **Sub-₹35,000** (Gate Kiosk). Zero recurring SaaS fee; fully open-source. |
 | **Portability and Field Deployability** | High (Human evaluator) | High (Smartphone) | Zero (Fixed concrete packhouse, requires 15 kW 3-phase power) | **Ultra-Portable Field Kit** or autonomous solar-backed edge gate kiosk. Operates directly at farm-gate or truck bed. |
 | **Optical Caliper Precision** | Subjective visual guess ($\pm 8.0\text{ mm}$ error) | Uncalibrated pixel heuristics or credit card proxy ($\pm 4.5\text{ mm}$) | High-precision laser triangulation ($\le 0.5\text{ mm}$) | **ChArUco planar homography (~2 mm uncertainty)** -- board-plane parallax (onion equators 20-40 mm above board) limits precision; adequate for 45/65 mm grade boundaries with known systematic bias. |
-| **Sub-Surface Internal Rot NDT** | Destructive slicing of 2 bulbs (damages produce) | Zero (100% blind to internal rot and hollow heart beneath outer skin) | Optional NIR / X-ray transmission modules (+Rs. 50,00,000 add-on) | **Research-Stage Multi-Modal NDT:** MEMS acoustic tap resonance ($f_0, Q$) + Flash Proxy Index (FPI). Thresholds are theoretical; no empirical calibration data available in this prototype. |
+| **Sub-Surface Internal Rot NDT** | Destructive slicing of 2 bulbs (damages produce) | Zero (100% blind to internal rot and hollow heart beneath outer skin) | Optional NIR / X-ray transmission modules (+Rs. 50,00,000 add-on) | **Research-Stage Multi-Modal NDT + Assayer Cut-Test Protocol:** Acoustic resonance ($f_0, Q$) and FPI optical proxy, coupled with optional logged destructive cut-test records on the tamper-evident certificate when internal rot is suspected. |
 | **Edge Autonomy and Offline Operation** | High (Human offline) | Zero (Requires active 4G/5G broadband to upload frames to cloud) | High (Local industrial PLC / PC) | **On-Premise Local Server Capable:** PyTorch CPU backend, local SQLite WAL database, and vector PDF/QR generation run locally without cloud dependency; multi-modal Groq/Bhashini modules require internet access when enabled. |
 | **Procurement Policy Decoupling** | Arbitrary manual interpretation of circulars | Hardcoded in neural network Softmax heads (requires code rewrite) | Proprietary vendor recipe files (costly technician reprogramming) | **Zero-Code YAML Policy Engine:** Hot-reloads `NAFED_2026_v1` and `BIS_IS_17912_2022` with zero code modifications. |
 | **Statistical Lot Representation** | Arbitrary 5 to 10 bulb scoop ($< 0.01\%$ of trolley) | Single photo frame (10 to 15 bulbs, unweighted) | 100% singulated conveyor stream | **Hierarchical Multi-Sample Aggregation:** Wilson score 95% binomial confidence intervals modeled on statistical sampling principles. |
@@ -1030,7 +1030,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 | **Hemang Mistry** | **Frontend** | React Native / Expo mobile field application, viewfinder ChArUco HUD, and Forensic Mandi Inspector Studio web interface |
 | **Harshil Bhatt** | **Backend** | Asynchronous FastAPI gateway, ThreadPoolExecutor metrology workers, 27 REST endpoints, and SQLite WAL database architecture |
 | **Hetvi Makwana** | **Infra / DevOps** | Multi-stage Docker containerization, cloud edge deployment workflows (Render / Vercel), and CI/CD testing pipelines |
-| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 198-test automated verification suite (197 passing, 1 hardware-gated), and mandi field validation |
+| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 202-test automated verification suite (201 passing, 1 hardware-gated), and mandi field validation |
 
 ---
 
@@ -1047,12 +1047,13 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 |--------------------|                   |--------------------|
 | id (UUID) [PK]     |                   | id (UUID) [PK]     |
 | lot_id             |                   | inspection_id [FK] |
-| farmer_id (12-dig) |                   | sample_index       |
+| farmer_id (AgriStk)|                   | sample_index       |
 | farmer_name        |                   | image_path         |
 | procurement_centre |                   | marker_detected    |
 | officer_name       |                   | scale_mm_per_px    |
 | status (DRAFT/FIN) |                   | quality_passed     |
-| geo_lat, geo_lon   |                   | is_estimated_scale |
+| cut_test_performed |                   | is_estimated_scale |
+| geo_lat, geo_lon   |                   +---------+----------+
 | created_at         |                   +---------+----------+
 +---------+----------+                             |
           |                                        | 1:N
@@ -1127,7 +1128,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 </details>
 
 <details>
-<summary><b>Appendix C: Complete Test Suite Verification Trace (197 Passed, 1 Skipped) (Click to expand)</b></summary>
+<summary><b>Appendix C: Complete Test Suite Verification Trace (201 Passed, 1 Skipped) (Click to expand)</b></summary>
 
 <br />
 
@@ -1138,7 +1139,7 @@ rootdir: D:\Projects\Cepa\backend
 configfile: pyproject.toml
 plugins: anyio-4.15.1, asyncio-1.4.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 198 items
+collected 202 items
 
 backend\tests\test_acoustic_service.py .........                         [  4%]
 backend\tests\test_advanced_morphometry.py .............                 [ 11%]
@@ -1147,20 +1148,21 @@ backend\tests\test_audit_remediation.py ....................             [ 27%]
 backend\tests\test_bhashini_service.py ................................. [ 43%]
 ....                                                                     [ 45%]
 backend\tests\test_calibration_and_debris.py ...                         [ 47%]
-backend\tests\test_commercial_and_shelflife.py .......                   [ 51%]
-backend\tests\test_enam_export_service.py ..........                     [ 56%]
-backend\tests\test_file_formats.py .......................               [ 67%]
-backend\tests\test_flash_proxy.py ..............                         [ 74%]
-backend\tests\test_grading_engine.py .............                       [ 81%]
-backend\tests\test_live_video.py s                                       [ 81%]
-backend\tests\test_metrology_accuracy.py ..                              [ 82%]
-backend\tests\test_metrology_uncertainty_budget.py ...                   [ 84%]
-backend\tests\test_onion_validator.py ................                   [ 92%]
-backend\tests\test_quality_gate.py ......                                [ 95%]
-backend\tests\test_security_pentest.py ....                              [ 97%]
+backend\tests\test_commercial_and_shelflife.py .......                   [ 50%]
+backend\tests\test_cut_test_protocol.py ....                             [ 52%]
+backend\tests\test_enam_export_service.py ..........                     [ 57%]
+backend\tests\test_file_formats.py .......................               [ 68%]
+backend\tests\test_flash_proxy.py ..............                         [ 75%]
+backend\tests\test_grading_engine.py .............                       [ 82%]
+backend\tests\test_live_video.py s                                       [ 82%]
+backend\tests\test_metrology_accuracy.py ..                              [ 83%]
+backend\tests\test_metrology_uncertainty_budget.py ...                   [ 85%]
+backend\tests\test_onion_validator.py ................                   [ 93%]
+backend\tests\test_quality_gate.py ......                                [ 96%]
+backend\tests\test_security_pentest.py ....                              [ 98%]
 backend\tests\test_size_estimator.py .....                               [100%]
 
-======================= 197 passed, 1 skipped in 51.39s =======================
+======================= 201 passed, 1 skipped in 55.27s =======================
 ```
 
 </details>

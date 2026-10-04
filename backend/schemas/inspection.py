@@ -31,6 +31,12 @@ class InspectionCreate(BaseModel):
     location_accuracy: float | None = Field(None, ge=0.0, description="Accuracy in metres")
     location_note: str | None = Field(None, max_length=200)
 
+    # Optional Assayer Destructive Cut-Test Protocol
+    cut_test_performed: bool = Field(False, description="Whether destructive cross-section sampling was performed")
+    cut_test_bulbs_count: int = Field(0, ge=0, description="Number of sample bulbs cut open")
+    cut_test_internal_defects_found: int = Field(0, ge=0, description="Number of cut bulbs with internal rot / decay")
+    cut_test_notes: str | None = Field(None, description="Assayer observations from cross-section cut test")
+
 
 class InspectionUpdate(BaseModel):
     """Partial update — all fields optional."""
@@ -41,6 +47,10 @@ class InspectionUpdate(BaseModel):
     officer_name: str | None = Field(None, max_length=100)
     officer_id: str | None = Field(None, max_length=50)
     notes: str | None = None
+    cut_test_performed: bool | None = None
+    cut_test_bulbs_count: int | None = Field(None, ge=0)
+    cut_test_internal_defects_found: int | None = Field(None, ge=0)
+    cut_test_notes: str | None = None
 
 
 # ── Output schemas ────────────────────────────────────────────────────────────
@@ -63,6 +73,7 @@ class InspectionSummary(BaseModel):
     grade_a_pct: float = 0.0
     urs_pct: float = 0.0
     rejected_pct: float = 0.0
+    cut_test_performed: bool = False
 
 
 class InspectionDetail(BaseModel):
@@ -85,6 +96,12 @@ class InspectionDetail(BaseModel):
     created_at: datetime
     updated_at: datetime
     finalized_at: datetime | None
+
+    # Assayer Destructive Cut-Test Record
+    cut_test_performed: bool = False
+    cut_test_bulbs_count: int = 0
+    cut_test_internal_defects_found: int = 0
+    cut_test_notes: str | None = None
 
     # Aggregated stats — computed from samples (populated by service layer)
     total_bulbs: int = 0

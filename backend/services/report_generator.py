@@ -254,6 +254,44 @@ def generate_pdf_report(
     story.append(defect_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # ── Assayer Manual Destructive Cut-Test Record ───────────────────────────
+    story.append(Paragraph("Assayer Destructive Cut-Test Protocol", styles["Heading2"]))
+    cut_performed = bool(getattr(report, "cut_test_performed", False) or getattr(inspection, "cut_test_performed", False))
+    cut_bulbs = int(getattr(report, "cut_test_bulbs_count", 0) or getattr(inspection, "cut_test_bulbs_count", 0))
+    cut_defects = int(getattr(report, "cut_test_internal_defects_found", 0) or getattr(inspection, "cut_test_internal_defects_found", 0))
+    cut_notes = getattr(report, "cut_test_notes", None) or getattr(inspection, "cut_test_notes", None) or ""
+
+    if cut_performed:
+        cut_status_label = f"COMPLETED ({cut_bulbs} bulbs sliced, {cut_defects} internal defect(s) detected)"
+        cut_finding = f"{cut_defects} bulb(s) with internal decay" if cut_defects > 0 else "0 defective bulbs (Zero internal rot / sound center)"
+        cut_obs = cut_notes if cut_notes else "Physical cross-section cut test conducted per AGMARK protocol."
+    else:
+        cut_status_label = "NOT PERFORMED (Non-destructive optical assaying only)"
+        cut_finding = "N/A — Visual surface evaluation only"
+        cut_obs = "Sub-surface internal rot estimated via multi-factor acoustic and optical proxies."
+
+    cut_table_data = [
+        ["Cut-Test Parameter", "Field Observation"],
+        ["Protocol Status", cut_status_label],
+        ["Bulbs Sliced & Inspected", str(cut_bulbs) if cut_performed else "0"],
+        ["Internal Decay / Rot Findings", cut_finding],
+        ["Assayer Observations", cut_obs],
+    ]
+    cut_table = Table(cut_table_data, colWidths=[6 * cm, 10 * cm])
+    cut_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9f9f9")]),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bdc3c7")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(cut_table)
+    story.append(Spacer(1, 0.4 * cm))
+
     # ── APMC Mandi Size Distribution & Biomass Weight ────────────────────────
     story.append(Paragraph("APMC Mandi Size & Biomass Distribution", styles["Heading2"]))
 

@@ -83,6 +83,10 @@ def _inspection_to_detail(inspection, db: Session) -> InspectionDetail:
         created_at=inspection.created_at,
         updated_at=inspection.updated_at,
         finalized_at=inspection.finalized_at,
+        cut_test_performed=getattr(inspection, "cut_test_performed", False),
+        cut_test_bulbs_count=getattr(inspection, "cut_test_bulbs_count", 0),
+        cut_test_internal_defects_found=getattr(inspection, "cut_test_internal_defects_found", 0),
+        cut_test_notes=getattr(inspection, "cut_test_notes", None),
         total_bulbs=total,
         grade_a_count=grade_a,
         urs_count=urs,
@@ -343,6 +347,7 @@ async def list_inspections(
                 grade_a_pct=g_a_pct,
                 urs_pct=u_pct,
                 rejected_pct=r_pct,
+                cut_test_performed=getattr(i, "cut_test_performed", False),
             )
         )
     return summaries
@@ -389,6 +394,14 @@ async def update_inspection(
         inspection.officer_id = body.officer_id
     if body.notes is not None:
         inspection.notes = body.notes
+    if body.cut_test_performed is not None:
+        inspection.cut_test_performed = body.cut_test_performed
+    if body.cut_test_bulbs_count is not None:
+        inspection.cut_test_bulbs_count = body.cut_test_bulbs_count
+    if body.cut_test_internal_defects_found is not None:
+        inspection.cut_test_internal_defects_found = body.cut_test_internal_defects_found
+    if body.cut_test_notes is not None:
+        inspection.cut_test_notes = body.cut_test_notes
     db.commit()
     db.refresh(inspection)
     return _inspection_to_detail(inspection, db)

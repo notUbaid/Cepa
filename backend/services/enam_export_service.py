@@ -171,6 +171,12 @@ def build_enam_assaying_payload(
                 "estimated_moisture_pct": moisture_pct_estimate,
                 "acoustic_stiffness_verified": True,
             },
+            "cut_test_protocol": {
+                "performed": getattr(inspection, "cut_test_performed", False),
+                "bulbs_sliced": getattr(inspection, "cut_test_bulbs_count", 0),
+                "internal_defects_found": getattr(inspection, "cut_test_internal_defects_found", 0),
+                "officer_notes": getattr(inspection, "cut_test_notes", None) or "None recorded",
+            },
         },
         "quality_verdict": {
             "assigned_grade": final_grade,
@@ -259,6 +265,13 @@ def build_enam_assaying_xml(inspection: InspectionDetail, lot_weight_kg: float =
     defects = ET.SubElement(params, "DefectObservations")
     ET.SubElement(defects, "RotAndDecayPct").text = str(payload["assaying_parameters"]["defect_tolerances"]["rot_and_decay_pct"])
     ET.SubElement(defects, "MechanicalDamagePct").text = str(payload["assaying_parameters"]["defect_tolerances"]["mechanical_damage_pct"])
+
+    cut_elem = ET.SubElement(params, "CutTestRecord")
+    cut_data = payload["assaying_parameters"]["cut_test_protocol"]
+    cut_elem.set("performed", str(cut_data["performed"]).lower())
+    cut_elem.set("bulbsSliced", str(cut_data["bulbs_sliced"]))
+    cut_elem.set("defectsFound", str(cut_data["internal_defects_found"]))
+    cut_elem.text = str(cut_data["officer_notes"])
 
     # 6. Quality Verdict & MSP Settlement
     verdict = ET.SubElement(root, "QualityVerdict")
