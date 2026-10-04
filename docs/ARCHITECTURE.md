@@ -55,7 +55,7 @@ CEPA decouples sensor telemetry, optical computer vision, statutory grading poli
 |                                                                                                        |
 |   +----------------------------------------+         +---------------------------------------------+   |
 |   |          eNAM XML Gateway v2.1         |         |             AgriStack Farmer Registry       |   |
-|   |   - Standardized Lot Assaying Payload  |         |   - 12-Digit Farmer ID Verification (FID)   |   |
+|   |   - Standardized Lot Assaying Payload  |         |   - Farmer ID Binding (AgriStack FID)       |   |
 |   |   - Electronic Warehouse Receipt (eNWR)|         |   - Geo-Referenced Land Record Binding      |   |
 |   +----------------------------------------+         +---------------------------------------------+   |
 +--------------------------------------------------------------------------------------------------------+
@@ -121,7 +121,7 @@ Every photographic frame captured at the intake station passes through a strictl
   - SHA-256 Hash Computation over pristine raw input JPEG bytes
   - Canonical JSON payload serialization
   - FIPS 198-1 HMAC-SHA256 signature generation with isolated master key
-  - Immutable database commit, PDF/A assaying certificate, and eNAM v2.1 XML output
+  - Immutable database commit, ReportLab vector assaying certificate, and eNAM v2.1 XML output
 ```
 
 ---
@@ -131,17 +131,17 @@ Every photographic frame captured at the intake station passes through a strictl
 To guarantee that assaying certificates generated at rural mandis cannot be tampered with or modified post-hoc:
 
 ### 3.1 Mathematical Formulation
-$$\mathcal{S} = \text{HMAC-SHA256}_{K_{\text{seal}}}\left( \mathcal{H}_{\text{photo}} \parallel \text{UUID}_{\text{insp}} \parallel G \parallel D_{\text{pct}} \parallel W_{\text{kg}} \parallel \text{FID} \parallel T \right)$$
+$$\mathcal{S} = \text{HMAC-SHA256}_{K_{\text{seal}}}\left( \mathcal{P}_{\text{canonical}} \right)$$
 
 Where:
-- $K_{\text{seal}}$: High-entropy cryptographic master secret provisioned via secure environment variable.
-- $\mathcal{H}_{\text{photo}}$: Full SHA-256 digest of pristine source imagery.
-- $\text{UUID}_{\text{insp}}$: Canonical inspection identifier.
-- $G$: Certified quality grade (`GRADE_A`, `GRADE_B`, `GRADE_C`, `REJECTED`).
-- $D_{\text{pct}}$: Total assessed commercial dockage percentage.
-- $W_{\text{kg}}$: Gross weight in kilograms.
-- $\text{FID}$: 12-digit farmer identifier.
-- $T$: ISO-8601 UTC timestamp of inspection finalization.
+$$\mathcal{P}_{\text{canonical}} = \text{"CEPA-SEAL-V2"} \parallel \text{ReportID} \parallel \text{InspID} \parallel \text{OfficerID} \parallel \text{TotalBulbs} \parallel A_{\text{pct}} \parallel URS_{\text{pct}} \parallel Rej_{\text{pct}} \parallel \mathcal{H}_{\text{photo}}$$
+
+- $K_{\text{seal}}$: High-entropy cryptographic master secret provisioned via `HMAC_SEAL_SECRET_KEY` (distinct from officer auth).
+- $\mathcal{H}_{\text{photo}}$: Full 64-character SHA-256 hex digest of the raw source photograph on disk (or recorded digest if storage evicted).
+- $\text{ReportID}, \text{InspID}$: Immutable UUIDs bound prior to database commitment.
+- $\text{OfficerID}$: Assaying officer credential identity.
+- $A_{\text{pct}}, URS_{\text{pct}}, Rej_{\text{pct}}$: Assessed lot grading percentages.
+- Tamper Defense: Any 1-bit modification to photographic imagery, grade distribution, or officer identity invalidates the seal. If physical photo files are absent on ephemeral disk, the certificate status is marked `INVALID_MISSING_PHOTO` or `PHOTO_RECORDED_FILE_EVICTED`.
 
 ### 3.2 Offline Mandi Validation
 Any third party (APMC registrar, bank lending against electronic Warehouse Receipts, or farmer) can independently audit certificate authenticity by executing:

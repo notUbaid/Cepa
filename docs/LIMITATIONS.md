@@ -34,5 +34,12 @@ A core tenet of the Cepa project is absolute scientific honesty: **the project m
 ---
 
 ## 4. Optical Distortions & Scale Limits
-- **Planar Coplanarity Assumption**: Homography calibration assumes that the onion's equator lies in the exact same plane as the ChArUco board ($Z=0$). Because an onion bulb elevates its equatorial cross-section $20 - 40\text{ mm}$ above the board, camera perspective causes a small parallax magnification.
-- **Scale Boundaries**: Any calibration producing $\text{scale} < 0.05\text{ mm/px}$ or $> 5.0\text{ mm/px}$ is marked invalid (`scale_unreliable`), preventing wildly erroneous measurements.
+- **Planar Coplanarity Assumption**: Homography calibration assumes that the onion's equator lies in the exact same plane as the ChArUco board ($Z=0$). While planar RMS calibration error is sub-millimeter ($\le 0.4\text{ mm}$), an onion bulb elevates its equatorial cross-section $20 - 40\text{ mm}$ above the board, introducing an empirical 3D parallax uncertainty of $\pm 1.5 - 3.5\text{ mm}$.
+- **Scale Boundaries**: Any calibration producing $\text{scale} < 0.05\text{ mm/px}$ or $> 5.0\text{ mm/px}$ is marked invalid (`scale_unreliable`), preventing wildly erroneous measurements. Uncalibrated fallback defaults to $\pm 5.0\text{ mm}$ and forces `NEEDS_REVIEW`.
+
+---
+
+## 5. Acoustic Resonance Tap Spectroscopy Scope
+- **Physical Reality**: Mobile smartphone microphones in noisy APMC mandi environments lack direct physical acoustic contact with the bulb tunic and suffer high ambient acoustic noise ($> 75\text{ dB}$ mandi decibels).
+- **The Constraint**: Smartphone audio recordings cannot reliably isolate the resonant ring frequency ($f_0 \approx 750\text{ Hz}$) of individual hand-tapped bulbs in real field settings.
+- **System Policy**: Acoustic resonant frequency analysis is implemented strictly as an experimental backend research API endpoint (`POST /api/v1/inspections/{id}/acoustic`) designed for laboratory fixtures equipped with contact piezoelectric transducers. Mobile client builds do not claim automated in-app acoustic tap grading.

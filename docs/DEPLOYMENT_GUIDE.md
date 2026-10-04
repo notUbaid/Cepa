@@ -49,8 +49,14 @@ This guide walks you through deploying the **CEPA AI Onion Grader** system live 
 6. Add Environment Variables:
    - `BACKEND_ENV`: `production`
    - `PORT`: `8000`
+   - `STORAGE_DIR`: `/app/storage` (Ensures non-root UID 10001 writable storage volume)
    - `ACTIVE_GRADING_POLICY`: `DEMO_ASSUMPTION_v1`
-   - `CORS_ORIGINS`: `http://localhost:8081,https://*.vercel.app,http://localhost:3000`
+   - `CORS_ORIGINS`: `http://localhost:8081,https://cepa-app.vercel.app,https://cepa-nine.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:8000,http://localhost:8001`
+   - `HMAC_SEAL_SECRET_KEY`: *(Auto-generated secret for FIPS 198-1 inspection tamper seals)*
+   - `OFFICER_API_KEY`: *(Auto-generated secret; decoupled from HMAC seal)*
+   - `ENFORCE_OFFICER_AUTH`: `false` (Set `true` in strict enterprise deployments)
+   - `GROQ_VISION_MODEL`: `qwen/qwen3.8-27b`
+   - `GROQ_TEXT_MODEL`: `qwen/qwen3.8-27b`
    - `GROQ_API_KEY`: *(Optional) Your Groq API key for Multimodal LLM Agronomist*
 7. Click **Create Web Service**.
 

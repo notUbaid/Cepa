@@ -324,7 +324,7 @@ curl -X POST "http://localhost:8000/api/v1/inspections/c7a82e14-9b23-4e89-9a21-8
     "rejected_count": 1,
     "mean_caliper_mm": 52.4,
     "estimated_total_mass_kg": 1.86,
-    "grevsen_compactness_factor": 0.93,
+    "bulb_compactness_factor": 0.93,
     "storageability_score": 81.0
   },
   "acoustic_ndt": null,
@@ -336,7 +336,7 @@ curl -X POST "http://localhost:8000/api/v1/inspections/c7a82e14-9b23-4e89-9a21-8
   "cryptographic_seal": "7DBD393B4F25891DADD96B8D46DF90A1294E82D59B03147394841E84BEDF8648",
   "seal_algorithm": "HMAC-SHA256",
   "photo_hash_sha256": "4A1E7B92D04F8A6C3B1E9028A1C52E74B38190CD7812903AEB498C7102D983F1",
-  "seal_scope": "HMAC-SHA256(photo_hash || inspection_id || grade || dockage_pct || gross_weight_kg || farmer_fid || finalized_at)"
+  "seal_scope": "HMAC-SHA256(CEPA-SEAL-V2|REPORT:id|INSP:id|OFFICER:id|BULBS:n|A_PCT:x|URS_PCT:y|REJ_PCT:z|IMG_SHA256:hash)"
 }
 ```
 
@@ -1442,7 +1442,7 @@ STORAGE_DIR=./storage
 10. **[Hartley-Zisserman-2003]** Hartley, R., and Zisserman, A. *"Multiple View Geometry in Computer Vision."* Cambridge University Press, 2003.
 11. **[Wilson-1927]** Wilson, E. B. *"Probable Inference, the Law of Succession, and Statistical Inference."* Journal of the American Statistical Association, Vol. 22, No. 158, pp. 209-212, 1927.
 12. **[ICAR-DOGR-2019]** Directorate of Onion and Garlic Research. *"Post-Harvest Technology and Storage Management of Onion."* Technical Bulletin No. 24, ICAR-DOGR, Rajgurunagar, Pune, 2019.
-13. **[Grevsen-2009]** Grevsen, K. *"Bulb Morphometry and Yield Components of Onion (Allium cepa L.)."* European Journal of Horticultural Science, 2009.
+13. **[ICAR-DOGR-2021]** Directorate of Onion and Garlic Research. *"Physical and Mechanical Properties of Onion Bulbs for Post-Harvest Handling Equipment."* ICAR-DOGR, Pune, 2021.
 14. **[Taniwaki-2023]** Taniwaki, M., et al. *"Non-Destructive Acoustic Impulse Measurement of Internal Texture Quality of Onion Bulbs."* Postharvest Biology and Technology, Vol. 195, 2023.
 15. **[Kim-2024]** Kim, S., et al. *"Ultra-Low-Cost MEMS Microphone for Fruit Quality Assessment via Acoustic Resonance."* Sensors, Vol. 24, No. 3, 2024.
 16. **[Nicolai-2007]** Nicolaï, B. M., et al. *"Time-Resolved and Continuous Wave NIR Spectroscopy for Quality Evaluation of Horticultural Products."* Postharvest Biology and Technology, Vol. 46, No. 2, pp. 99-118, 2007.

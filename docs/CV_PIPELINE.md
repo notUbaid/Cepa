@@ -40,17 +40,26 @@ Every image must pass automated quality gates before entering ML inference. If a
    $$\text{rectified} = \text{warpPerspective}(\text{image}, H_{\text{shifted}}, (\text{width}, \text{height}))$$
 4. **Scale Derivation**:
    $$\text{scale} = \frac{\text{physical board mm}}{\text{measured pixels in rectified space}} \quad [\text{mm/px}]$$
-5. **Sanity Validation**:
-   $$0.05 \le \text{scale\_mm\_per\_px} \le 5.0$$
-   If the scale lies outside this interval, `scale_unreliable` is triggered.
+5. **Resolution-Invariant Parallax Calibration**:
+   Instead of pixel-density dependent heuristic thresholds, CEPA evaluates board coverage fraction:
+   $$\text{board\_frame\_fraction} = \frac{\text{board\_span\_px}}{\max(W, H)}$$
+   - Close proximity ($\text{fraction} \ge 0.35$): $\pm 2.0\text{ mm}$ 3D parallax uncertainty.
+   - Mid proximity ($0.20 \le \text{fraction} < 0.35$): $\pm 2.8\text{ mm}$ uncertainty.
+   - Far proximity ($\text{fraction} < 0.20$): $\pm 3.5\text{ mm}$ uncertainty.
+   - No board detected: Fallback scale ($0.6836\text{ mm/px}$), $\pm 5.0\text{ mm}$ uncertainty, force `NEEDS_REVIEW`.
 
 ---
 
-## Stage 4: Instance Segmentation (`providers/yolo11_provider.py`)
+## Stage 4: Instance Segmentation & Botanical Authenticity Gate
 
-- **Model**: YOLO11s-seg / YOLO11n-seg.
-- **Occlusion Handling**: Cross-Stage Partial with Spatial Attention (C2PSA) blocks distinguish individual bulbs in dense clusters.
-- **Edge Flagging**: Any binary mask touching the image boundary sets `touches_border = True`, signifying that the bulb is truncated.
+- **Model**: YOLO11n-seg / YOLO11s-seg with C2PSA attention blocks for dense clusters.
+- **Dual-Stage Botanical Gate (`cv/onion_validator.py`)**:
+  1. **Deep Learning Contaminant Check**: MobileNetV3 ImageNet zero-shot rejection for non-food foreign objects (tennis balls, mugs, stones) with strict offline fallback.
+  2. **Botanical Morphology & Chromatic Screening**:
+     - Solidity $\ge 0.72$ (ensures convex, compact bulb shape; rejects irregular debris).
+     - Aspect ratio $0.58 \le \text{AR} \le 1.70$ (rejects elongated non-bulbs like cucumbers/bananas).
+     - Onion pigment fraction $\ge 0.65$ in HSV space ($H \in [0, 28] \cup [165, 180]$ for anthocyanin/quercetin red and golden tunic hues, $S \in [0.15, 0.95]$, $V \in [0.18, 0.95]$).
+- **Edge Flagging**: Binary masks intersecting image frame boundaries set `touches_border = True`, classifying the bulb as physically truncated.
 
 ---
 
@@ -65,30 +74,45 @@ For each detected onion instance:
 ## Stage 6: Multi-Label Defect Classification (`defect_classifier.py`)
 
 Defects are treated as independent binary probabilities (Sigmoid activation, not Softmax):
-- $P(\text{damaged})$: Visible cuts, abrasions, bruising.
-- $P(\text{rotten})$: Visible surface decay, mold, black mold spores.
-- $P(\text{sprouted})$: Protruding green shoots or emerged vegetative tips.
+- $P(\text{damaged})$: Visible cuts, mechanical abrasions, bruising ($\ge 0.50$).
+- $P(\text{rotten})$: Visible surface decay, mold, black mold spores (*Aspergillus niger*) ($\ge 0.50$).
+- $P(\text{sprouted})$: Protruding green vegetative shoot tips ($\ge 0.50$).
 
 ---
 
-## Stage 7: Geometric Size Estimation (`size_estimator.py`)
+## Stage 7: Geometric Size Estimation & Volumetric Allometry (`size_estimator.py`)
 
-### Primary Size Metric: Equivalent Diameter
+### 1. Caliper Equivalent Equatorial Diameter
 $$D_{\text{eq}} = 2 \cdot \sqrt{\frac{\text{Area}_{\text{mask\_px}}}{\pi}} \cdot \text{scale\_mm\_per\_px} \quad [\text{mm}]$$
 
-- **Why Equivalent Diameter?**
-  1. Equatorial major-axis length is sensitive to bulb rotation and orientation on the table.
-  2. Equivalent circular diameter from the 2D projected mask area is rotation-invariant.
-  3. Closely aligns with circular mechanical sizing rings used in mandis.
+### 2. Polar Axis Length
+Caliper polar dimension derived from the minor or orientation-aligned axis of the fitted bounding ellipse:
+$$L_{\text{polar}} = \text{fitted\_ellipse\_minor\_axis} \cdot \text{scale\_mm\_per\_px} \quad [\text{mm}]$$
 
-### Proximity Uncertainty Flagging
-If $D_{\text{eq}}$ is within $3\text{ mm}$ of any policy threshold ($35, 45, 65, 70\text{ mm}$), `uncertainty_flag = True` is assigned, routing the bulb to `NEEDS_REVIEW`.
+### 3. Prolate Spheroid Mass Estimation
+Applying prolate spheroid solid geometry calibrated to Indian Rabi cultivars (*Allium cepa L.*):
+$$V = \frac{4}{3} \pi \left(\frac{D_{\text{eq}}}{2}\right)^2 \left(\frac{L_{\text{polar}}}{2}\right) \cdot \kappa$$
+$$M = V \cdot \rho$$
+Where:
+- $\kappa = 0.93$ (empirical bulb compactness factor accounting for neck taper and basal plate depression).
+- $\rho = 0.000985\text{ g/mm}^3 \approx 0.985\text{ g/cm}^3$ (bulk biological density of cured onion tissue).
+
+### 4. Proximity Uncertainty Flagging
+If $D_{\text{eq}}$ is within $3\text{ mm}$ of any AGMARK / NAFED grading boundary ($35, 45, 65, 70\text{ mm}$), `uncertainty_flag = True` is assigned, routing the bulb to `NEEDS_REVIEW`.
 
 ---
 
-## Stage 8: Confidence Tier Assessment (`confidence.py`)
+## Stage 8: Confidence Tier Assessment & Cryptographic Sealing
 
 Tiers are assigned independently of the procurement grade:
 - **`HIGH`**: High segmentation confidence ($\ge 70\%$), not near size thresholds, non-borderline defect probabilities.
-- **`NEEDS_REVIEW`**: Near size thresholds ($\pm 3\text{ mm}$), defect probabilities in borderline range ($[0.35, 0.65]$), or missing scale calibration.
+- **`NEEDS_REVIEW`**: Near size thresholds ($\pm 3\text{ mm}$), defect probabilities in borderline range ($[0.35, 0.65]$), or uncalibrated fallback scale.
 - **`UNUSABLE`**: Bulb touches image frame boundary (`touches_border = True`) or segmentation confidence $< 40\%$.
+
+### FIPS 198-1 Sovereign Cryptographic Seal
+Upon finalization, the entire assaying dataset is bound into an immutable HMAC-SHA256 signature combining:
+- `inspection_uuid` & `report_id`
+- Physical photograph SHA-256 digest on disk
+- Officer ID & timestamp
+- Lot grade breakdown percentages ($A$, $URS$, $Rejected$)
+Publicly verifiable via `GET /api/v1/reports/{report_id}/verify`.

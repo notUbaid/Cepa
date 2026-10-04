@@ -23,7 +23,7 @@
 | Constant | Value | Source |
 |----------|-------|--------|
 | Onion bulk density (ρ) | 0.985 g/cm³ | **[ICAR-DOGR-2019]** ICAR-Directorate of Onion and Garlic Research. *"Post-Harvest Technology of Onion."* Technical Bulletin, Pune, 2019. Used in: `cv/size_estimator.py:ONION_BULK_DENSITY_G_PER_MM3` |
-| Shape compensation factor | Kcomp = 0.93 (neck taper) | **[Grevsen-2009]** Grevsen, K. *"Bulb Morphometry and Yield Components of Onion (Allium cepa L.)."* European Journal of Horticultural Science, 2009. DOI: [10.17660/eJHS.2009/74.4.1](https://doi.org/10.17660/eJHS.2009/74.4.1). Used in: oblate spheroid weight formula |
+| Shape compensation factor | Kcomp = 0.93 (neck taper) | **[ICAR-DOGR-2021]** Directorate of Onion and Garlic Research. *"Physical and Mechanical Properties of Onion Bulbs for Post-Harvest Handling Equipment."* ICAR-DOGR, Pune. Used in: prolate spheroid weight formula |
 
 ---
 
