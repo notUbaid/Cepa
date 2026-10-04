@@ -3,9 +3,9 @@ sources:
     url: "https://data.mendeley.com/datasets/42bcyncfhy/2"
     doi: "10.17632/42bcyncfhy.2"
     license: "CC BY 4.0"
-    download_status: "pending"
+    download_status: "completed"
     total_images: 16300
-    usable_images: 0
+    usable_images: 10329
     classes: ["healthy", "unhealthy"]
     mapping:
       healthy: "GOOD"
@@ -17,22 +17,22 @@ sources:
     url: "https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/ZNPAC8"
     doi: "10.7910/DVN/ZNPAC8"
     license: "CC0 1.0 Universal"
-    download_status: "pending"
+    download_status: "excluded"
     total_images: 0
     usable_images: 0
     classes: ["good"]
     mapping:
       good: "GOOD"
     excluded_classes: []
-    reason_for_exclusion: ""
+    reason_for_exclusion: "Access restricted / redundant with Mendeley good-class cohort."
 
   - name: "Roboflow: OnionSpoilageDetection"
     url: "https://universe.roboflow.com/search?q=OnionSpoilageDetection"
     doi: ""
-    license: "Unknown"
-    download_status: "pending"
+    license: "CC BY 4.0"
+    download_status: "completed"
     total_images: 1690
-    usable_images: 0
+    usable_images: 1007
     classes: ["healthy", "mold", "rotten", "sprouted"]
     mapping:
       healthy: "GOOD"
@@ -46,9 +46,9 @@ sources:
     url: "https://universe.roboflow.com/chandrajith-j/onions-quality-analysis"
     doi: ""
     license: "CC BY 4.0"
-    download_status: "pending"
+    download_status: "completed"
     total_images: 209
-    usable_images: 0
+    usable_images: 209
     classes: ["Healthy", "Damaged", "Rotten", "Sprouted", "Onions-Quality-Analysis"]
     mapping:
       Healthy: "GOOD"
@@ -57,3 +57,4 @@ sources:
       Sprouted: "SPROUTED"
     excluded_classes: ["Onions-Quality-Analysis"]
     reason_for_exclusion: "Ambiguous class name not aligning with standard quality semantics."
+

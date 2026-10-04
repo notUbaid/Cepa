@@ -90,21 +90,21 @@ The system mathematically forbids reporting sub-millimeter precision under uncal
 
 ---
 
-## 4. Empirical Physical Ground-Truth Benchmark (Vernier Caliper Validation)
+## 4. Geometric & Parallax Verification Benchmark
 
-While theoretical planar camera calibration yields sub-millimeter pixel pitch ($\sim 0.51\text{ mm/px}$), real-world produces exhibit 3D ellipsoidal curvature, basal plate obliquity, and flaky outer tunic scales.
+While theoretical planar camera calibration yields sub-millimeter pixel pitch on the inspection board plane ($\le 0.40\text{ mm}$ planar RMS error), physical produce items exhibit 3D ellipsoidal curvature, resting tilt obliquity, and tunic flaking.
 
-To validate physical accuracy in real operating environments, an empirical benchmark of **$N = 36$ real onion bulbs** (Nashik Red and Bellary Red commercial varieties) was measured against a calibrated digital Vernier caliper and precision electronic scale:
+CEPA directly addresses this by distinguishing **planar fiducial precision** from **3D out-of-plane uncertainty**:
 
-| Metrological Parameter | Ground Truth Instrument | CEPA Optical Performance | Tolerance Threshold |
+| Metrological Parameter | Ground Truth Basis | CEPA Performance / Theoretical Bounds | Tolerance Threshold |
 | :--- | :--- | :--- | :--- |
-| **Equatorial Caliper MAE** | Mitutoyo 500-196-30 Digimatic ($0.01\text{ mm}$) | **$1.281\text{ mm}$** | $\le 1.50\text{ mm}$ |
-| **Equatorial Caliper RMSE** | Mitutoyo 500-196-30 Digimatic ($0.01\text{ mm}$) | **$1.286\text{ mm}$** | $\le 2.00\text{ mm}$ |
-| **Max Absolute Deviation** | Mitutoyo 500-196-30 Digimatic ($0.01\text{ mm}$) | **$1.500\text{ mm}$** | $\le 2.50\text{ mm}$ |
-| **Pearson Correlation ($r$)** | Linear Tracking ($28.4\text{ to } 74.2\text{ mm}$) | **$0.9938$** | $\ge 0.980$ |
-| **Mean Systematic Bias** | Directional calibration drift | **$+0.064\text{ mm}$** | $\le \pm 0.50\text{ mm}$ |
-| **Bland-Altman 95% LoA** | Agreement Interval | **$[-2.49\text{ mm}, +2.62\text{ mm}]$** | Within $\pm 3.0\text{ mm}$ |
-| **APMC Size Tier Concordance** | Goli / Madhyam / Super / Jumbo | **$94.4\%$ ($34/36$)** | $\ge 90.0\%$ |
-| **Triaxial Mass Estimation MAE** | Ohaus Precision Balance ($0.1\text{ g}$) | **$6.98\text{ g}$** (RMSE $7.71\text{ g}$) | $\le 15.0\text{ g}$ |
+| **Planar Calibration Error** | ChArUco $7 \times 5$ sub-pixel corners | **$\le 0.40\text{ mm}$** | $\le 0.50\text{ mm}$ |
+| **Geometric Diameter Fidelity** | Calibrated synthetic ellipse masks | **$\le 1.00\text{ mm}$** ($0.5\text{ mm/px}$) | $\le 1.50\text{ mm}$ |
+| **3D Parallax Uncertainty** | Bulb height ($20\text{--}40\text{ mm}$) at $Z_0 \approx 600\text{ mm}$ | **$\pm 1.5\text{ to } 3.5\text{ mm}$** | Documented in GUM model |
+| **Near-Boundary Flagging** | Grade boundaries ($35, 45, 65\text{ mm}$) | **`uncertainty_flag = True`** ($\pm 3\text{ mm}$) | $100\%$ boundary coverage |
+| **Triaxial Mass Estimation** | Spheroid $V = \frac{\pi}{6} D_{\text{eq}}^2 L_{\text{polar}} \cdot \rho \cdot K$ | Theoretical error $\le 5.0\text{ g}$ on idealized geometry | $\le 15.0\text{ g}$ |
+
+### 4.1 Boundary Safety Mechanism
+Because 2D orthographic projection cannot capture the full 3D triaxial ellipsoid without multi-view reconstruction, CEPA does not claim laboratory caliper equivalence in the field. Instead, whenever a measured bulb diameter falls within $\pm 3.0\text{ mm}$ of any administrative classification threshold (35 mm for Goli/Madhyam, 45 mm for Madhyam/Super, 65 mm for Super/Jumbo), the system automatically flags `uncertainty_flag = True` and prompts the procurement officer for manual inspection.
 
 *Verified by automated test specification: `backend/tests/test_metrology_accuracy.py`.*
