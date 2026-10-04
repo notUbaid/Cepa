@@ -88,8 +88,8 @@ class Settings(BaseSettings):
     # ── Security & Authentication ────────────────────────────────────────────
     officer_api_key: str = "cepa-officer-secret-key-2026"
     enforce_officer_auth: bool = False  # Set to True in production to strictly require X-Officer-Token
-    # Separate dedicated HMAC secret for tamper-evident report seals
-    hmac_seal_secret_key: str = "cepa-sovereign-seal-secret-2026-v2"
+    # Dedicated HMAC secret for tamper-evident report seals (set via SOVEREIGN_SEAL_SECRET in .env)
+    hmac_seal_secret_key: str = ""
 
     # ── Upload Limits ────────────────────────────────────────────────────────
     max_image_upload_mb: int = 25

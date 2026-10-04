@@ -75,4 +75,4 @@ CEPA provides full export compliance for the National Agriculture Market (eNAM) 
 Field validation rules:
 - `MandiCode`: Matches registered APMC mandi identifiers.
 - `AssayingTimestamp`: ISO 8601 UTC string.
-- `SealSignature`: Full 64-character HMAC-SHA256 hex string validating certificate non-repudiation.
+- `SealSignature`: Full 64-character HMAC-SHA256 hex string validating certificate tamper-evident integrity.

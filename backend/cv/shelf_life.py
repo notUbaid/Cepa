@@ -1,8 +1,15 @@
 """
 Cepa Cold Storage Storageability Index & Post-Harvest Shelf-Life Predictor.
 
-Grounded in ICAR-DOGR (Directorate of Onion and Garlic Research, Pune) and FAO
-post-harvest storage guidelines for Allium cepa L.
+Uses a multi-factor agronomic risk heuristic informed by post-harvest pathology
+and physiological degradation vectors (inspired by ICAR-DOGR and FAO storage literature
+for Allium cepa L.).
+
+NOTE ON ATTRIBUTION:
+While biological degradation factors (black mold, tunic baldness, sprouting) are
+established in post-harvest onion literature, the numerical penalty weights
+(45/30/15/10) and 0-100 scoring equations implemented here are CEPA's operational
+engineering heuristics, not official published mathematical formulas from ICAR-DOGR.
 
 Key Degradation Vectors Quantified:
 1. Aspergillus niger (Black Mold) Fungal Load:

@@ -25,6 +25,11 @@
 | Onion bulk density (ρ) | 0.985 g/cm³ | **[ICAR-DOGR-2019]** ICAR-Directorate of Onion and Garlic Research. *"Post-Harvest Technology of Onion."* Technical Bulletin, Pune, 2019. Used in: `cv/size_estimator.py:ONION_BULK_DENSITY_G_PER_MM3` |
 | Shape compensation factor | Kcomp = 0.93 (neck taper) | **[ICAR-DOGR-2021]** Directorate of Onion and Garlic Research. *"Physical and Mechanical Properties of Onion Bulbs for Post-Harvest Handling Equipment."* ICAR-DOGR, Pune. Used in: prolate spheroid weight formula |
 
+### 1.3 Post-Harvest Storage Biology & Agronomic Heuristic Attribution
+
+- **Biological Etiology Grounding:** Degradation vectors—including *Aspergillus niger* black mold proliferation, outer tunic desiccation, and premature sprout emergence—are grounded in **[ICAR-DOGR-2019]** (*"Post-Harvest Technology and Storage Management of Onion"*, Technical Bulletin No. 24) and FAO post-harvest storage guidelines.
+- **Scoring Equation Attribution:** The 0–100 numerical storageability scoring equation ($S = 100 - [45 \cdot \text{rot} + 30 \cdot \text{sprout} + 15 \cdot \text{damage} + 10 \cdot \text{undersize}]$) and individual penalty weights are **CEPA's operational engineering heuristics** designed for APMC intake triage; they are not an official published mathematical model from ICAR-DOGR.
+
 ---
 
 ## 2. Computer Vision & Machine Learning

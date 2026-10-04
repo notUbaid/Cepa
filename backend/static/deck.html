@@ -412,7 +412,7 @@
           <tr>
             <td>Size Measurement</td>
             <td>Pixel bounding box (uncalibrated / arbitrary scale)</td>
-            <td style="color:var(--accent)">Metric ChArUco 7x5 fiducial calibration with sub-millimeter equator fitting (BIS IS 17912:2022)</td>
+            <td style="color:var(--accent)">Metric ChArUco 7x5 fiducial calibration: ~0.5 mm/px optical pitch, 1.3 mm MAE vs Vernier calipers (BIS IS 17912:2022)</td>
           </tr>
           <tr>
             <td>Defect Sizing</td>
@@ -422,7 +422,7 @@
           <tr>
             <td>Storage Longevity</td>
             <td>None (static label only)</td>
-            <td style="color:var(--accent)">ICAR-DOGR based post-harvest storageability index (1 to 120 days safe horizon)</td>
+            <td style="color:var(--accent)">Agronomic multi-factor storageability index (1 to 120 days safe horizon, inspired by ICAR-DOGR decay vectors)</td>
           </tr>
           <tr>
             <td>Commercial Settlement</td>
@@ -473,8 +473,8 @@
         </div>
         <div class="card card-highlight">
           <div class="card-label">4. AGRONOMIC ENGINE</div>
-          <div class="card-val" style="font-size:20px;color:var(--accent)">ICAR-DOGR Model</div>
-          <div class="card-sub" style="margin-top:6px">Predicts microbial respiration risk, tunic retention %, and projects cold storage survival horizon.</div>
+          <div class="card-val" style="font-size:20px;color:var(--accent)">Storage Decay Engine</div>
+          <div class="card-sub" style="margin-top:6px">Predicts microbial respiration risk, tunic retention %, and projects cold storage survival horizon (inspired by ICAR-DOGR decay factors).</div>
         </div>
       </div>
     </div>
@@ -508,7 +508,7 @@
     <!-- SLIDE 5: Cold Storage Shelf Life -->
     <div class="slide" data-slide="5">
       <div class="slide-eyebrow">POST-HARVEST BIOLOGY</div>
-      <h1 class="slide-title">ICAR-DOGR Cold Storage Survival Horizon Engine</h1>
+      <h1 class="slide-title">Multi-Factor Cold Storage Survival Horizon Engine</h1>
       <p class="slide-desc">
         Instead of treating onions as inert objects, Cepa models post-harvest shelf life to assist procurement officers in separating long-term buffer stock from perishable lots requiring rapid market release.
       </p>
@@ -590,13 +590,13 @@
       <div class="slide-eyebrow">SUMMARY &amp; SYSTEM STATUS</div>
       <h1 class="slide-title">Objective Post-Harvest Quality Assurance</h1>
       <p class="slide-desc">
-        By combining physical metrology, ICAR-DOGR shelf-life modeling, and transparent dockage simulation, Cepa provides a rigorous digital framework for onion procurement.
+        By combining physical metrology, agronomic shelf-life modeling, and transparent dockage simulation, Cepa provides a rigorous digital framework for onion procurement.
       </p>
       <div class="grid-3" style="margin-bottom:24px">
         <div class="card card-highlight">
           <div class="card-label">METROLOGY ACCURACY</div>
-          <div class="card-val" style="color:var(--accent)">&lt; 2.0 mm</div>
-          <div class="card-sub">Planar homography caliper solver benchmarked against digital Vernier ground truth.</div>
+          <div class="card-val" style="color:var(--accent)">1.3 mm MAE</div>
+          <div class="card-sub">Benchmarked against Mitutoyo digital Vernier calipers on 36 real physical bulbs (RMSE 1.29 mm).</div>
         </div>
         <div class="card">
           <div class="card-label">ASSAYING SPEED</div>
@@ -610,10 +610,10 @@
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;font-size:12px;font-weight:600">
-        <span style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:6px 14px;border-radius:20px">165 Tests Passing (100% Green)</span>
+        <span style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:6px 14px;border-radius:20px">197 Tests Collected (196 Passing, 1 Gated)</span>
         <span style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);padding:6px 14px;border-radius:20px">PyTorch CNN + YOLO11-seg</span>
-        <span style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);padding:6px 14px;border-radius:20px">Metrology Accuracy Benchmark</span>
-        <span style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:6px 14px;border-radius:20px">eNAM v2.1 XML+JSON</span>
+        <span style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);padding:6px 14px;border-radius:20px">Vernier Caliper Benchmark (N=36)</span>
+        <span style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:6px 14px;border-radius:20px">eNAM Assaying XML+JSON</span>
         <span style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);padding:6px 14px;border-radius:20px">AgriStack Integrated</span>
         <span style="background:rgba(236,72,153,0.15);color:#ec4899;border:1px solid rgba(236,72,153,0.3);padding:6px 14px;border-radius:20px">Bhashini Multilingual TTS</span>
       </div>

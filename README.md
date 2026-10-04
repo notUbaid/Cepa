@@ -15,7 +15,7 @@
 [![Expo](https://img.shields.io/badge/Expo-57.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev)
 [![eNAM](https://img.shields.io/badge/eNAM-Trade_Assaying_Standard-2E7D32?style=flat-square)](https://enam.gov.in)
 [![AgriStack](https://img.shields.io/badge/AgriStack-Farmer_ID_Binding-F57C00?style=flat-square)](https://agristack.gov.in)
-[![Tests Passing](https://img.shields.io/badge/Tests-196%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
+[![Tests Passing](https://img.shields.io/badge/Tests-197%20passed%20%7C%201%20skipped-success?style=flat-square)](backend/tests/)
 [![License AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Type Checked](https://img.shields.io/badge/Mypy-Strict-blue?style=flat-square)](backend/pyproject.toml)
@@ -30,7 +30,7 @@
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
-| **Verification State** | 196 of 197 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
+| **Verification State** | 197 of 198 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
 
@@ -40,9 +40,9 @@
 
 <div align="center">
 
-| Sub-Millimeter Caliper | Acoustic Resonance NDT | Policy Decoupling | DPI Interoperability |
+| Optical Caliper (1.3mm MAE) | Acoustic Resonance NDT | Policy Decoupling | DPI Interoperability |
 |:---:|:---:|:---:|:---:|
-| **Planar Homography**<br />ChArUco 7x5 board<br />`~2 mm` diameter uncertainty (board-plane parallax) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research API endpoint (/acoustic) | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`Trade Assaying XML / JSON Integration`<br />Direct Benefit Transfer ready |
+| **Planar Homography**<br />ChArUco 7x5 board<br />`1.28 mm MAE` (N=36 Vernier benchmark) | **MEMS Audio Spectroscopy**<br />`44.1 kHz` Real FFT analysis<br />Research API endpoint (/acoustic) | **Zero-Code YAML Engine**<br />Working thresholds pending<br />NAFED/NCCF EOI verification | **eNAM & AgriStack Native**<br />`Trade Assaying XML / JSON Integration`<br />Direct Benefit Transfer ready |
 
 </div>
 
@@ -91,7 +91,7 @@
 - [14. Technical Reference Appendices (Expandable Deep Dives)](#14-technical-reference-appendices-expandable-deep-dives)
   - [Appendix A: Database Entity-Relationship Model](#appendix-a-database-entity-relationship-model)
   - [Appendix B: Complete 27-Endpoint REST API Specification](#appendix-b-complete-27-endpoint-rest-api-specification)
-  - [Appendix C: Complete Test Suite Verification Trace (172 Passed)](#appendix-c-complete-test-suite-verification-trace-172-passed)
+  - [Appendix C: Complete Test Suite Verification Trace (197 Passed)](#appendix-c-complete-test-suite-verification-trace-197-passed)
   - [Appendix D: Hardware Bill of Materials (BOM)](#appendix-d-hardware-bill-of-materials-bom)
   - [Appendix E: Complete Codebase Directory and Component Map](#appendix-e-complete-codebase-directory-and-component-map)
   - [Appendix F: Step-by-Step Installation and Deployment Guide](#appendix-f-step-by-step-installation-and-deployment-guide)
@@ -180,8 +180,8 @@ CEPA enforces five mandatory architectural invariants across all hardware and so
 
 - **Invariant 1: Absolute Decoupling of Physical Observables from Procurement Policy**
   Machine learning models are strictly confined to extracting physical observables: equivalent circular diameter, major and minor axes, polar length, surface defect probabilities, and acoustic resonance frequency. Procurement grading rules are maintained independently as versioned YAML policy files (`backend/grading/policies/`). Modifying a procurement standard requires zero model retraining or redeployment.
-- **Invariant 2: Sovereign Cryptographic Seal for Non-Repudiation**
-  Each inspection report generates a tamper-evident HMAC-SHA256 seal cryptographically binding: (1) the SHA-256 byte digest of the physical sample photograph, (2) the inspecting assayer officer credential, (3) lot and inspection UUIDs, and (4) quantitative defect and grade percentages (`grade_a_pct`, `urs_pct`, `rejected_pct`). Any alteration of image pixels, officer credentials, or grading decisions invalidates cryptographic verification.
+- **Invariant 2: Sovereign Cryptographic Seal for Tamper-Evident Integrity**
+  Each inspection report generates a tamper-evident HMAC-SHA256 seal cryptographically binding: (1) the SHA-256 byte digest of the physical sample photograph, (2) the inspecting assayer officer credential, (3) lot and inspection UUIDs, and (4) quantitative defect and grade percentages (`grade_a_pct`, `urs_pct`, `rejected_pct`). Any alteration of image pixels, officer credentials, or grading decisions invalidates cryptographic verification. *(Roadmap note: Symmetric HMAC provides tamper detection; asymmetric Ed25519 digital signatures are scheduled for legal non-repudiation.)*
 - **Invariant 3: Explicit Physical and Optical Sensor Boundaries**
   Standard 2D RGB optical sensors capture surface-visible defects only; internal microbial decay that has not breached the outer tunic is physically invisible to camera sensors. Whenever a bulb diameter falls within plus or minus three millimeters of an administrative grade boundary, the system flags the measurement with `uncertainty_flag = True` and routes the item to human officer review.
 - **Invariant 4: Asynchronous Non-Blocking Execution Model**
@@ -275,7 +275,7 @@ An illustrative pipeline execution trace on the demo composite image (1024x666, 
 | [STAGE 3: SCALE ESTIMATION]       Heuristic scale: ~0.68 mm/px (700mm FOV prior, uncertainty 5mm) [EST]   |
 | [STAGE 4: YOLO11n-SEG INFERENCE]  Bulb Instances: 18-24 detected (varies by threshold / image)    [SEG]   |
 | [STAGE 5: MASK ALPHA EXTRACTION]  Per-instance mask crops extracted with 20px boundary padding    [CROP]  |
-| [STAGE 6: DEFECT CLASSIFIER]      Rule-based mock mode (DEF_USE_MOCK=true, no trained model)      [MOCK]  |
+| [STAGE 6: DEFECT CLASSIFIER]      MobileNetV3-Small deep model (weights/defect_classifier.pt)      [REAL]  |
 | [STAGE 7: DLS MORPHOMETRY]        Ellipse calipers from instance masks; triaxial mass estimate    [SIZE]  |
 | [STAGE 8: ACOUSTIC RESONANCE]     Research stage -- requires paired WAV input, unvalidated thresh [NDT]   |
 | [STAGE 9: POLICY EVAL]            Working thresholds (NAFED/BIS pending verification)             [EVAL]  |
@@ -317,7 +317,8 @@ curl -X POST "http://localhost:8000/api/v1/inspections/c7a82e14-9b23-4e89-9a21-8
   "scale_mm_per_px": 0.6836,
   "scale_uncertainty_mm": 5.0,
   "total_instances_detected": 20,
-  "defect_classifier_mode": "MOCK",
+  "defect_classifier_mode": "REAL",
+  "defect_classifier_version": "defect-classifier:defect_classifier",
   "sample_summary": {
     "grade_a_count": 16,
     "urs_count": 3,
@@ -348,7 +349,7 @@ CEPA ships with an industrial developer and field operations CLI for local mandi
 # 1. System Diagnostics: Validate cryptographic entropy, storage permissions, and SQLite WAL engine
 python -m backend.cli status
 
-# 2. Cryptographic & Metrology Self-Audit: Verify FIPS 198-1 HMAC-SHA256 non-repudiation invariants
+# 2. Cryptographic & Metrology Self-Audit: Verify FIPS 198-1 HMAC-SHA256 tamper-evident integrity invariants
 python -m backend.cli audit
 
 # 3. CV Pipeline Latency Benchmark: Compute real-time FPS and P50/P90/P99 latency across iterations
@@ -627,12 +628,15 @@ $$w^{\pm} = \frac{2 n \hat{p} + z^2 \pm 1 \pm z \sqrt{z^2 \mp 2 - 1/n + 4p(n(1-p
 
 Where $z = 1.95996$ at 95% confidence level. If the upper defect bound $w^{+}$ crosses regulatory thresholds, the consignment is flagged with `borderline_risk = True`.
 
-### 7.4 ICAR-DOGR Post-Harvest Storage Survival Engine
-Buffer stock longevity is evaluated using empirical physiological decay models developed by the ICAR-Directorate of Onion and Garlic Research (ICAR-DOGR, Pune):
+### 7.4 Multi-Factor Post-Harvest Storage Survival Engine
+Buffer stock longevity is evaluated using a multi-factor decay risk heuristic formulated by CEPA, incorporating agronomic risk vectors identified in onion post-harvest pathology (pathological rot, premature dormancy break/sprouting, mechanical handling cuts, and undersized/oversized geometry):
 
 - **Storageability Score ($S \in [0, 100]$):**
+  A weighted multi-factor heuristic formulated by CEPA to score consignment storage viability:
 
   $$S = 100 - [45.0 \cdot \bar{P}(\text{rot}) + 30.0 \cdot \bar{P}(\text{sprout}) + 15.0 \cdot \bar{P}(\text{damage}) + 10.0 \cdot \text{Ratio}_{\text{undersize}}]$$
+
+  *(Engineering Clarification: While individual biological decay risk vectors—such as Aspergillus niger black mold and premature sprout emergence—are established in post-harvest literature from ICAR-DOGR and FAO, the specific 45/30/15/10 penalty weights and 0–100 scoring equations represent CEPA's operational engineering heuristic, not an official published mathematical model from ICAR-DOGR.)*
 
 - **Storage Horizons ($0 - 2^\circ\text{C}, 65 - 70\%\text{ RH}$):**
   - **Score $\ge 80$ (`PREMIUM`):** $90 - 120$ days safe preservation horizon. Qualified for central strategic buffer stock.
@@ -961,7 +965,7 @@ For exhaustive engineering compliance, academic auditability, and regulatory vet
 | [**Regulatory Compliance Matrix**](docs/REGULATORY_COMPLIANCE.md) | Statutory alignment with BIS IS 17912:2022 grades, NAFED PSF Fair Average Quality (FAQ) dockage schedules, and eNAM trade assaying specifications. | BIS IS 17912:2022 · eNAM · NAFED |
 | [**Hardware Station Specification**](docs/HARDWARE_SETUP.md) | Physical gantry setup, 2020 extrusion dimensions, nadir optical alignment, diffuse ring lighting, and acoustic transducer integration. | Mandi Intake Station Engineering |
 | [**Architecture Decision Records (ADRs)**](docs/adr/README.md) | Index and rationale for architectural decisions ADR-0001 through ADR-0005. | Michael Nygard ADR Standard |
-| [**Security Policy & Threat Model**](SECURITY.md) | Formal STRIDE threat model, FIPS 198-1 sovereign HMAC-SHA256 non-repudiation signature equation, and key isolation rules. | FIPS 198-1 · OWASP Top 10 |
+| [**Security Policy & Threat Model**](SECURITY.md) | Formal STRIDE threat model, FIPS 198-1 sovereign HMAC-SHA256 tamper-evident integrity signature equation, and key isolation rules. | FIPS 198-1 · OWASP Top 10 |
 | [**Contributing & Pre-Commit Standards**](CONTRIBUTING.md) | Code styling, Git branching, Ruff / Mypy enforcement, and verification gates. | Conventional Commits v1.0.0 |
 | [**Academic Research Citation**](CITATION.cff) | Formal citation metadata for academic and scientific benchmark reproduction. | Citation File Format v1.2.0 |
 
@@ -1026,7 +1030,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 | **Hemang Mistry** | **Frontend** | React Native / Expo mobile field application, viewfinder ChArUco HUD, and Forensic Mandi Inspector Studio web interface |
 | **Harshil Bhatt** | **Backend** | Asynchronous FastAPI gateway, ThreadPoolExecutor metrology workers, 27 REST endpoints, and SQLite WAL database architecture |
 | **Hetvi Makwana** | **Infra / DevOps** | Multi-stage Docker containerization, cloud edge deployment workflows (Render / Vercel), and CI/CD testing pipelines |
-| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 172-test automated verification suite, and mandi field validation |
+| **Bhavesh Kumar** | **Research & Testing** | Multi-sensor NDT engineering (MEMS acoustic tap resonance and FPI), 198-test automated verification suite (197 passing, 1 hardware-gated), and mandi field validation |
 
 ---
 
@@ -1123,7 +1127,7 @@ CEPA documents all active development challenges, ongoing investigations, and ph
 </details>
 
 <details>
-<summary><b>Appendix C: Complete Test Suite Verification Trace (172 Passed) (Click to expand)</b></summary>
+<summary><b>Appendix C: Complete Test Suite Verification Trace (197 Passed, 1 Skipped) (Click to expand)</b></summary>
 
 <br />
 
@@ -1134,28 +1138,29 @@ rootdir: D:\Projects\Cepa\backend
 configfile: pyproject.toml
 plugins: anyio-4.15.1, asyncio-1.4.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 173 items
+collected 198 items
 
-backend\tests\test_acoustic_service.py .........                         [  5%]
-backend\tests\test_advanced_morphometry.py .............                 [ 12%]
-backend\tests\test_api.py ............                                   [ 19%]
-backend\tests\test_audit_remediation.py ..............                   [ 27%]
-backend\tests\test_bhashini_service.py ................................. [ 46%]
-....                                                                     [ 48%]
-backend\tests\test_calibration_and_debris.py ...                         [ 50%]
-backend\tests\test_commercial_and_shelflife.py .......                   [ 54%]
-backend\tests\test_enam_export_service.py ..........                     [ 60%]
-backend\tests\test_flash_proxy.py ..............                         [ 68%]
-backend\tests\test_grading_engine.py .............                       [ 76%]
-backend\tests\test_live_video.py s                                       [ 77%]
-backend\tests\test_metrology_accuracy.py .                               [ 77%]
-backend\tests\test_metrology_uncertainty_budget.py ...                    [ 79%]
-backend\tests\test_onion_validator.py ...............                    [ 88%]
-backend\tests\test_quality_gate.py ......                                [ 91%]
-backend\tests\test_security_pentest.py ....                              [ 94%]
+backend\tests\test_acoustic_service.py .........                         [  4%]
+backend\tests\test_advanced_morphometry.py .............                 [ 11%]
+backend\tests\test_api.py ............                                   [ 17%]
+backend\tests\test_audit_remediation.py ....................             [ 27%]
+backend\tests\test_bhashini_service.py ................................. [ 43%]
+....                                                                     [ 45%]
+backend\tests\test_calibration_and_debris.py ...                         [ 47%]
+backend\tests\test_commercial_and_shelflife.py .......                   [ 51%]
+backend\tests\test_enam_export_service.py ..........                     [ 56%]
+backend\tests\test_file_formats.py .......................               [ 67%]
+backend\tests\test_flash_proxy.py ..............                         [ 74%]
+backend\tests\test_grading_engine.py .............                       [ 81%]
+backend\tests\test_live_video.py s                                       [ 81%]
+backend\tests\test_metrology_accuracy.py ..                              [ 82%]
+backend\tests\test_metrology_uncertainty_budget.py ...                   [ 84%]
+backend\tests\test_onion_validator.py ................                   [ 92%]
+backend\tests\test_quality_gate.py ......                                [ 95%]
+backend\tests\test_security_pentest.py ....                              [ 97%]
 backend\tests\test_size_estimator.py .....                               [100%]
 
-======================= 172 passed, 1 skipped in 32.89s =======================
+======================= 197 passed, 1 skipped in 51.39s =======================
 ```
 
 </details>
@@ -1244,7 +1249,7 @@ Cepa/
 │   │   ├── acoustic_service.py   # FFT impulse resonance analyzer, Q-factor, elasticity index
 │   │   ├── bhashini_service.py   # NLTM Multilingual TTS (7 languages, mandi district geofencing)
 │   │   ├── certificate_view.py   # Public responsive HTML certificate generator
-│   │   ├── crypto_seal.py        # Sovereign HMAC-SHA256 non-repudiation cryptographic seal
+│   │   ├── crypto_seal.py        # Sovereign HMAC-SHA256 tamper-evident cryptographic seal
 │   │   ├── enam_export_service.py# eNAM trade assaying parameter XML/JSON exporter
 │   │   ├── groq_ai_service.py    # Multimodal Groq Vision LLM agronomist integration
 │   │   ├── image_storage.py      # Disk path to HTTP URL translation utilities
@@ -1256,7 +1261,7 @@ Cepa/
 │   │   ├── inspector.html        # Forensic Mandi Inspector Studio web application
 │   │   ├── charuco_board_7x5...  # Printable A4 calibration target board (PDF/PNG)
 │   │   └── demo_onion_spread.jpg # Standard photographic test spread
-│   └── tests/                    # 172 automated pytest specifications (100% passing)
+│   └── tests/                    # 198 automated pytest specifications (197 passing, 1 hardware-gated)
 ├── cv_tools/
 │   ├── generate_charuco_board.py # Generator for custom ChArUco calibration targets
 │   ├── train_defect_classifier.py# MobileNetV3 PyTorch training pipeline with synthetic synthesis

@@ -32,10 +32,10 @@ created: "2026-09-22"
 urs_active: true   # URS active for buffer-stock procurement seasons
 
 size:
-  grade_a_min_mm: 45.0   # Relaxed Grade A procurement threshold
-  grade_a_max_mm: 80.0   # Encompasses Super and large culinary bulbs
-  urs_min_mm: 35.0       # Relaxed minimum floor (Madhyam band)
-  urs_max_mm: 90.0       # Bolters / coarse bulbs >90mm rejected
+  grade_a_min_mm: 45.0   # Relaxed Grade A procurement threshold (Price Stabilisation Fund)
+  grade_a_max_mm: 65.0   # Grade A upper ceiling (Super class; bulbs >65mm are Jumbo)
+  urs_min_mm: 35.0       # URS lower floor (Madhyam band)
+  urs_max_mm: 70.0       # URS upper tolerance ceiling
 
 defect_thresholds:
   damaged_threshold: 0.50

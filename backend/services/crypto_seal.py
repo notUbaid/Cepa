@@ -7,20 +7,28 @@ Computes a tamper-evident HMAC-SHA256 digital seal binding:
 3. Quantitative metrological and defect distribution metrics (total_bulbs, grade_a_pct, urs_pct, rejected_pct)
 4. System inspection and report identifiers
 
-This establishes non-repudiation between the physical photo at the APMC mandi,
-the assayer officer, and the grading verdict.
+Trust Model & Roadmap Note:
+Symmetric HMAC provides tamper-evident integrity verification against unauthorized
+modifications. It does not provide non-repudiation, because verification requires
+the verifier to possess the shared secret. An asymmetric public-key signature
+scheme (Ed25519 / ECDSA with officer hardware keys or Mandi KMS) is planned
+on the production roadmap for legal non-repudiation.
 """
 from __future__ import annotations
 
 import hashlib
 import hmac
 import logging
+import os
+import secrets
 from pathlib import Path
 from typing import Any
 
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+_EPHEMERAL_DEV_SECRET: bytes | None = None
 
 
 def compute_image_sha256(
@@ -90,13 +98,41 @@ class SealResult(tuple):
 
 
 def _get_seal_secret_key(secret_key: str | None = None) -> bytes:
-    """Obtain the sovereign HMAC seal secret key, distinct from officer authentication token."""
+    """
+    Obtain the sovereign HMAC seal secret key, distinct from officer authentication token.
+    Never falls back to a hardcoded static string in source code.
+    In production, SOVEREIGN_SEAL_SECRET (or HMAC_SEAL_SECRET_KEY) must be explicitly configured.
+    In development/testing, generates an ephemeral per-session runtime key with a logged warning.
+    """
+    global _EPHEMERAL_DEV_SECRET
     key_str = (
         secret_key
+        or os.environ.get("SOVEREIGN_SEAL_SECRET")
+        or os.environ.get("HMAC_SEAL_SECRET_KEY")
         or getattr(settings, "hmac_seal_secret_key", None)
-        or "cepa-sovereign-seal-secret-2026-v2"
     )
-    return key_str.encode("utf-8")
+    if key_str and str(key_str).strip():
+        return str(key_str).strip().encode("utf-8")
+
+    is_prod = (
+        os.environ.get("RENDER") is not None
+        or os.environ.get("CEPA_ENV", "").lower() == "production"
+        or getattr(settings, "backend_env", "").lower() == "production"
+    )
+    if is_prod:
+        raise ValueError(
+            "CRITICAL SECURITY CONFIGURATION ERROR: SOVEREIGN_SEAL_SECRET environment variable "
+            "must be explicitly set in production mode. Sealing will not fall back to insecure defaults."
+        )
+
+    if _EPHEMERAL_DEV_SECRET is None:
+        _EPHEMERAL_DEV_SECRET = secrets.token_bytes(32)
+        logger.warning(
+            "SECURITY AUDIT NOTICE: SOVEREIGN_SEAL_SECRET is unset. "
+            "Generated an ephemeral 256-bit runtime key for this process session. "
+            "Set SOVEREIGN_SEAL_SECRET in environment for persistent multi-process verification."
+        )
+    return _EPHEMERAL_DEV_SECRET
 
 
 def compute_inspection_seal(

@@ -268,7 +268,7 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         <View style={styles.sectionCard}>
           <View style={styles.cardHeaderRow}>
             <View>
-              <Text style={styles.cardSectionTag}>ICAR-DOGR POST-HARVEST BIOLOGY</Text>
+              <Text style={styles.cardSectionTag}>AGRONOMIC STORAGE HEURISTIC · ICAR-DOGR INFORMED</Text>
               <Text style={styles.sectionHeaderTitle}>Cold Storage Survival Horizon · शीतगृह कालावधी</Text>
             </View>
             <View

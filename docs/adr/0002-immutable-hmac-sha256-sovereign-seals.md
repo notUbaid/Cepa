@@ -38,7 +38,7 @@ We implement a **FIPS 198-1 Compliant Sovereign Cryptographic Seal Chain**:
 ## Consequences
 
 ### Positive
-- Total mathematical non-repudiation: Neither farmers, officers, nor traders can alter certificates undetected.
+- Tamper-evident integrity: Neither farmers, officers, nor traders can alter certificates undetected (asymmetric Ed25519 signatures planned for legal non-repudiation).
 - Direct QR code verification by gate personnel without requiring database write credentials.
 - Works offline on field tablets using stored HMAC verification tokens.
 

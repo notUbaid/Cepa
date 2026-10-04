@@ -384,7 +384,7 @@ async def verify_report_seal_endpoint(
     <div class="row"><span class="label">Optical Photo Digest</span><span class="val">{audit['image_sha256'] or 'PHOTO_FILE_MISSING'}</span></div>
     <div class="row"><span class="label">Photo on Storage</span><span class="val">{'PRESENT' if audit['is_photo_verified_on_disk'] else 'MISSING / EPHEMERAL'}</span></div>
     <p style="margin-top: 24px; font-size: 13px; color: #94a3b8;">
-      Cryptographically signed by Cepa Sovereign Mandi Assayer Engine using HMAC-SHA256 non-repudiation binding.
+      Cryptographically signed by Cepa Sovereign Mandi Assayer Engine using HMAC-SHA256 tamper-evident integrity binding.
       <br/><a href="/api/v1/reports/share/{report.share_token}?format=html">&larr; Back to Quality Certificate</a>
     </p>
   </div>

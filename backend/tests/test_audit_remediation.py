@@ -358,7 +358,7 @@ class TestUncalibratedOverheadRemediation:
 
 
 class TestCryptographicSealAndPolicyDecoupling:
-    """Verifies HMAC-SHA256 cryptographic seal non-repudiation and dynamic policy thresholds."""
+    """Verifies HMAC-SHA256 cryptographic seal tamper-evident integrity and dynamic policy thresholds."""
 
     def test_cryptographic_seal_integrity_binding(self, tmp_path):
         from services.crypto_seal import compute_inspection_seal, verify_inspection_seal

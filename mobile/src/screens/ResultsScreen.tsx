@@ -880,7 +880,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             <View style={styles.sectionCard}>
               <View style={styles.cardHeaderRow}>
                 <View>
-                  <Text style={styles.cardSectionTag}>ICAR-DOGR POST-HARVEST BIOLOGY</Text>
+                  <Text style={styles.cardSectionTag}>AGRONOMIC STORAGE HEURISTIC · ICAR-DOGR INFORMED</Text>
                   <Text style={styles.cardSectionTitle}>Cold Storage Survival Horizon</Text>
                 </View>
                 <View
