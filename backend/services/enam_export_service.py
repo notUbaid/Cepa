@@ -56,7 +56,7 @@ class EnamExportResult:
 def build_enam_assaying_payload(
     inspection: InspectionDetail,
     lot_weight_kg: float = 1000.0,
-    moisture_pct_estimate: float = 84.5,
+    moisture_pct_estimate: float | None = None,
 ) -> dict:
     """
     Build standardized eNAM Assaying Certificate payload in JSON format.
@@ -64,7 +64,7 @@ def build_enam_assaying_payload(
     Args:
         inspection: Full inspection detail including aggregated counts and percentages.
         lot_weight_kg: Total weight of the inspected consignment in kg.
-        moisture_pct_estimate: Estimated moisture content percentage.
+        moisture_pct_estimate: Estimated moisture content percentage (None if optical assaying only).
 
     Returns:
         Structured dictionary matching official eNAM APMC Assaying schemas.
@@ -105,6 +105,7 @@ def build_enam_assaying_payload(
 
     return {
         "schema_version": ENAM_SCHEMA_VERSION,
+        "interop_specification": "CEPA_INTEROP_SCHEMA_DRAFT_V1",
         "certificate_type": "APMC_DIGITAL_ASSAYING_CERTIFICATE",
         "verification_status": "PROVISIONAL_UNVERIFIED_INPUTS" if is_provisional else "CERTIFIED_STANDARD",
         "is_provisional": is_provisional,
@@ -169,7 +170,9 @@ def build_enam_assaying_payload(
             },
             "physicochemical_proxies": {
                 "estimated_moisture_pct": moisture_pct_estimate,
-                "acoustic_stiffness_verified": True,
+                "moisture_status": "NOT_MEASURED" if moisture_pct_estimate is None else "MEASURED",
+                "limitation_note": "Optical cameras cannot measure moisture. Requires destructive oven-drying or NIR sensor.",
+                "acoustic_stiffness_verified": bool(getattr(inspection, "cut_test_performed", False)),
             },
             "cut_test_protocol": {
                 "performed": getattr(inspection, "cut_test_performed", False),
@@ -180,10 +183,12 @@ def build_enam_assaying_payload(
         },
         "quality_verdict": {
             "assigned_grade": final_grade,
+            "benchmark_rate_eligible": msp_eligible,
             "msp_procurement_eligible": msp_eligible,
+            "procurement_framework": "Price Stabilisation Fund (PSF) / Market Intervention Scheme (MIS) - Not Statutory MSP",
             "settlement_action": settlement_action,
-            "policy_applied": "NAFED PSF 2024 / AGMARK Schedule XIX",
-            "policy_verified": True,
+            "policy_applied": policy_name,
+            "policy_verified": is_policy_verified,
         },
     }
 
@@ -272,6 +277,12 @@ def build_enam_assaying_xml(inspection: InspectionDetail, lot_weight_kg: float =
     cut_elem.set("bulbsSliced", str(cut_data["bulbs_sliced"]))
     cut_elem.set("defectsFound", str(cut_data["internal_defects_found"]))
     cut_elem.text = str(cut_data["officer_notes"])
+
+    physico = ET.SubElement(params, "PhysicochemicalProxies")
+    moist_val = payload["assaying_parameters"]["physicochemical_proxies"]["estimated_moisture_pct"]
+    ET.SubElement(physico, "EstimatedMoisturePct").text = str(moist_val) if moist_val is not None else "NOT_MEASURED"
+    ET.SubElement(physico, "MoistureStatus").text = payload["assaying_parameters"]["physicochemical_proxies"]["moisture_status"]
+    ET.SubElement(physico, "AcousticStiffnessVerified").text = str(payload["assaying_parameters"]["physicochemical_proxies"]["acoustic_stiffness_verified"])
 
     # 6. Quality Verdict & MSP Settlement
     verdict = ET.SubElement(root, "QualityVerdict")

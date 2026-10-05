@@ -28,6 +28,8 @@ class ReportSummary(BaseModel):
     cryptographic_seal: str | None = None
     seal_status: str | None = None
     cut_test_performed: bool = False
+    policy_verified: bool = False
+    policy_provisional_notice: str | None = "PROVISIONAL: grading thresholds not verified against an official EOI"
 
 
 class ReportDetail(BaseModel):
@@ -79,6 +81,8 @@ class ReportDetail(BaseModel):
     # Provenance (for transparency)
     ruleset_version: str
     model_version: str
+    policy_verified: bool = False
+    policy_provisional_notice: str | None = "PROVISIONAL: grading thresholds not verified against an official EOI"
 
     # Geolocation
     geo_lat: float | None

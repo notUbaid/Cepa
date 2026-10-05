@@ -1,0 +1,222 @@
+[
+  {
+    "file": "mandi_scene_0080.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.1577,
+      "DAMAGED": 0.0374,
+      "ROTTEN": 0.0321,
+      "SPROUTED": 0.7727
+    }
+  },
+  {
+    "file": "mandi_scene_0081.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.0133,
+      "DAMAGED": 0.0032,
+      "ROTTEN": 0.0067,
+      "SPROUTED": 0.9768
+    }
+  },
+  {
+    "file": "mandi_scene_0082.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9998,
+      "DAMAGED": 0.0001,
+      "ROTTEN": 0.0,
+      "SPROUTED": 0.0001
+    }
+  },
+  {
+    "file": "mandi_scene_0083.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 1.0,
+      "DAMAGED": 0.0,
+      "ROTTEN": 0.0,
+      "SPROUTED": 0.0
+    }
+  },
+  {
+    "file": "mandi_scene_0084.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9634,
+      "DAMAGED": 0.004,
+      "ROTTEN": 0.0009,
+      "SPROUTED": 0.0316
+    }
+  },
+  {
+    "file": "mandi_scene_0085.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.8864,
+      "DAMAGED": 0.0056,
+      "ROTTEN": 0.0077,
+      "SPROUTED": 0.1003
+    }
+  },
+  {
+    "file": "mandi_scene_0086.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.4367,
+      "DAMAGED": 0.1227,
+      "ROTTEN": 0.0595,
+      "SPROUTED": 0.3811
+    }
+  },
+  {
+    "file": "mandi_scene_0087.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9923,
+      "DAMAGED": 0.0015,
+      "ROTTEN": 0.001,
+      "SPROUTED": 0.0052
+    }
+  },
+  {
+    "file": "mandi_scene_0088.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9999,
+      "DAMAGED": 0.0,
+      "ROTTEN": 0.0,
+      "SPROUTED": 0.0001
+    }
+  },
+  {
+    "file": "mandi_scene_0089.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9974,
+      "DAMAGED": 0.0,
+      "ROTTEN": 0.0,
+      "SPROUTED": 0.0025
+    }
+  },
+  {
+    "file": "mandi_scene_0090.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.224,
+      "DAMAGED": 0.0198,
+      "ROTTEN": 0.0311,
+      "SPROUTED": 0.7251
+    }
+  },
+  {
+    "file": "mandi_scene_0091.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.0986,
+      "DAMAGED": 0.0208,
+      "ROTTEN": 0.0245,
+      "SPROUTED": 0.8562
+    }
+  },
+  {
+    "file": "mandi_scene_0092.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.3603,
+      "DAMAGED": 0.0013,
+      "ROTTEN": 0.0025,
+      "SPROUTED": 0.6359
+    }
+  },
+  {
+    "file": "mandi_scene_0093.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9989,
+      "DAMAGED": 0.0003,
+      "ROTTEN": 0.0001,
+      "SPROUTED": 0.0008
+    }
+  },
+  {
+    "file": "mandi_scene_0094.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9965,
+      "DAMAGED": 0.0005,
+      "ROTTEN": 0.0002,
+      "SPROUTED": 0.0028
+    }
+  },
+  {
+    "file": "mandi_scene_0095.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "SPROUTED",
+    "probabilities": {
+      "GOOD": 0.0066,
+      "DAMAGED": 0.0008,
+      "ROTTEN": 0.0044,
+      "SPROUTED": 0.9882
+    }
+  },
+  {
+    "file": "mandi_scene_0096.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.6791,
+      "DAMAGED": 0.0459,
+      "ROTTEN": 0.0211,
+      "SPROUTED": 0.254
+    }
+  },
+  {
+    "file": "mandi_scene_0097.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9466,
+      "DAMAGED": 0.0066,
+      "ROTTEN": 0.002,
+      "SPROUTED": 0.0447
+    }
+  },
+  {
+    "file": "mandi_scene_0098.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.9994,
+      "DAMAGED": 0.0,
+      "ROTTEN": 0.0,
+      "SPROUTED": 0.0006
+    }
+  },
+  {
+    "file": "mandi_scene_0099.jpg",
+    "ground_truth": "GOOD",
+    "predicted": "GOOD",
+    "probabilities": {
+      "GOOD": 0.6801,
+      "DAMAGED": 0.0031,
+      "ROTTEN": 0.0049,
+      "SPROUTED": 0.3119
+    }
+  }
+]

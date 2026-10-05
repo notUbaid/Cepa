@@ -38,6 +38,7 @@ class ConfidenceAssessment:
     """Confidence tier and explanation for one onion instance."""
     tier: str  # "HIGH" | "NEEDS_REVIEW" | "UNUSABLE"
     reasons: list[str]  # Human-readable reasons for non-HIGH tier
+    is_estimated_scale: bool = False
 
 
 def assess_confidence(
@@ -113,4 +114,4 @@ def assess_confidence(
             "Size is estimated via autonomous overhead camera prior (calibration card not detected).",
         )
 
-    return ConfidenceAssessment(tier=worst_tier, reasons=reasons)
+    return ConfidenceAssessment(tier=worst_tier, reasons=reasons, is_estimated_scale=is_estimated_scale)

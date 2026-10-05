@@ -61,7 +61,17 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
     fetchOrCreateReport();
   }, [inspection.id]);
 
+  const isCachedSample =
+    inspection.source === 'cached_sample' ||
+    report?.source === 'cached_sample' ||
+    inspection.id === 'c7a82e14-9b23-4e89-9a21-8f192a4b8e21' ||
+    Boolean(inspection.lot_id?.includes('DEMO'));
+
   const handleDownloadPdf = () => {
+    if (isCachedSample) {
+      alert('Certificate PDF download is disabled for cached samples.');
+      return;
+    }
     Haptics.heavy();
     const pdfUrl = `${getApiBaseUrl()}/api/v1/inspections/${inspection.id}/reports/pdf`;
     Linking.openURL(pdfUrl).catch((e: any) => {
@@ -71,6 +81,10 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   };
 
   const handleOpenShareLink = () => {
+    if (isCachedSample) {
+      alert('Share links are disabled for cached samples.');
+      return;
+    }
     if (report?.share_url) {
       Haptics.light();
       const resolved = resolveMediaUrl(report.share_url) || report.share_url;
@@ -81,6 +95,10 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
   };
 
   const handleVerifySealOnline = () => {
+    if (isCachedSample) {
+      alert('Cryptographic verification is disabled for cached samples.');
+      return;
+    }
     Haptics.medium();
     const url = report?.verify_url
       ? (resolveMediaUrl(report.verify_url) || report.verify_url)
@@ -171,6 +189,18 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Explicit Cached Sample / Backend Offline Banner */}
+      {isCachedSample && (
+        <FadeInView delay={30} distance={6}>
+          <View style={styles.demoNoticeBanner}>
+            <View style={styles.demoNoticeDot} />
+            <Text style={styles.demoNoticeText}>
+              CACHED SAMPLE: backend unreachable. Not a live analysis.
+            </Text>
+          </View>
+        </FadeInView>
+      )}
+
       {/* Certificate Document Header */}
       <FadeInView delay={50} distance={10}>
         <View style={styles.reportHeaderCard}>
@@ -213,9 +243,16 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Grading Standard:</Text>
-              <Text style={styles.metaValueMono}>
-                {report.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022')}
-              </Text>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={styles.metaValueMono}>
+                  {report.ruleset_version.replace('BIS_IS_17912_2022', 'BIS IS 17912:2022')}
+                </Text>
+                {report.policy_verified === false && (
+                  <Text style={styles.provisionalPolicyNote}>
+                    PROVISIONAL: grading thresholds not verified against an official EOI
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -1443,5 +1480,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     lineHeight: 16,
+  },
+  demoNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  demoNoticeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#d97706',
+    marginRight: 8,
+  },
+  demoNoticeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  provisionalPolicyNote: {
+    fontSize: 9,
+    color: '#d97706',
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'right',
   },
 });

@@ -92,6 +92,12 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE samples ADD COLUMN calibration_method VARCHAR(50) DEFAULT 'CHARUCO_BOARD'"))
                 if "image_sha256" not in existing_cols:
                     conn.execute(text("ALTER TABLE samples ADD COLUMN image_sha256 VARCHAR(64)"))
+                if "corner_count" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN corner_count INTEGER DEFAULT 0"))
+                if "reprojection_residual_px" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN reprojection_residual_px FLOAT"))
+                if "board_coverage_pct" not in existing_cols:
+                    conn.execute(text("ALTER TABLE samples ADD COLUMN board_coverage_pct FLOAT"))
 
                 res_insp = conn.execute(text("PRAGMA table_info(inspections)")).fetchall()
                 existing_insp_cols = {row[1] for row in res_insp}
@@ -107,6 +113,8 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_internal_defects_found INTEGER DEFAULT 0"))
                 if "cut_test_notes" not in existing_insp_cols:
                     conn.execute(text("ALTER TABLE inspections ADD COLUMN cut_test_notes TEXT"))
+                if "provenance_json" not in existing_insp_cols:
+                    conn.execute(text("ALTER TABLE inspections ADD COLUMN provenance_json TEXT"))
 
                 res_rep = conn.execute(text("PRAGMA table_info(reports)")).fetchall()
                 existing_rep_cols = {row[1] for row in res_rep}
@@ -124,6 +132,20 @@ def create_all_tables() -> None:
                     conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_internal_defects_found INTEGER DEFAULT 0"))
                 if "cut_test_notes" not in existing_rep_cols:
                     conn.execute(text("ALTER TABLE reports ADD COLUMN cut_test_notes TEXT"))
+                if "reissued_from_id" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN reissued_from_id VARCHAR(36)"))
+                if "report_version" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN report_version INTEGER DEFAULT 1"))
+                if "status" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE'"))
+                if "manifest_hash" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN manifest_hash VARCHAR(64)"))
+                if "pdf_sha256" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN pdf_sha256 VARCHAR(64)"))
+                if "evidence_manifest_json" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN evidence_manifest_json TEXT"))
+                if "provenance_json" not in existing_rep_cols:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN provenance_json TEXT"))
 
                 conn.commit()
             except Exception as e:

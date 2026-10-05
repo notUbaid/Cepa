@@ -219,9 +219,7 @@ class TestApiMultiFormatIntegration:
             return resp.json()["id"]
 
     def test_upload_png_sample_image(self, test_inspection_id: str):
-        sample_path = Path(__file__).parent.parent.parent / "cv_tools" / "test_data" / "synthetic_onion_spread_sample.jpg"
-        if not sample_path.exists():
-            sample_path = Path("cv_tools/test_data/synthetic_onion_spread_sample.jpg")
+        sample_path = Path(__file__).parent.parent / "static" / "synthetic_demo_spread.jpg"
 
         pil_img = Image.open(sample_path)
         buf = io.BytesIO()
@@ -239,9 +237,7 @@ class TestApiMultiFormatIntegration:
             assert data["processing_status"] in ("DONE", "RUNNING")
 
     def test_upload_webp_sample_image(self, test_inspection_id: str):
-        sample_path = Path(__file__).parent.parent.parent / "cv_tools" / "test_data" / "synthetic_onion_spread_sample.jpg"
-        if not sample_path.exists():
-            sample_path = Path("cv_tools/test_data/synthetic_onion_spread_sample.jpg")
+        sample_path = Path(__file__).parent.parent / "static" / "synthetic_demo_spread.jpg"
 
         pil_img = Image.open(sample_path)
         buf = io.BytesIO()

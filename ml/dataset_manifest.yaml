@@ -1,0 +1,74 @@
+manifest_version: "1.0.0"
+generated_at: "2026-10-05T00:00:00Z"
+task: "4-Class Optical Defect Assaying (Allium cepa L.)"
+architecture: "MobileNetV3-Large 4-Class Softmax"
+weights_artifact: "backend/weights/defect_classifier.pt"
+weights_sha256: "406CCBB35BCB323628C4DE51173772F2394C5F39AB2D1AE67C6CD4306C74930F"
+
+classes:
+  - id: 0
+    name: "GOOD"
+    mandi_defect_class: "SOUND_BULB"
+    apmc_action: "ELIGIBLE_FOR_GRADE_A_OR_URS"
+  - id: 1
+    name: "DAMAGED"
+    mandi_defect_class: "MECHANICAL_OR_SUNSCALD_DAMAGE"
+    apmc_action: "ROUTED_TO_URS_OR_REJECTED"
+  - id: 2
+    name: "ROTTEN"
+    mandi_defect_class: "MICROBIOLOGICAL_SOFT_ROT_OR_BLACK_MOLD"
+    apmc_action: "HARD_REJECTION"
+  - id: 3
+    name: "SPROUTED"
+    mandi_defect_class: "PHYSIOLOGICAL_DORMANCY_BREAK_SPROUT"
+    apmc_action: "HARD_REJECTION_OR_PROPORTIONAL_DOCKAGE"
+
+sources:
+  - source_id: "mendeley_42bcyncfhy_2"
+    name: "Mendeley Data: Red and White Onion Bulbs and Leaves"
+    doi: "10.17632/42bcyncfhy.2"
+    license: "CC BY 4.0"
+    total_images: 16300
+    usable_bulb_images: 10329
+    classes_used: ["healthy", "unhealthy"]
+    notes: "Leaves excluded as non-bulb tissue. Unhealthy partitioned to auxiliary pretraining."
+
+  - source_id: "roboflow_spoilage"
+    name: "Roboflow Universe: Onion Spoilage Detection"
+    license: "CC BY 4.0"
+    total_images: 1690
+    usable_bulb_images: 1007
+    classes_used: ["healthy", "mold", "rotten", "sprouted"]
+
+  - source_id: "roboflow_quality_analysis"
+    name: "Roboflow Universe: onions-quality-analysis"
+    license: "CC BY 4.0"
+    total_images: 209
+    usable_bulb_images: 209
+    classes_used: ["Healthy", "Damaged", "Rotten", "Sprouted"]
+
+partitioning_protocol:
+  split_strategy: "70% Train / 15% Validation / 15% Test"
+  leakage_prevention: "Stratified partition prior to data augmentation. Zero source overlap."
+  total_usable_images: 11545
+  train_split_count: 8081
+  val_split_count: 1731
+  test_split_count: 1733
+
+test_cohort_distribution:
+  total: 1733
+  GOOD: 1537
+  DAMAGED: 29
+  ROTTEN: 149
+  SPROUTED: 18
+
+published_benchmark_summary:
+  overall_accuracy: 0.9636
+  macro_f1: 0.7270
+  balanced_accuracy: 0.8343
+  bad_to_good_false_negative_rate: 0.0255  # 5 out of 196 defective bulbs misclassified as GOOD
+  per_class_f1:
+    GOOD: 0.9892
+    DAMAGED: 0.4923
+    ROTTEN: 0.8951
+    SPROUTED: 0.5312

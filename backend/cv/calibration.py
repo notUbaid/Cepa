@@ -53,23 +53,27 @@ class CalibrationResult:
     is_estimated: True if scale was derived via autonomous packhouse overhead heuristic.
     calibration_method: "CHARUCO_BOARD" or "AUTONOMOUS_OVERHEAD_HEURISTIC"
     uncertainty_mm: estimated error margin for diameter measurements.
-                   ChArUco board path: ~2.0mm (board-plane parallax at 65cm height
-                   introduces ~1.5-2.5mm error for bulbs sitting 20-40mm above the board).
-                   Heuristic path: ~5.0mm (scale from FOV prior only, no perspective correction).
     failure_code: set if perspective_valid is False.
     failure_message: human readable explanation.
     measured_square_px: measured square size in rectified image pixels
+    corner_count: number of detected ChArUco corners
+    reprojection_residual_px: RMS reprojection residual in image pixels
+    board_coverage_pct: percentage of frame area occupied by the calibration board
+    quality_passed: whether calibration passed all quality gates
     """
     rectified_image: np.ndarray
     scale_mm_per_px: float | None
     perspective_valid: bool
     is_estimated: bool = False
     calibration_method: str = "CHARUCO_BOARD"
-    uncertainty_mm: float = 2.0  # see docstring above; ChArUco path default
+    uncertainty_mm: float = 2.0
     failure_code: str | None = None
     failure_message: str | None = None
-    # Debug: measured square size in rectified image pixels
     measured_square_px: float | None = None
+    corner_count: int = 0
+    reprojection_residual_px: float | None = None
+    board_coverage_pct: float | None = None
+    quality_passed: bool = True
 
 
 def compute_calibration(
@@ -79,16 +83,12 @@ def compute_calibration(
     """
     Compute homography and mm/px scale from ChArUco detection result.
 
-    If ChArUco is detected, computes exact homography and sub-millimeter scale.
-    If ChArUco is not detected (or fails), activates the Autonomous Packhouse
-    Overhead Benchmark Model (65cm bench height, 700mm FOV prior) so downstream
-    stages, grading, and Mandi settlement compute realistic physical metrics.
+    If ChArUco is detected and passes quality gates, computes exact homography and sub-millimeter scale.
+    If ChArUco is not detected or fails quality gates, engages the Autonomous Packhouse
+    Overhead Benchmark Model (screening mode only; forces NEEDS_REVIEW).
     """
+    import math
     h_img, w_img = image.shape[:2]
-    # Autonomous Produce Benchmark Model:
-    # Standard APMC mobile handheld capture distance is ~25-30cm (+-5cm) over a plate/tray.
-    # Standard smartphone primary lens (26mm equiv, ~62 deg horizontal FOV)
-    # covers approximately 260mm horizontal width at this close-up distance.
     estimated_scale = float(np.clip(
         260.0 / max(1.0, float(w_img)),
         settings.scale_min_mm_per_px,
@@ -107,14 +107,17 @@ def compute_calibration(
             is_estimated=True,
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
             uncertainty_mm=5.0,
-            failure_code=marker_result.failure_code,
-            failure_message=marker_result.failure_message,
+            failure_code=marker_result.failure_code or "marker_not_detected",
+            failure_message=marker_result.failure_message or "Calibration card not detected in frame.",
+            corner_count=0,
+            quality_passed=False,
         )
 
     corners = marker_result.charuco_corners  # (N, 1, 2) float32 in image space
     ids = marker_result.charuco_ids          # (N, 1) int32
 
-    if corners is None or ids is None or len(corners) < 4:
+    corner_count = len(corners) if corners is not None else 0
+    if corners is None or ids is None or corner_count < 4:
         logger.warning("Fewer than 4 corners for homography. Falling back to autonomous benchmark scale.")
         return CalibrationResult(
             rectified_image=image,
@@ -124,11 +127,38 @@ def compute_calibration(
             calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
             uncertainty_mm=5.0,
             failure_code=FAIL_HOMOGRAPHY_FAILED,
-            failure_message="Not enough corners for homography computation.",
+            failure_message="Not enough corners for homography computation (minimum 4 required).",
+            corner_count=corner_count,
+            quality_passed=False,
+        )
+
+    img_pts = corners.reshape(-1, 2).astype(np.float32)
+
+    # Board pixel coverage gate
+    try:
+        board_hull = cv2.convexHull(img_pts)
+        board_area_px = float(cv2.contourArea(board_hull))
+        coverage_pct = round((board_area_px / max(1.0, float(w_img * h_img))) * 100.0, 2)
+    except Exception:
+        coverage_pct = 1.0
+
+    if coverage_pct < 0.20:
+        logger.warning("Board coverage too small (%.2f%%). Falling back to estimated scale.", coverage_pct)
+        return CalibrationResult(
+            rectified_image=image,
+            scale_mm_per_px=estimated_scale,
+            perspective_valid=False,
+            is_estimated=True,
+            calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
+            uncertainty_mm=5.0,
+            failure_code="board_too_small",
+            failure_message=f"Calibration board coverage ({coverage_pct}%) too small for metrological accuracy.",
+            corner_count=corner_count,
+            board_coverage_pct=coverage_pct,
+            quality_passed=False,
         )
 
     # Build the board's 3D object points (assuming Z=0 for the flat board)
-    # ChArUco corner positions are on a regular grid with known spacing
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
     board = cv2.aruco.CharucoBoard(
         size=(settings.charuco_board_squares_x, settings.charuco_board_squares_y),
@@ -138,14 +168,12 @@ def compute_calibration(
     )
 
     # Get the object points (world coordinates) for the detected corner IDs
-    obj_points_3d = board.getChessboardCorners()  # all corners in 3D
-    # Filter to only the detected IDs
+    obj_points_3d = board.getChessboardCorners()
     ids_flat = ids.flatten()
     obj_pts = np.array(
-        [obj_points_3d[i][:2] for i in ids_flat],  # take X, Y only (Z=0)
+        [obj_points_3d[i][:2] for i in ids_flat],
         dtype=np.float32,
     )
-    img_pts = corners.reshape(-1, 2).astype(np.float32)
 
     # Scale obj_pts from metres to mm for easier interpretation
     obj_pts_mm = obj_pts * 1000.0  # now in mm
@@ -167,6 +195,37 @@ def compute_calibration(
                 "Homography computation failed. Ensure the calibration board "
                 "is flat and not warped."
             ),
+            corner_count=corner_count,
+            board_coverage_pct=coverage_pct,
+            quality_passed=False,
+        )
+
+    # Reprojection residual check
+    try:
+        H_inv = np.linalg.inv(H)
+        obj_pts_h = np.hstack([obj_pts_mm, np.ones((len(obj_pts_mm), 1))])
+        proj_img_pts_h = (H_inv @ obj_pts_h.T).T
+        proj_img_pts = proj_img_pts_h[:, :2] / np.maximum(proj_img_pts_h[:, 2:3], 1e-9)
+        reproj_errs = np.linalg.norm(img_pts - proj_img_pts, axis=1)
+        rms_residual = float(np.sqrt(np.mean(reproj_errs ** 2)))
+    except Exception:
+        rms_residual = 1.0
+
+    if rms_residual > 5.0:
+        logger.warning("Reprojection residual too high (%.2f px). Rejecting calibration.", rms_residual)
+        return CalibrationResult(
+            rectified_image=image,
+            scale_mm_per_px=estimated_scale,
+            perspective_valid=False,
+            is_estimated=True,
+            calibration_method="AUTONOMOUS_OVERHEAD_HEURISTIC",
+            uncertainty_mm=5.0,
+            failure_code="high_reprojection_error",
+            failure_message=f"Reprojection residual ({rms_residual:.2f}px) exceeds quality threshold (5.0px).",
+            corner_count=corner_count,
+            reprojection_residual_px=round(rms_residual, 2),
+            board_coverage_pct=coverage_pct,
+            quality_passed=False,
         )
 
     # ── Compute rectified image ────────────────────────────────────────────────
@@ -263,14 +322,20 @@ def compute_calibration(
     else:
         parallax_uncertainty_mm = 1.5
 
+    total_uncertainty_mm = round(math.sqrt((rms_residual * mm_per_px)**2 + parallax_uncertainty_mm**2), 2)
+
     return CalibrationResult(
         rectified_image=rectified,
         scale_mm_per_px=mm_per_px,
         perspective_valid=True,
         is_estimated=False,
         calibration_method="CHARUCO_BOARD",
-        uncertainty_mm=parallax_uncertainty_mm,
+        uncertainty_mm=total_uncertainty_mm,
         measured_square_px=px_per_mm * (settings.charuco_square_length_mm),
+        corner_count=corner_count,
+        reprojection_residual_px=round(rms_residual, 2),
+        board_coverage_pct=coverage_pct,
+        quality_passed=True,
     )
 
 

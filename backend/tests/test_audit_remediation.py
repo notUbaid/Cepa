@@ -353,7 +353,8 @@ class TestUncalibratedOverheadRemediation:
             defect_prediction=defects,
             confidence=conf,
         )
-        assert grade.grade in ("GRADE_A", "UNDER_SIZED", "OVER_SIZED")
+        assert grade.grade == "NEEDS_REVIEW"
+        assert "UNCALIBRATED_SCALE_SCREENING_ONLY" in grade.rejection_reasons
         assert grade.confidence_tier == "NEEDS_REVIEW"
 
 
@@ -620,6 +621,31 @@ class TestResolutionInvariantParallax:
         calib = compute_calibration(img_4k, marker_res)
         # Because board covers ~30% of frame, uncertainty must be standard 2.0 mm (not 3.5 mm)
         assert calib.uncertainty_mm == 2.0
+
+
+class TestSeedServiceIdempotence:
+    """Verifies that seed_demo_data_if_empty is strictly idempotent across multiple invocations."""
+
+    def test_seed_demo_data_called_thrice_preserves_single_record(self):
+        from services.seed_service import seed_demo_data_if_empty, DEMO_INSPECTION_ID
+
+        # Call seed_demo_data_if_empty three times in succession
+        seed_demo_data_if_empty()
+        seed_demo_data_if_empty()
+        seed_demo_data_if_empty()
+
+        db = SessionLocal()
+        try:
+            demo_inspections = db.query(Inspection).filter(
+                (Inspection.id == DEMO_INSPECTION_ID) | (Inspection.lot_id == "LOT-NASHIK-RED-DEMO")
+            ).all()
+            assert len(demo_inspections) == 1, f"Expected exactly 1 demo inspection, found {len(demo_inspections)}"
+            insp = demo_inspections[0]
+            assert insp.report is not None
+            assert len(insp.samples) >= 1
+        finally:
+            db.close()
+
 
 
 

@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { ApiClient } from '../api/client';
 import { resolveMediaUrl } from '../config';
 import { EvidenceDrilldownModal } from '../components/EvidenceDrilldownModal';
+import { CANONICAL_DEMO_INSPECTION_ID } from '../data/canonicalDemoData';
 import {
   InspectionDetail,
   OnionInstanceDetail,
@@ -211,8 +212,26 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   const isAiAvailable = !!rawAi && rawAi.available !== false && !rawAi.error;
   const aiVerdict = rawAi;
 
+  const isCachedSample =
+    currentSample.source === 'cached_sample' ||
+    inspection.source === 'cached_sample' ||
+    inspection.id === CANONICAL_DEMO_INSPECTION_ID ||
+    Boolean(inspection.lot_id?.includes('DEMO'));
+
   return (
     <View style={styles.container}>
+      {/* Explicit Cached Sample / Backend Offline Banner */}
+      {isCachedSample && (
+        <FadeInView delay={30} distance={6}>
+          <View style={styles.demoNoticeBanner}>
+            <View style={styles.demoNoticeDot} />
+            <Text style={styles.demoNoticeText}>
+              CACHED SAMPLE: backend unreachable. Not a live analysis.
+            </Text>
+          </View>
+        </FadeInView>
+      )}
+
       {/* Top Lot Bento KPI Cards */}
       <FadeInView delay={50} distance={10}>
         <View style={styles.kpiContainer}>
@@ -312,14 +331,14 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             <View style={styles.uncalibratedTextWrap}>
               <View style={styles.bannerHeaderRow}>
                 <Text style={styles.calibratedTitle}>
-                  Precision Optical Reference Active
+                  ChArUco 7x5 Geometric Calibration Active
                 </Text>
                 <View style={styles.precisionBadge}>
-                  <Text style={styles.precisionBadgeText}>±0.5mm Calibrated</Text>
+                  <Text style={styles.precisionBadgeText}>Planar ±0.4mm / 3D ±1.5mm</Text>
                 </View>
               </View>
               <Text style={styles.calibratedSubtitle}>
-                Sub-millimeter scale active · Certified for NAFED commercial dispute settlement.
+                Calibrated planar homography (residuals &lt; 0.5px). 3D depth parallax uncertainty: ±1.5–3.5 mm.
               </Text>
             </View>
           </View>
@@ -330,27 +349,27 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             haptic="light"
             onPress={() => {
               alert(
-                "AI Scale & Calibration:\n\n" +
-                "Currently using Smart Overhead Scale based on standard packhouse bench priors.\n\n" +
-                "For legal NAFED dispute certification with ±0.5mm precision, place a reference guide sheet next to the onions."
+                "Assaying Notice — Uncalibrated Screening Scale:\n\n" +
+                "No ChArUco calibration board detected in frame. Using uncalibrated overhead perspective prior.\n\n" +
+                "Per CEPA assaying integrity standards, physical grade certification (Grade A / URS) is locked. All bulbs are flagged as NEEDS_REVIEW."
               );
             }}
             style={styles.autonomousBanner}
           >
-            <View style={styles.autonomousIconBadge}>
-              <Feather name="cpu" size={16} color="#0284c7" />
+            <View style={[styles.autonomousIconBadge, { backgroundColor: '#fef3c7' }]}>
+              <Feather name="alert-triangle" size={16} color="#d97706" />
             </View>
             <View style={styles.uncalibratedTextWrap}>
               <View style={styles.bannerHeaderRow}>
                 <Text style={styles.autonomousTitle}>
-                  Smart Overhead Scale Active
+                  Screening Scale (Uncalibrated — Review Only)
                 </Text>
-                <View style={styles.estPill}>
-                  <Text style={styles.estPillText}>Auto Scale</Text>
+                <View style={[styles.estPill, { backgroundColor: '#fef3c7' }]}>
+                  <Text style={[styles.estPillText, { color: '#b45309' }]}>UNVERIFIED</Text>
                 </View>
               </View>
               <Text style={styles.autonomousSubtitle}>
-                Auto-calibrated from camera height &amp; bulb geometry · Tap for details
+                No planar calibration board detected. Commercial grade certification locked; all bulbs require physical assaying.
               </Text>
             </View>
           </AnimatedPressable>
@@ -1119,7 +1138,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
             />
           </View>
           <Text style={styles.overlayHint}>
-            Cyan = Equatorial Diameter (Deq) • Magenta = Polar Length
+            {isCachedSample ? 'Synthetic composite image • ' : ''}Cyan = Equatorial Diameter (Deq) • Magenta = Polar Length
           </Text>
         </FadeInView>
       ) : (
@@ -1151,7 +1170,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               </View>
               <Text style={styles.zeroStateTitle}>No Onion Bulbs Detected in Capture</Text>
               <Text style={styles.zeroStateDesc}>
-                The camera frame did not contain identifiable onion bulbs against the background. You can instantly load the verified Mandi demo lot to inspect real photographed bulbs, millimeter sizes, and defect classifications.
+                The camera frame did not contain identifiable onion bulbs against the background. You can load a synthetic composite sample image to inspect millimeter sizing and defect classification.
               </Text>
               <AnimatedPressable
                 haptic="heavy"
@@ -1163,7 +1182,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <Text style={styles.loadDemoBtnText}>
-                    Load Verified Mandi Demo Lot (24 Real Bulbs + ChArUco)
+                    Load synthetic demo sample
                   </Text>
                 )}
               </AnimatedPressable>
@@ -2701,5 +2720,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#09090b',
+  },
+  demoNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  demoNoticeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#d97706',
+    marginRight: 8,
+  },
+  demoNoticeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400e',
+    letterSpacing: 0.2,
   },
 });

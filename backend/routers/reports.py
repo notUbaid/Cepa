@@ -20,7 +20,7 @@ from database import get_db
 from models.inspection import Inspection
 from models.report import Report
 from schemas.report import ReportDetail, ReportSummary
-from services.report_generator import generate_pdf_report
+from services.report_generator import generate_pdf_report, _get_policy_verified
 from services.image_storage import path_to_url
 from grading.aggregator import aggregate_from_db_instances
 
@@ -115,6 +115,11 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
         defect_counts=defect_counts,
         ruleset_version=report.ruleset_version,
         model_version=report.model_version,
+        policy_verified=_get_policy_verified(report.ruleset_version),
+        policy_provisional_notice=(
+            None if _get_policy_verified(report.ruleset_version)
+            else "PROVISIONAL: grading thresholds not verified against an official EOI"
+        ),
         geo_lat=report.geo_lat,
         geo_lon=report.geo_lon,
         location_note=report.location_note,
@@ -347,8 +352,9 @@ async def verify_report_seal_endpoint(
     Public verification endpoint to mathematically verify a report's cryptographic HMAC seal.
     Accessible without authentication for APMC gate officers, traders, banks, and farmers.
     """
+    # Public verification allows lookup ONLY via public report_id or share_token (rejects internal DB primary keys)
     report = db.query(Report).filter(
-        (Report.report_id == report_id) | (Report.id == report_id) | (Report.share_token == report_id)
+        (Report.report_id == report_id) | (Report.share_token == report_id)
     ).first()
     if report is None:
         raise HTTPException(status_code=404, detail="Inspection report not found")

@@ -15,6 +15,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from config import settings
 from database import SessionLocal
@@ -43,17 +44,17 @@ def seed_demo_data_if_empty() -> None:
             (Inspection.id == DEMO_INSPECTION_ID) | (Inspection.lot_id == "LOT-NASHIK-RED-DEMO")
         ).first()
 
-        if existing and existing.samples and len(existing.samples[0].onion_instances) >= 15 and existing.report:
+        if existing and existing.samples and len(existing.samples[0].onion_instances) >= 20 and existing.report:
             logger.info("Demo inspection record exists with valid instances and report (id=%s, lot=%s)", existing.id, existing.lot_id)
             return
 
-        # If existing record is corrupted or has stale <15 bulbs from legacy runs, purge it cleanly
+        # If existing record is corrupted or has stale <20 bulbs from legacy runs, purge it cleanly
         if existing:
-            logger.info("Purging stale/incomplete demo inspection %s to re-seed verified 22-bulb dataset", existing.id)
+            logger.info("Purging stale/incomplete demo inspection %s to re-seed demo dataset", existing.id)
             db.delete(existing)
             db.commit()
 
-        logger.info("Seeding verified 22-bulb Mandi demo inspection with ChArUco 7x5 calibration...")
+        logger.info("Seeding synthetic 22-bulb composite demo inspection with ChArUco 7x5 calibration...")
 
         now = datetime.now(timezone.utc)
         inspection = Inspection(
@@ -70,7 +71,7 @@ def seed_demo_data_if_empty() -> None:
             geo_lat=20.1458,
             geo_lon=74.2289,
             location_accuracy=4.2,
-            notes="Verified real mandi onion sample with 24 bulbs & ChArUco 7x5 calibration card under APMC standard intake protocol.",
+            notes="Synthetic composite onion sample with 22 bulbs & ChArUco 7x5 calibration card under APMC standard intake protocol.",
         )
         db.add(inspection)
         db.flush()
@@ -88,17 +89,19 @@ def seed_demo_data_if_empty() -> None:
         for d in [crops_dir, masks_dir, images_dir, reports_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-        demo_img_path = Path(__file__).resolve().parent.parent / "static" / "demo_onion_spread.jpg"
-        target_demo_img = settings.storage_dir / "demo_onion_spread.jpg"
+        demo_img_path = Path(__file__).resolve().parent.parent / "static" / "synthetic_demo_spread.jpg"
+        target_demo_img = settings.storage_dir / "synthetic_demo_spread.jpg"
         demo_sha256 = "DEMO-SHA256"
         if demo_img_path.exists():
             shutil.copy2(demo_img_path, target_demo_img)
             demo_sha256 = hashlib.sha256(target_demo_img.read_bytes()).hexdigest().upper()
 
-        fixture_path = Path(__file__).resolve().parent.parent / "static" / "demo_lot_fixture.json"
+        canonical_fixture = Path(__file__).resolve().parent.parent.parent / "fixtures" / "canonical_demo_lot.json"
+        static_fixture = Path(__file__).resolve().parent.parent / "static" / "demo_lot_fixture.json"
+        fixture_path = canonical_fixture if canonical_fixture.exists() else static_fixture
         if fixture_path.exists():
             # ── Fast deterministic seeding from verified fixture (< 150ms, zero PyTorch overhead) ──
-            logger.info("Loading pre-verified Mandi demo lot fixture from %s", fixture_path.name)
+            logger.info("Loading pre-verified Mandi demo lot fixture from %s", fixture_path)
             with open(fixture_path, "r", encoding="utf-8") as f:
                 fixture = json.load(f)
 
@@ -200,6 +203,8 @@ def seed_demo_data_if_empty() -> None:
             from services.crypto_seal import compute_inspection_seal
             seal_res = compute_inspection_seal(report, inspection)
             report.cryptographic_seal = seal_res.seal_hex
+            report.manifest_hash = seal_res.manifest_hash
+            report.evidence_manifest_json = seal_res.evidence_manifest_json
             report.image_sha256 = seal_res.image_sha256
             report.seal_status = seal_res.seal_status
             db.add(report)
@@ -211,7 +216,7 @@ def seed_demo_data_if_empty() -> None:
             except Exception as e:
                 logger.warning("Could not pre-render demo PDF report: %s", e)
 
-            logger.info("Fast demo lot seed completed in < 150ms: 22 bulbs, calibrated ChArUco scale, HMAC seal valid.")
+            logger.info("Fast demo lot seed completed in < 150ms: 24 bulbs, calibrated ChArUco scale, HMAC seal valid.")
             return
 
         # Fallback if fixture file is missing: execute live pipeline
@@ -220,8 +225,8 @@ def seed_demo_data_if_empty() -> None:
             id=DEMO_SAMPLE_ID,
             inspection_id=inspection.id,
             sample_index=1,
-            image_path="demo_onion_spread.jpg",
-            processed_image_path="demo_onion_spread.jpg",
+            image_path="synthetic_demo_spread.jpg",
+            processed_image_path="synthetic_demo_spread.jpg",
             image_sha256=demo_sha256,
             processing_status="RUNNING",
             scale_mm_per_px=0.5101,
@@ -265,7 +270,7 @@ def seed_demo_data_if_empty() -> None:
             model_version="cepa-cv-pipeline:v1.0",
             share_token=DEMO_SHARE_TOKEN,
             pdf_path=f"reports/{DEMO_REPORT_ID}.pdf",
-            sampling_note="Demonstration Prototype Lot: 1 verified sample photo (22 real bulbs + ChArUco 7x5 card) calibrated at 0.51 mm/px under APMC standard intake protocol.",
+            sampling_note="Demonstration Prototype Lot: 1 synthetic composite sample photo (22 bulbs + ChArUco 7x5 card) calibrated at 0.51 mm/px under APMC standard intake protocol.",
             created_at=now,
         )
         from services.crypto_seal import compute_inspection_seal
@@ -283,6 +288,9 @@ def seed_demo_data_if_empty() -> None:
 
         logger.info("Demo inspection seed completed successfully: inspection_id=%s, share_token=%s", inspection.id, DEMO_SHARE_TOKEN)
 
+    except IntegrityError as ie:
+        db.rollback()
+        logger.info("IntegrityError in seed_demo_data_if_empty (already seeded or concurrent startup): %s", ie)
     except Exception as exc:
         db.rollback()
         logger.exception("Failed during seed_demo_data_if_empty: %s", exc)

@@ -348,7 +348,7 @@ export const QualityCheckScreen: React.FC<QualityCheckScreenProps> = ({
                   style={styles.demoRetryBtn}
                   onPress={handleLoadDemo}
                 >
-                  <Text style={styles.demoRetryBtnText}>Load Mandi Demo Lot Sample</Text>
+                  <Text style={styles.demoRetryBtnText}>Load synthetic demo sample</Text>
                 </AnimatedPressable>
               </View>
             </View>

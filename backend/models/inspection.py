@@ -23,8 +23,11 @@ if TYPE_CHECKING:
 
 class InspectionStatus(str):
     DRAFT = "DRAFT"
+    CAPTURE = "CAPTURE"
     PROCESSING = "PROCESSING"
-    REVIEW = "REVIEW"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    REVIEW = "REVIEW"  # legacy alias
+    READY_TO_CERTIFY = "READY_TO_CERTIFY"
     FINALIZED = "FINALIZED"
 
 
@@ -51,12 +54,15 @@ class Inspection(Base):
     cut_test_internal_defects_found: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cut_test_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # ── Workflow state ────────────────────────────────────────────────────────
+    # ── Workflow state machine ────────────────────────────────────────────────
     status: Mapped[str] = mapped_column(
-        Enum("DRAFT", "PROCESSING", "REVIEW", "FINALIZED", name="inspection_status"),
+        String(30),
         default="DRAFT",
         nullable=False,
     )
+
+    # ── Canonical Provenance Snapshot (frozen at processing time) ────────────
+    provenance_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Geolocation (from device GPS — may be null if permission denied) ──────
     # Location is captured at the time of inspection start (not photo capture)

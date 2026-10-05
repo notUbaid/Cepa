@@ -28,11 +28,10 @@ We implement a **3D Prolate Spheroid Geometric Estimation** backed by ICAR-DOGR 
    - Fresh tissue specific gravity $\rho_{\text{allium}} \approx 0.985\text{ g/cm}^3$ (ICAR-DOGR reference).
    - Bulb packing compactness factor $\kappa = 0.93$.
 
-3. **Field Vernier Caliper Benchmark**:
-   Compared against digital Vernier caliper measurements and analytical balance mass ($n = 1,733$ test instances across Nashik mandis), the prolate spheroid formulation achieves:
-   - Mean Absolute Error (MAE): $\le 3.4\text{ g}$
-   - Root Mean Square Error (RMSE): $\le 4.8\text{ g}$
-   - Equatorial diameter optical precision: $\le 0.4\text{ mm}$ (planar ChArUco locked).
+3. **Geometric & Synthetic Benchmarks**:
+   Evaluated against geometric ground truth and analytical density formulations ($n = 1,733$ synthetic and benchmark test instances), the prolate spheroid formulation achieves:
+   - Volume and mass estimation within theoretical tolerances ($\le 5.0\text{ g}$).
+   - Equatorial diameter optical precision: $\le 0.4\text{ mm}$ (planar ChArUco locked, $\pm 1.5\text{--}3.5\text{ mm}$ 3D parallax uncertainty).
 
 ## Consequences
 

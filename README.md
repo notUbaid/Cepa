@@ -26,6 +26,7 @@
 | **Nodal Authorities** | Ministry of Consumer Affairs, Food & Public Distribution; NAFED; NCCF; Department of Consumer Affairs (DoCA) |
 | **Commodity Focus** | Onion (*Allium cepa L.*), Rabi Buffer Procurement (Price Stabilisation Fund) |
 | **Target Deployment** | APMC Mandi Intake Gates, Central Buffer Ventilated Chawls, Cold Storages |
+| **Policy Status** | **PROVISIONAL (`policy_verified: false`)**: Grading thresholds are based on published PSF/APMC norms; not yet verified against an official tender EOI |
 | **Verification State** | 208 of 209 Automated Pytest Specifications Passing (1 Hardware Camera Dependent Skipped, 0 Failures) |
 
 </div>
@@ -116,7 +117,9 @@ A core engineering principle of CEPA is strict metrological honesty: 2D optical 
 | **Internal Produce Rot** | Sub-surface microbial infection | **Not visible to surface RGB cameras** | Mandatory certificate disclaimer; cut-test protocol |
 
 > **Metrological Invariant**:
-> CEPA does **not** claim unverified sub-millimeter Vernier caliper equivalence in field conditions. Instead, whenever a bulb's optical diameter falls within $\pm 3.0\text{ mm}$ of any administrative grading cutoff, `uncertainty_flag = True` is assigned, routing the bulb to human officer review.
+> - **Method**: ChArUco homography gives physical scale; sizing uses a documented uncertainty budget (±1.5 to 3.5 mm from parallax, flagged per bulb near grade thresholds).
+> - **Evidence**: Synthetic bench result (validated by `TestMetrologySyntheticBench` in `backend/tests/test_metrology_accuracy.py`, recovering equatorial diameter within $\le 1.2\text{ mm}$ error across rotations and blur levels).
+> - **Status**: Field validation against physical calipers: not yet performed.
 
 *Deep-dive documentation:* [`docs/METROLOGY_SPECIFICATION.md`](docs/METROLOGY_SPECIFICATION.md) | [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)
 

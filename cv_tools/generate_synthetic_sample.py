@@ -115,7 +115,7 @@ def generate_synthetic_onion_spread() -> Path:
             cv2.line(table, (tip_x, tip_y), shoot_end, (30, 180, 50), 5)
             cv2.circle(table, shoot_end, 5, (40, 210, 60), -1)
 
-    out_path = OUT_DIR / "synthetic_onion_spread_sample.jpg"
+    out_path = Path(__file__).parent.parent / "backend" / "static" / "synthetic_demo_spread.jpg"
     cv2.imwrite(str(out_path), table, [cv2.IMWRITE_JPEG_QUALITY, 95])
     print(f"Generated synthetic test image: {out_path} ({canvas_w}x{canvas_h} px)")
     return out_path

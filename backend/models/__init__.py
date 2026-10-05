@@ -13,6 +13,7 @@ try:
     from models.measurement import Measurement
     from models.classification_result import ClassificationResult
     from models.report import Report
+    from models.audit_event import AuditEvent
 except ImportError:
     from backend.models.inspection import Inspection
     from backend.models.sample import Sample
@@ -21,6 +22,7 @@ except ImportError:
     from backend.models.measurement import Measurement
     from backend.models.classification_result import ClassificationResult
     from backend.models.report import Report
+    from backend.models.audit_event import AuditEvent
 
 __all__ = [
     "Inspection",
@@ -30,4 +32,5 @@ __all__ = [
     "Measurement",
     "ClassificationResult",
     "Report",
+    "AuditEvent",
 ]

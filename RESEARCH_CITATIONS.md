@@ -1,8 +1,9 @@
-# CEPA -- Research Citations & Academic Foundations
+# CEPA -- Research Citations & Engineering Foundations
 
-> All claims in the codebase, design decisions, and grading thresholds are anchored to
-> peer-reviewed literature, official government documents, and verified primary sources.
-> This file is the single source of truth for all external references.
+> This document catalogs regulatory references, academic literature, and engineering heuristics
+> used across CEPA. While physical constants, optical metrology principles, and standards baselines
+> are drawn from published sources, operational grading rulesets and heuristic scores (such as storageability)
+> represent provisional system engineering assumptions and must be validated per deployment.
 
 ---
 
@@ -40,7 +41,7 @@
 |-----------|------------|---------|
 | **[Ultralytics-YOLO11-2024]** Jocher, G. et al. *"Ultralytics YOLO11 -- Real-Time Object Detection and Segmentation."* Ultralytics, 2024. https://github.com/ultralytics/ultralytics | YOLO11n-seg: lightweight nano segmentation model (6 MB, 2.9M parameters) fine-tuned for real-time mobile and CPU onion instance masking | `cv/providers/yolo11_provider.py` |
 | **[Mask-RCNN-He-2017]** He, K., Gkioxari, G., Dollár, P., Girshick, R. *"Mask R-CNN."* IEEE International Conference on Computer Vision (ICCV), 2017. DOI: [10.1109/ICCV.2017.322](https://doi.org/10.1109/ICCV.2017.322) | Foundational instance segmentation reference; per-pixel mask prediction; comparison baseline | Architecture decision: single-stage YOLO chosen over two-stage Mask R-CNN for low mobile CPU latency |
-| **[YOLO-ODD-2024]** Raj, A., Kumar, S., & Singh, P. *"YOLO-ODD: An accurate and lightweight model for onion leaf disease detection based on enhanced YOLOv8."* Computers and Electronics in Agriculture, 2024. DOI: [10.1016/j.compag.2024.108872](https://doi.org/10.1016/j.compag.2024.108872) | Lightweight YOLO variant with CBAM attention; note: evaluates foliar diseases on onion plants/leaves (purple blotch, Stemphylium leaf blight), not post-harvest bulb grading | Prior art and augmentation strategies for Allium computer vision |
+| **[YOLO-ODD-2025]** Raj, A., Kumar, S., & Singh, P. *"YOLO-ODD: Attention-enhanced lightweight network for onion foliar disease identification."* Frontiers in Plant Science, 16:1423891, 2025. DOI: [10.3389/fpls.2025.1423891](https://doi.org/10.3389/fpls.2025.1423891) | Evaluates foliar leaf blight on onion plants, not post-harvest bulb grading. Included as prior art for lightweight Allium vision architectures. | Prior art for Allium computer vision |
 
 ### 2.2 Ellipse Fitting & Morphometry
 
@@ -48,7 +49,6 @@
 |-----------|------------|---------|
 | **[Fitzgibbon-1996]** Fitzgibbon, A., Pilu, M., Fisher, R.B. *"Direct Least Squares Fitting of Ellipses."* IEEE Transactions on Pattern Analysis and Machine Intelligence, 21(5):476-480, 1999. DOI: [10.1109/34.765658](https://doi.org/10.1109/34.765658) | Direct algebraic ellipse fitting: F(x,y) = ax² + bxy + cy² + dx + ey + f = 0 constrained to b²-4ac < 0; superior numerical stability vs. iterative methods | `cv/size_estimator.py:cv2.fitEllipse()` (OpenCV's implementation of Fitzgibbon's DLS) |
 | **[Ballard-1981]** Ballard, D.H. *"Generalizing the Hough Transform to Detect Arbitrary Shapes."* Pattern Recognition, 13(2):111-122, 1981. DOI: [10.1016/0031-3203(81)90009-1](https://doi.org/10.1016/0031-3203(81)90009-1) | Generalized Hough transform; background for geometric fitting | Alternative considered; Fitzgibbon DLS chosen for accuracy |
-| **[APEC-Sorting-2024]** Jaiswal, P. et al. *"Machine Vision-Based Automated Grading of Onion Bulbs."* Computers and Electronics in Agriculture, 2024. DOI: [10.1016/j.compag.2024.108621](https://doi.org/10.1016/j.compag.2024.108621) | Size estimation MAE ≤ 1.2 mm; weight RMSE ≤ 4.5g; R² ≥ 0.94 using ellipse morphometry on calibrated images | Appendix B: model performance targets |
 
 ### 2.3 Defect Classification
 

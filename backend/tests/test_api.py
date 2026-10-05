@@ -17,7 +17,7 @@ if str(backend_dir) not in sys.path:
 from main import app
 from database import Base, engine
 
-SAMPLE_IMG_PATH = Path(__file__).parent.parent.parent / "cv_tools" / "test_data" / "synthetic_onion_spread_sample.jpg"
+SAMPLE_IMG_PATH = Path(__file__).parent.parent / "static" / "synthetic_demo_spread.jpg"
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +34,21 @@ class TestHealthEndpoints:
         data = response.json()
         assert data["status"] == "ok"
         assert data["service"] == "cepa-backend"
+
+    def test_health_liveness(self, client: TestClient):
+        response = client.get("/api/v1/health/live")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+
+    def test_health_readiness(self, client: TestClient):
+        response = client.get("/api/v1/health/ready")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ready"
+        assert "checks" in data
+        assert data["checks"]["database"]["status"] == "ok"
+        assert data["checks"]["storage"]["status"] == "ok"
 
     def test_cv_health(self, client: TestClient):
         response = client.get("/api/v1/health/cv")

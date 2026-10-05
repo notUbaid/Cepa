@@ -33,7 +33,7 @@ def run_smoke_test():
     print(f"PASSED: ID={insp_id}, Farmer={insp.get('farmer_name')}, Lot={insp['lot_id']}")
 
     from pathlib import Path
-    img_path = Path(__file__).resolve().parent.parent / "static" / "demo_onion_spread.jpg"
+    img_path = Path(__file__).resolve().parent.parent / "static" / "synthetic_demo_spread.jpg"
     with open(img_path, "rb") as f:
         img_bytes = f.read()
 

@@ -1,6 +1,7 @@
 """Health check router."""
 from __future__ import annotations
 
+import json
 import logging
 import platform
 from datetime import datetime, timezone
@@ -18,13 +19,16 @@ router = APIRouter(prefix="/api/v1", tags=["health"])
 _DEMO_SAMPLE_PATH = (
     Path(__file__).resolve().parent.parent
     / "static"
-    / "demo_onion_spread.jpg"
+    / "synthetic_demo_spread.jpg"
 )
 
 
 @router.get("/health")
-async def health() -> dict:
-    """Basic liveness check."""
+@router.get("/health/live")
+async def health_liveness() -> dict:
+    """
+    Kubernetes/container liveness check: confirms process is alive and event loop is responsive.
+    """
     return {
         "status": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -32,6 +36,67 @@ async def health() -> dict:
         "version": "0.1.0",
         "python": platform.python_version(),
     }
+
+
+@router.get("/health/ready")
+async def health_readiness() -> dict:
+    """
+    Readiness probe: validates all downstream operational subsystems before routing traffic.
+    Checks: database connectivity, storage write permissions, CV pipeline readiness, and grading policy.
+    """
+    checks = {}
+    is_ready = True
+
+    # 1. Database check
+    from database import engine
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        checks["database"] = {"status": "ok", "engine": "sqlite" if "sqlite" in str(engine.url) else "postgresql"}
+    except Exception as e:
+        checks["database"] = {"status": "failed", "error": str(e)}
+        is_ready = False
+
+    # 2. Storage directory check
+    from config import settings
+    try:
+        storage_dir = settings.storage_dir
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        probe_file = storage_dir / ".readiness_probe"
+        probe_file.write_text("probe", encoding="utf-8")
+        probe_file.unlink(missing_ok=True)
+        checks["storage"] = {"status": "ok", "path": str(storage_dir)}
+    except Exception as e:
+        checks["storage"] = {"status": "failed", "error": str(e)}
+        is_ready = False
+
+    # 3. CV Subsystems & Policy check
+    cv = get_cv_status()
+    checks["cv_pipeline"] = {
+        "status": "ok" if cv.get("seg_ready") else "degraded",
+        "segmentation": cv.get("seg_provider"),
+        "defect_classifier": cv.get("defect_classifier"),
+        "active_policy": cv.get("active_policy"),
+        "policy_verified": cv.get("policy_verified"),
+    }
+    if not cv.get("seg_ready"):
+        is_ready = False
+
+    status_code = 200 if is_ready else 503
+    payload = {
+        "status": "ready" if is_ready else "degraded",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "checks": checks,
+    }
+    if not is_ready:
+        from fastapi import Response
+        return Response(
+            content=json.dumps(payload),
+            status_code=503,
+            media_type="application/json",
+        )
+    return payload
 
 
 @router.get("/health/cv")
@@ -46,12 +111,12 @@ async def cv_health() -> dict:
 
 @router.get("/demo/sample-image")
 async def get_demo_sample_image():
-    """Returns a verified high-resolution onion spread sample with ChArUco card."""
+    """Returns a synthetic onion spread composite sample with ChArUco card."""
     if _DEMO_SAMPLE_PATH.exists():
         return FileResponse(
             _DEMO_SAMPLE_PATH,
             media_type="image/jpeg",
-            filename="demo_onion_spread.jpg",
+            filename="synthetic_demo_spread.jpg",
         )
     raise HTTPException(status_code=404, detail="Demo sample image not found on disk")
 

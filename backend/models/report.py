@@ -54,11 +54,20 @@ class Report(Base):
 
     # ── Generated files ───────────────────────────────────────────────────────
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    pdf_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    # ── Sovereign Cryptographic Seal ───────────────────────────────────────────
+    # ── Tamper-Evident Seal & Canonical Evidence Manifest ─────────────────────
     cryptographic_seal: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    evidence_manifest_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     seal_status: Mapped[str | None] = mapped_column(String(32), nullable=True, default="PENDING")
+
+    # ── Report Versioning & Immutability ─────────────────────────────────────
+    report_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", nullable=False)  # ACTIVE, VOIDED, REISSUED
+    reissued_from_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    provenance_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Lot-level statistics ──────────────────────────────────────────────────
     total_bulbs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

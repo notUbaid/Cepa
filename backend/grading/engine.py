@@ -24,9 +24,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from cv.confidence import ConfidenceAssessment
-from cv.defect_classifier import DefectPrediction
-from cv.size_estimator import SizeEstimate
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cv.confidence import ConfidenceAssessment
+    from cv.defect_classifier import DefectPrediction
+    from cv.size_estimator import SizeEstimate
 from grading.policy_loader import GradingPolicy
 
 logger = logging.getLogger(__name__)
@@ -168,6 +171,23 @@ class GradingEngine:
                 confidence_tier=confidence.tier,
                 rejection_reasons=reasons,
                 explanation=explanation,
+            )
+
+        # ── HARD CALIBRATION GATE: Uncalibrated / Estimated scale cannot certify ─
+        # Physical grade certification strictly requires valid planar ChArUco calibration.
+        # Uncalibrated / estimated scale bulbs are routed to NEEDS_REVIEW for screening only.
+        if getattr(confidence, "is_estimated_scale", False):
+            return BulbGradingResult(
+                grade="NEEDS_REVIEW",
+                confidence_tier="NEEDS_REVIEW",
+                rejection_reasons=["UNCALIBRATED_SCALE_SCREENING_ONLY"],
+                explanation={
+                    **explanation,
+                    "calibration_gate": (
+                        "Physical grading blocked: Scale was derived from uncalibrated overhead heuristic. "
+                        "Certifiable Grade A / URS requires valid planar ChArUco calibration or authenticated officer override."
+                    ),
+                },
             )
 
         # ── No hard rejections -- try for Grade A ───────────────────────────────

@@ -115,7 +115,8 @@ export class ApiClient {
   }
 
   static async listInspections(): Promise<InspectionSummary[]> {
-    return this.request<InspectionSummary[]>('/api/v1/inspections');
+    const list = await this.request<InspectionSummary[]>('/api/v1/inspections');
+    return list.map((item) => ({ ...item, source: 'live' as const }));
   }
 
   static async createInspection(data: {
@@ -134,11 +135,12 @@ export class ApiClient {
     cut_test_internal_defects_found?: number;
     cut_test_notes?: string;
   }): Promise<InspectionDetail> {
-    return this.request<InspectionDetail>('/api/v1/inspections', {
+    const res = await this.request<InspectionDetail>('/api/v1/inspections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    return { ...res, source: 'live' };
   }
 
   static async updateInspection(
@@ -157,20 +159,22 @@ export class ApiClient {
       cut_test_notes?: string;
     }
   ): Promise<InspectionDetail> {
-    return this.request<InspectionDetail>(`/api/v1/inspections/${id}`, {
+    const res = await this.request<InspectionDetail>(`/api/v1/inspections/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    return { ...res, source: 'live' };
   }
 
   static async getInspection(id: string): Promise<InspectionDetail> {
     try {
-      return await this.request<InspectionDetail>(`/api/v1/inspections/${id}`);
+      const data = await this.request<InspectionDetail>(`/api/v1/inspections/${id}`);
+      return { ...data, source: 'live' };
     } catch (err) {
       if (id === CANONICAL_DEMO_INSPECTION_ID || id.includes('DEMO')) {
         console.warn('[ApiClient] Remote getInspection failed, serving canonical offline demo:', err);
-        return CANONICAL_DEMO_INSPECTION;
+        return { ...CANONICAL_DEMO_INSPECTION, source: 'cached_sample' };
       }
       throw err;
     }
@@ -182,12 +186,13 @@ export class ApiClient {
 
   static async seedDemoInspection(forceReprocess: boolean = false): Promise<InspectionDetail> {
     try {
-      return await this.request<InspectionDetail>(`/api/v1/demo/seed-inspection?force_reprocess=${forceReprocess}`, {
+      const data = await this.request<InspectionDetail>(`/api/v1/demo/seed-inspection?force_reprocess=${forceReprocess}`, {
         method: 'POST',
       });
+      return { ...data, source: 'live' };
     } catch (err) {
       console.warn('[ApiClient] Remote seedDemoInspection failed or cold-starting, returning canonical offline demo:', err);
-      return CANONICAL_DEMO_INSPECTION;
+      return { ...CANONICAL_DEMO_INSPECTION, source: 'cached_sample' };
     }
   }
 
@@ -398,8 +403,8 @@ export class ApiClient {
       if (inspectionId === CANONICAL_DEMO_INSPECTION_ID || inspectionId.includes('DEMO')) {
         return {
           inspection_id: inspectionId,
-          answer: `[Agronomist Telemetry - Demo Mode] The Nashik Red onion lot demonstrates 83.3% Grade A conformity under BIS IS 17912:2022. Diameters cluster tightly at Ø 63.2 mm with 0.51 mm/px optical caliper resolution. Zero basal rot and high dry-matter curing permit up to 135 days ambient godown storage. Benchmark valuation: ₹2,450/qtl.`,
-          powered_by: 'CEPA Mandi Agronomist Engine (Offline Verified)',
+          answer: 'AI explanation unavailable offline.',
+          powered_by: 'Cepa Offline Fallback',
           is_fallback: true,
         };
       }
@@ -409,7 +414,8 @@ export class ApiClient {
 
   static async getSample(inspectionId: string, sampleId: string): Promise<SampleDetail> {
     try {
-      return await this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);
+      const data = await this.request<SampleDetail>(`/api/v1/inspections/${inspectionId}/samples/${sampleId}`);
+      return { ...data, source: 'live' };
     } catch (err) {
       if (
         inspectionId === CANONICAL_DEMO_INSPECTION_ID ||
@@ -417,7 +423,7 @@ export class ApiClient {
         inspectionId.includes('DEMO')
       ) {
         console.warn('[ApiClient] Remote getSample failed, serving canonical offline demo sample:', err);
-        return CANONICAL_DEMO_SAMPLE;
+        return { ...CANONICAL_DEMO_SAMPLE, source: 'cached_sample' };
       }
       throw err;
     }

@@ -14,10 +14,9 @@ A core tenet of the Cepa project is absolute scientific honesty: **the project m
 
 ## 2. Projected 2D Geometry vs. Caliper Sizing
 - **Physical Reality**: An onion bulb is a triaxial spheroid resting on a flat plane.
-- **The Constraint**: A top-down 2D photograph captures an orthographic projection of the bulb's upper hemisphere.
-  - Sizing derived from mask area ($D_{\text{eq}} = 2\sqrt{\frac{A}{\pi}}$) represents the diameter of an equivalent circular disk.
-  - Sizing using fitted ellipses ($D_{\text{major}}, D_{\text{minor}}$) captures visible planar axes.
-  - If a bulb is oriented vertically (neck pointing up) vs horizontally (neck sideways), the projected equatorial width varies by approximately $\pm 5\text{ mm} - 12\text{ mm}$.
+- **Method**: ChArUco homography gives physical scale; sizing uses a documented uncertainty budget (±1.5 to 3.5 mm from parallax, flagged per bulb near grade thresholds).
+- **Evidence**: Synthetic bench result (validated by `TestMetrologySyntheticBench` in `backend/tests/test_metrology_accuracy.py`, recovering equatorial diameter within $\le 1.2\text{ mm}$ error across rotations and blur levels).
+- **Status**: Field validation against physical calipers: not yet performed.
 - **System Policy**: The system marks all size values with `projection_note` and activates `uncertainty_flag = True` whenever a bulb's diameter falls within $3\text{ mm}$ of any grading threshold.
 
 ---

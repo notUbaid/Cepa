@@ -42,6 +42,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [filter, setFilter] = useState<'ALL' | 'FINALIZED' | 'REVIEW'>('ALL');
   const [loadingDemoLot, setLoadingDemoLot] = useState(false);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [isLive, setIsLive] = useState<boolean>(true);
 
   const handleLoadDemoLot = async () => {
     Haptics.heavy();
@@ -78,8 +79,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const loadData = async () => {
     try {
-      const list = await ApiClient.listInspections().catch(() => []);
-      if (list.length === 0) {
+      const list = await ApiClient.listInspections();
+      if (!list || list.length === 0) {
+        setIsLive(false);
         // Pre-populate with canonical demo lot so the screen is never blank during cold start
         setInspections([
           {
@@ -99,10 +101,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           },
         ]);
       } else {
+        setIsLive(true);
         setInspections(list);
       }
     } catch (e) {
       console.warn('Failed to load home data, seeding demo lot:', e);
+      setIsLive(false);
       setInspections([
         {
           id: CANONICAL_DEMO_INSPECTION_ID,
@@ -147,6 +151,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Network / Execution Mode Banner */}
+      <View style={isLive ? styles.liveStatusBanner : styles.demoStatusBanner}>
+        <View style={isLive ? styles.liveStatusDot : styles.demoStatusDot} />
+        <Text style={isLive ? styles.liveStatusText : styles.demoStatusText}>
+          {isLive
+            ? 'LIVE MANDI TELEMETRY — Connected to Assaying Gateway'
+            : 'CACHED SAMPLE: backend unreachable. Not a live analysis.'}
+        </Text>
+      </View>
+
       {/* Executive Mandi Telemetry Bento Bar */}
       <FadeInView delay={50} distance={10}>
         <View style={styles.kpiRow}>
@@ -181,12 +195,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <View style={[styles.kpiCard, styles.kpiCardCyan]}>
                 <View style={styles.kpiHeaderRow}>
                   <Feather name="crosshair" size={11} color="#0284c7" />
-                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>PRECISION</Text>
+                  <Text style={[styles.kpiPillTag, { color: '#0284c7' }]}>METROLOGY</Text>
                 </View>
                 <Text style={[styles.kpiValue, { color: '#0369a1' }]}>
-                  ±0.5<Text style={styles.kpiUnit}>mm</Text>
+                  ±0.4<Text style={styles.kpiUnit}>mm</Text>
                 </Text>
-                <Text style={styles.kpiSubLabel}>Caliper Lock</Text>
+                <Text style={styles.kpiSubLabel}>Planar (3D ±1.5mm)</Text>
               </View>
             </>
           )}
@@ -213,7 +227,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </View>
             <Text style={styles.stationTitle}>Autonomous Mandi Quality Terminal</Text>
             <Text style={styles.stationDesc}>
-              Continuous video sweeps or top-down photo inspection. Real-time rot detection, optical caliper sizing, and APMC valuation in seconds.
+              Continuous video sweeps or top-down photo inspection. Real-time rot detection, ChArUco planar sizing, and APMC valuation in seconds.
             </Text>
             <View style={styles.stationChipRow}>
               <View style={styles.stationChip}>
@@ -329,9 +343,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <Feather name="zap" size={16} color="#b45309" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rapidTitle}>Instant Demo Lot</Text>
+              <Text style={styles.rapidTitle}>Load Synthetic Demo Sample</Text>
               <Text style={styles.rapidSubtitle}>
-                24 real bulbs · 1-click benchmark
+                22 bulbs · Synthetic composite image
               </Text>
             </View>
             <View style={styles.demoLotBadge}>
@@ -1204,5 +1218,53 @@ const styles = StyleSheet.create({
   },
   demoVideoArrow: {
     marginLeft: 6,
+  },
+  liveStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  demoStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  liveStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#059669',
+    marginRight: 8,
+  },
+  demoStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#d97706',
+    marginRight: 8,
+  },
+  liveStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#065f46',
+    letterSpacing: 0.3,
+  },
+  demoStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400e',
+    letterSpacing: 0.3,
   },
 });

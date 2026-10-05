@@ -424,40 +424,21 @@ def run_pipeline(
                             f"Twin/double bulb detected (concavity depth {morph.max_concavity_depth_px:.1f}px). Disqualified from Grade A."
                         )
 
-                # ── Chromatic Black Mold (Aspergillus niger) Override ────────
-                # When significant black mold soot is verified (>15% surface area with L*<32, V<38, A<134),
-                # we elevate rotten_prob to 0.90, triggering ROTTEN hard rejection.
-                if morph.black_mold_pct >= 15.0 and defect_pred is not None:
-                    boosted_rotten = max(defect_pred.rotten_prob, 0.90)
-                    from cv.defect_classifier import DefectPrediction as _DP
-                    defect_pred = _DP(
-                        damaged_prob=defect_pred.damaged_prob,
-                        rotten_prob=boosted_rotten,
-                        sprouted_prob=defect_pred.sprouted_prob,
-                        model_version=defect_pred.model_version + "+chromatic-mold",
-                        is_mock=defect_pred.is_mock,
-                    )
-                    # Preserve prior rejection reasons and explanations (e.g. DOUBLE_BULB)
-                    prior_reasons = list(grading.rejection_reasons)
-                    prior_explanation = dict(grading.explanation)
-
-                    # Re-evaluate grading with boosted rotten_prob
-                    grading = grading_engine.evaluate_bulb(
-                        size_estimate=size_est,
-                        defect_prediction=defect_pred,
-                        confidence=confidence,
-                    )
-                    for r in prior_reasons:
-                        if r not in grading.rejection_reasons:
-                            grading.rejection_reasons.append(r)
-                    grading.explanation.update(prior_explanation)
-                    grading.explanation["black_mold_override"] = (
-                        f"Aspergillus niger soot: {morph.black_mold_pct:.1f}% surface area "
-                        f"(L*<42 & V<45 CIELAB/HSV). rotten_prob elevated to {boosted_rotten:.2f} → ROTTEN."
+                # ── Chromatic Black Mold (Aspergillus niger) Heuristic Rule Override ───
+                # When surface black mold soot is verified (>= 15% surface area with L*<32, V<38),
+                # apply a deterministic heuristic rule override to REJECT without mutating raw model probabilities.
+                if morph.black_mold_pct >= 15.0:
+                    if "ROTTEN" not in grading.rejection_reasons:
+                        grading.rejection_reasons.append("ROTTEN")
+                    grading.grade = "REJECTED"
+                    raw_p = defect_pred.rotten_prob if defect_pred else 0.0
+                    grading.explanation["black_mold_heuristic_override"] = (
+                        f"Heuristic Rule Override: Aspergillus niger surface soot {morph.black_mold_pct:.1f}% >= 15.0% "
+                        f"threshold -> REJECTED (ROTTEN). Raw model rotten_prob={raw_p:.3f} preserved without mutation."
                     )
                     logger.info(
-                        "Instance %d: black mold chromatic override %.1f%% → rotten_prob=%.2f",
-                        idx, morph.black_mold_pct, boosted_rotten,
+                        "Instance %d: black mold heuristic override %.1f%% -> REJECTED (ROTTEN) [model_p=%.2f]",
+                        idx, morph.black_mold_pct, raw_p,
                     )
 
                 # Attach morphology telemetry to explanation

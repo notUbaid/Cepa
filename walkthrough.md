@@ -87,5 +87,5 @@ Benchmarked on single-core Intel/AMD container CPU:
 | **Production Classification**| **PASS** | MobileNetV3 multi-label CNN (`defect_classifier.pt`, 4.1MB). |
 | **RAM++ Isolation** | **PASS** | Contained in `ml/` as offline research tool; excluded from cloud production container. |
 | **Botanical Onion Authenticity** | **PASS** | Obviates false detections via Allium cepa colorimetric & convex solidity gates. |
-| **Metrology Caliper** | **PASS** | Digital Vernier ground-truth benchmark (<2.0mm MAE planar parallax envelope). |
+| **Metrology Calibration** | **PASS** | ChArUco 7x5 geometric benchmark (&le;0.4mm planar residual, GUM uncertainty envelope). |
 | **Cryptographic Seal** | **PASS** | HMAC-SHA256 signature binding raw optical capture SHA-256 + grading metrics. |

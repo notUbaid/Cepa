@@ -18,6 +18,7 @@ export interface InspectionSummary {
   urs_pct?: number;
   rejected_pct?: number;
   cut_test_performed?: boolean;
+  source?: 'live' | 'cached_sample';
 }
 
 export interface InspectionDetail extends InspectionSummary {
@@ -126,6 +127,7 @@ export interface SampleDetail {
   storage_advisory?: any;
   commercial_settlement?: any;
   ai_agronomist_verdict?: AiAgronomistVerdict | null;
+  source?: 'live' | 'cached_sample';
 }
 
 export interface AiAgronomistVerdict {
@@ -220,4 +222,7 @@ export interface ReportDetail {
   seal_status?: string | null;
   integrity_hash?: string | null;
   limitations_note: string;
+  source?: 'live' | 'cached_sample';
+  policy_verified?: boolean;
+  policy_provisional_notice?: string;
 }

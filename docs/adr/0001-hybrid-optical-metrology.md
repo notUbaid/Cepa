@@ -35,4 +35,4 @@ We implement a **Dual-Mode Hybrid Metrological Architecture**:
 - Transparent audit trail for APMC and NAFED grievance tribunals.
 
 ### Negative / Trade-offs
-- Lots graded under heuristic fallback require physical vernier caliper spot-checks prior to buffer stock procurement payout.
+- Lots graded under heuristic fallback require physical manual spot-checks prior to buffer stock procurement payout.

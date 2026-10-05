@@ -125,9 +125,9 @@ class TestOnionAuthenticityRealImages:
     """Verifies that authentic real onions from repository datasets pass with high recall."""
 
     def test_demo_spread_authenticates_genuine_onions(self):
-        img_path = Path(__file__).parent.parent / "static" / "demo_onion_spread.jpg"
+        img_path = Path(__file__).parent.parent / "static" / "synthetic_demo_spread.jpg"
         if not img_path.exists():
-            pytest.skip("demo_onion_spread.jpg not available")
+            pytest.skip("synthetic_demo_spread.jpg not available")
         img = cv2.imread(str(img_path))
         assert img is not None
 
