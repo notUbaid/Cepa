@@ -7,7 +7,7 @@ import platform
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Response
 from fastapi.responses import FileResponse
 
 from services.inspection_service import get_cv_status
@@ -25,16 +25,34 @@ _DEMO_SAMPLE_PATH = (
 
 @router.get("/health")
 @router.get("/health/live")
-async def health_liveness() -> dict:
+async def health_liveness(response: Response) -> dict:
     """
     Kubernetes/container liveness check: confirms process is alive and event loop is responsive.
+    In production, returns 503 if core CV pipeline models failed to load or are mock.
     """
+    from config import settings
+
+    cv = get_cv_status()
+    is_ready = bool(cv.get("seg_ready"))
+    is_prod = settings.backend_env.lower() in ("production", "prod")
+
+    if is_prod and (not is_ready or cv.get("seg_is_mock") or cv.get("defect_is_mock")):
+        response.status_code = 503
+        return {
+            "status": "degraded",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "service": "cepa-backend",
+            "environment": settings.backend_env,
+            "cv": cv,
+        }
+
     return {
         "status": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "cepa-backend",
         "version": "0.1.0",
         "python": platform.python_version(),
+        "is_mock": bool(cv.get("seg_is_mock") or cv.get("defect_is_mock")),
     }
 
 

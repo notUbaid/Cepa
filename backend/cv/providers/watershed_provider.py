@@ -147,7 +147,7 @@ class WatershedSegmentationProvider(SegmentationProvider):
         kernel_peak = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ksize, ksize))
         dist_dilated = cv2.dilate(dist_smooth, kernel_peak)
 
-        peak_thresh = max(10.0, 0.18 * max_dist)
+        peak_thresh = max(12.0, 0.25 * max_dist)
         peaks = (dist_smooth == dist_dilated) & (dist_smooth > peak_thresh)
         peaks_u8 = peaks.astype(np.uint8) * 255
 
@@ -166,7 +166,7 @@ class WatershedSegmentationProvider(SegmentationProvider):
         candidate_peaks.sort(reverse=True, key=lambda p: p[0])
 
         # Dynamic NMS peak suppression scaled by bulb radius
-        nms_r = max(20.0, min(85.0, 0.30 * max_dist))
+        nms_r = max(28.0, min(95.0, 0.45 * max_dist))
         nms_radius_sq = nms_r ** 2
         filtered_peaks: list[tuple[float, int, int]] = []
         for val, cx, cy in candidate_peaks:
@@ -246,6 +246,22 @@ class WatershedSegmentationProvider(SegmentationProvider):
             if circularity < 0.30 and solidity < 0.80:
                 logger.debug("Watershed: discarded non-bulb strip (circ=%.2f, sol=%.2f)", circularity, solidity)
                 continue
+
+            # Reject achromatic background artifacts (neutral gray tables, checkerboard patches)
+            inst_lab = lab[inst_mask > 0]
+            if len(inst_lab) > 0:
+                mean_l = float(np.mean(inst_lab[:, 0]))
+                mean_a = float(np.mean(inst_lab[:, 1]))
+                mean_b = float(np.mean(inst_lab[:, 2]))
+                mean_chroma = np.sqrt((mean_a - 128.0) ** 2 + (mean_b - 128.0) ** 2)
+                inst_de_bg = np.sqrt(
+                    0.30 * (mean_l - bg_lab[0]) ** 2
+                    + (mean_a - bg_lab[1]) ** 2
+                    + (mean_b - bg_lab[2]) ** 2
+                )
+                if mean_chroma < 1.5 or inst_de_bg < 10.0:
+                    logger.debug("Watershed: discarded background artifact (chroma=%.2f, dE=%.2f)", mean_chroma, inst_de_bg)
+                    continue
 
             # Bounding box
             y_indices, x_indices = np.where(inst_mask > 0)

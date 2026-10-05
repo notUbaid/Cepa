@@ -1,3 +1,10 @@
+# CEPA Machine Learning Dataset Manifest & Provenance
+# ====================================================
+# NOTE: The 11,545 multi-source training corpus (and its 1,733 held-out test evaluation
+# split) is an unbundled external benchmark. The compiled MobileNetV3 weights are packaged
+# in backend/weights/defect_classifier.pt, while multi-gigabyte raw image archives are
+# hosted on their respective institutional repositories below.
+
 sources:
   - name: "Mendeley Data: Red and White Onion Bulbs and Leaves"
     url: "https://data.mendeley.com/datasets/42bcyncfhy/2"

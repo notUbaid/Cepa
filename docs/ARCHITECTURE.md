@@ -72,10 +72,10 @@ Every photographic frame captured at the intake station passes through a strictl
           |
           v
 [Stage 1: Pre-Flight Optical Quality Gate]
-  - Resolution Check: >= 1280 x 720 px
-  - Laplacian Variance: >= 80.0 (Motion blur rejection)
-  - Mean Luminance: 40.0 <= Y <= 230.0 (Under/over-exposure protection)
-  - Specular Highlight Fraction: <= 12% (Overhead glare rejection)
+  - Resolution Check: >= 300 px min dimension
+  - Laplacian Variance: >= 35.0 (Motion blur rejection)
+  - Mean Luminance: 25.0 <= Y <= 245.0 (Under/over-exposure protection)
+  - Specular Highlight Fraction: <= 45% (Overhead glare rejection, tuned for high-luma tunic scales)
           | (Passed)
           v
 [Stage 2: Metric Ground Plane Calibration]

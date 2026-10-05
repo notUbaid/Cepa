@@ -146,6 +146,8 @@ class TestOnionAuthenticityRealImages:
         img = cv2.imread(str(img_path))
         assert img is not None
 
+        pytest.importorskip("torch")
+        pytest.importorskip("ultralytics")
         from cv.providers.yolo11_provider import YOLO11SegmentationProvider
         from config import settings
         yolo = YOLO11SegmentationProvider(model_path=settings.seg_model_path)

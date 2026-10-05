@@ -105,6 +105,7 @@ def get_cv_status() -> dict:
         "seg_is_mock": isinstance(_seg_provider, MockSegmentationProvider),
         "defect_classifier": _defect_classifier.model_version if _defect_classifier else "not_loaded",
         "defect_is_mock": _defect_classifier.is_mock if _defect_classifier else True,
+        "is_mock": bool(isinstance(_seg_provider, MockSegmentationProvider) or (_defect_classifier and _defect_classifier.is_mock)),
         "active_policy": _active_policy.version if _active_policy else "not_loaded",
         "policy_verified": _active_policy.verified if _active_policy else False,
         "warning": (

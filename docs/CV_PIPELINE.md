@@ -10,11 +10,11 @@ Every image must pass automated quality gates before entering ML inference. If a
 
 | Metric | Target / Normal | Failure Code | Remedy Instruction |
 |---|---|---|---|
-| **Resolution** | Min dimension $\ge 1000\text{ px}$ | `insufficient_resolution` | Retake photo with high-res camera setting at 50–80 cm height. |
-| **Blur** | Laplacian variance $\ge 80.0$ | `image_too_blurry` | Hold phone steady, allow autofocus to lock before snapping. |
-| **Underexposure** | Grayscale mean lum $\ge 40$ | `too_dark` | Move to better lighting or activate camera flash. |
-| **Overexposure** | Grayscale mean lum $\le 215$ | `too_bright` | Shield spread from harsh direct midday sunlight. |
-| **Specular Glare** | Fraction of $(R,G,B > 250) \le 5\%$ | `excessive_glare` | Reposition light source or change camera angle slightly. |
+| **Resolution** | Min dimension $\ge 300\text{ px}$ | `insufficient_resolution` | Retake photo with camera setting at 50–80 cm height. |
+| **Blur** | Laplacian variance $\ge 35.0$ | `image_too_blurry` | Hold phone steady, allow autofocus to lock before snapping. |
+| **Underexposure** | Grayscale mean lum $\ge 25$ | `too_dark` | Move to better lighting or activate camera flash. |
+| **Overexposure** | Grayscale mean lum $\le 245$ | `too_bright` | Shield spread from harsh direct sunlight. |
+| **Specular Glare** | Fraction of $(R,G,B > 250) \le 45\%$ | `excessive_glare` | Reposition light source or change camera angle slightly. |
 
 ---
 
@@ -52,7 +52,17 @@ Every image must pass automated quality gates before entering ML inference. If a
 
 ## Stage 4: Instance Segmentation & Botanical Authenticity Gate
 
-- **Model**: YOLO11n-seg / YOLO11s-seg with C2PSA attention blocks for dense clusters.
+- **Model**: YOLO11n-seg with C2PSA attention blocks for dense clusters, backed by industrial Watershed fallback.
+
+### 4.1 Segmentation Model Benchmarks (Held-Out Evaluation Set)
+
+Empirically evaluated on 20 held-out mandi scene images comprising 181 annotated ground-truth onion instances at IoU threshold 0.5:
+
+| Provider | Precision | Recall | F1 Score | Measured Details |
+|:---|:---:|:---:|:---:|:---|
+| **YOLO11n-seg (Fine-Tuned)** | **0.916 (91.6%)** | **0.901 (90.1%)** | **0.908 (90.8%)** | Primary provider. 106.7 ms inference on CPU. TP=163, FP=15, FN=18. |
+| **Watershed (Industrial Fallback)** | **0.848 (84.8%)** | **0.464 (46.4%)** | **0.600 (60.0%)** | Zero-weight fallback. Meyer distance transform with chromatic gating. TP=84, FP=15, FN=97. |
+
 - **Dual-Stage Botanical Gate (`cv/onion_validator.py`)**:
   1. **Deep Learning Contaminant Check**: MobileNetV3 ImageNet zero-shot rejection for non-food foreign objects (tennis balls, mugs, stones) with strict offline fallback.
   2. **Botanical Morphology & Chromatic Screening**:

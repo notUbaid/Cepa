@@ -153,7 +153,19 @@ CEPA reports its evaluation transparently across a 70/15/15 stratified test part
 > **Dataset Transparency Note**:
 > Evaluated on single-bulb cutouts curated from public datasets (Mendeley, Roboflow). Field performance on dirty, unwashed, field-run mandi heaps requires domain adaptation and fine-tuning with local harvest imagery.
 
-*Deep-dive documentation:* [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Reports: [`ml/reports/quality_metrics.json`](ml/reports/quality_metrics.json)
+*Deep-dive documentation:* [`docs/CV_PIPELINE.md`](docs/CV_PIPELINE.md) | Reports: [`ml/reports/quality_metrics.json`](ml/reports/quality_metrics.json)
+
+### Measured End-to-End CPU Pipeline Latency Benchmark
+
+Empirically profiled via `backend/scripts/benchmark_pipeline.py` (3 warm-up runs, 30 timed iterations on `synthetic_demo_spread.jpg` [1800×1400 px, 22 bulbs + ChArUco 7×5 card], running PyTorch CPU without GPU acceleration):
+
+| Metric | Measured Value | Mandi Intake Interpretation |
+|:---|:---:|:---|
+| **Median Latency (p50)** | **7,534.8 ms** | Complete 8-stage pipeline intake per sample frame |
+| **95th Percentile (p95)** | **8,167.1 ms** | Conservative SLA budget for busy yard queueing |
+| **Mean ± Std** | **7,474.8 ± 456.5 ms** | Deterministic CPU processing |
+| **Per-Bulb Amortized Latency** | **~340 ms / bulb** | Crop extraction, MobileNetV3 defect scoring, GUM sizing |
+| **Hardware Profile** | **AMD Ryzen 7 CPU (16 logical cores)** | Standard mandi office terminal (no dedicated GPU required) |
 
 ---
 

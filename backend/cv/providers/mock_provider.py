@@ -50,6 +50,10 @@ class MockSegmentationProvider(SegmentationProvider):
     def is_ready(self) -> bool:
         return True  # Always ready — no weights required
 
+    @property
+    def is_mock(self) -> bool:
+        return True
+
     def detect(self, image: np.ndarray) -> SegmentationResult:
         h, w = image.shape[:2]
 
