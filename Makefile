@@ -8,7 +8,8 @@ help:
 	@echo "make test            Run automated test suite (pytest -q)"
 	@echo "make test-cov        Run tests with coverage report"
 	@echo "make attack-tests    Run 20-vector judge attack test suite"
-	@echo "make demo-preflight  Run end-to-end preflight verification"
+	@echo "make preflight       Run automated system preflight audit"
+	@echo "make demo            Launch FastAPI demo server"
 	@echo "make eval-real       Run real PyTorch evaluation pipeline"
 	@echo "make run             Launch backend server (localhost:8000)"
 	@echo "make clean           Remove cache and build artifacts"
@@ -28,8 +29,14 @@ test-cov:
 attack-tests:
 	pytest -v backend/tests/test_judge_attack.py
 
+preflight:
+	python backend/scripts/preflight.py
+
+demo:
+	uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
 demo-preflight:
-	python scripts/demo_preflight.py
+	python backend/scripts/preflight.py
 
 eval-real:
 	python ml/evaluate_real.py
