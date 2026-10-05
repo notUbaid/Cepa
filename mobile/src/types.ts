@@ -225,4 +225,14 @@ export interface ReportDetail {
   source?: 'live' | 'cached_sample';
   policy_verified?: boolean;
   policy_provisional_notice?: string;
+  defect_rate_clopper_pearson_ci?: [number, number] | null;
+  sampling_sufficiency?: {
+    target_margin_of_error_pct: number;
+    confidence_level_pct: number;
+    recommended_total_sample: number;
+    current_sample_size: number;
+    additional_bulbs_needed: number;
+    is_sample_sufficient: boolean;
+    current_margin_of_error_pct: number;
+  } | null;
 }

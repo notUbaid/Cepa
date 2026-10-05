@@ -30,6 +30,8 @@ class ReportSummary(BaseModel):
     cut_test_performed: bool = False
     policy_verified: bool = False
     policy_provisional_notice: str | None = "PROVISIONAL: grading thresholds not verified against an official EOI"
+    defect_rate_clopper_pearson_ci: tuple[float, float] | None = None
+    sampling_sufficiency: dict | None = None
 
 
 class ReportDetail(BaseModel):
@@ -77,6 +79,8 @@ class ReportDetail(BaseModel):
     commercial_settlement: dict | None = None
     apmc_size_distribution: dict | None = None
     lot_weight_statistics: dict | None = None
+    defect_rate_clopper_pearson_ci: tuple[float, float] | None = None
+    sampling_sufficiency: dict | None = None
 
     # Provenance (for transparency)
     ruleset_version: str

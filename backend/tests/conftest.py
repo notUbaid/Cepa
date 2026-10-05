@@ -17,6 +17,19 @@ from grading.policy_loader import GradingPolicy, load_policy
 from grading.engine import GradingEngine
 
 
+@pytest.fixture(autouse=True)
+def configure_test_demo_mode():
+    """Ensure tests run in demo mode by default unless explicitly overriding auth settings."""
+    from config import settings
+    orig_demo = settings.demo_mode
+    orig_enforce = settings.enforce_officer_auth
+    settings.demo_mode = True
+    settings.enforce_officer_auth = False
+    yield
+    settings.demo_mode = orig_demo
+    settings.enforce_officer_auth = orig_enforce
+
+
 @pytest.fixture(scope="session")
 def client():
     """Session-scoped TestClient that triggers FastAPI lifespan events."""

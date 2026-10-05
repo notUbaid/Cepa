@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -72,6 +73,84 @@ class LotQualityStatistics:
     apmc_sizes: APMCSizeDistribution = field(default_factory=APMCSizeDistribution)
     weight_stats: LotWeightStatistics = field(default_factory=LotWeightStatistics)
     commercial_pricing: CommercialPricingAdvice = field(default_factory=CommercialPricingAdvice)
+    clopper_pearson_defect_ci: tuple[float, float] = (0.0, 0.0)
+    sampling_sufficiency: dict[str, Any] = field(default_factory=dict)
+
+
+def compute_clopper_pearson_interval(
+    count: int,
+    total: int,
+    confidence: float = 0.95,
+) -> tuple[float, float]:
+    """
+    Compute exact Clopper-Pearson (1934) confidence interval for a binomial proportion
+    using the Beta distribution quantiles:
+        Lower = Beta.ppf(alpha / 2, count, total - count + 1) for count > 0, else 0.0
+        Upper = Beta.ppf(1 - alpha / 2, count + 1, total - count) for count < total, else 1.0
+    where alpha = 1.0 - confidence.
+
+    Returns (lower_pct, upper_pct) in [0.0, 100.0] rounded to 1 decimal place.
+    Provides mathematically exact conservative coverage required for procurement disputes.
+    """
+    if total <= 0:
+        return 0.0, 0.0
+
+    k = max(0, min(count, total))
+    alpha = 1.0 - confidence
+
+    try:
+        from scipy.stats import beta
+        lower = beta.ppf(alpha / 2.0, k, total - k + 1) if k > 0 else 0.0
+        upper = beta.ppf(1.0 - alpha / 2.0, k + 1, total - k) if k < total else 1.0
+    except Exception:
+        # Fallback to Wilson score interval if scipy is unavailable
+        return compute_wilson_score_interval(k, total)
+
+    return round(float(lower) * 100.0, 1), round(float(upper) * 100.0, 1)
+
+
+def calculate_sample_size_needed(
+    observed_defects: int,
+    total_bulbs: int,
+    target_moe_pct: float = 5.0,
+    confidence_z: float = 1.96,
+) -> dict[str, Any]:
+    """
+    Calculate minimum sample size required under Cochran / normal approximation
+    for estimating lot defect proportion with a specified target margin of error.
+
+    Formula:
+        N* = ceil((Z^2 * p * (1 - p)) / E^2)
+    where:
+        Z = 1.96 (for 95% confidence)
+        E = target_moe_pct / 100.0
+        p = observed defect proportion (clamped to [0.05, 0.95] for conservative risk planning)
+    """
+    target_e = max(0.005, target_moe_pct / 100.0)
+    if total_bulbs > 0:
+        raw_p = observed_defects / total_bulbs
+        p = max(0.05, min(0.95, raw_p))
+    else:
+        p = 0.10
+
+    variance = p * (1.0 - p)
+    recommended_total = int(math.ceil((confidence_z ** 2 * variance) / (target_e ** 2)))
+    additional_needed = max(0, recommended_total - total_bulbs)
+
+    if total_bulbs > 0:
+        current_moe_pct = round(confidence_z * math.sqrt(variance / total_bulbs) * 100.0, 1)
+    else:
+        current_moe_pct = 100.0
+
+    return {
+        "target_margin_of_error_pct": target_moe_pct,
+        "confidence_level_pct": 95.0,
+        "recommended_total_sample": recommended_total,
+        "current_sample_size": total_bulbs,
+        "additional_bulbs_needed": additional_needed,
+        "is_sample_sufficient": total_bulbs >= recommended_total,
+        "current_margin_of_error_pct": current_moe_pct,
+    }
 
 
 def compute_wilson_score_interval(
@@ -277,6 +356,9 @@ def evaluate_lot_statistics(
             f"Off-grade / rejected bulbs ({est_rejected.percentage}%) exceed maximum permissible lot tolerance."
         )
 
+    cp_defect_ci = compute_clopper_pearson_interval(rejected_count, total_bulbs, confidence=0.95)
+    sufficiency = calculate_sample_size_needed(rejected_count, total_bulbs, target_moe_pct=5.0)
+
     return LotQualityStatistics(
         total_sample_size=total_bulbs,
         grade_a=est_grade_a,
@@ -288,4 +370,6 @@ def evaluate_lot_statistics(
         apmc_sizes=apmc_dist,
         weight_stats=weight_stats,
         commercial_pricing=pricing,
+        clopper_pearson_defect_ci=cp_defect_ci,
+        sampling_sufficiency=sufficiency,
     )

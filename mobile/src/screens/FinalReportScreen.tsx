@@ -300,6 +300,59 @@ export const FinalReportScreen: React.FC<FinalReportScreenProps> = ({
         </View>
       </FadeInView>
 
+      {/* Statistical Sampling Confidence (Clopper-Pearson 95% CI) */}
+      <FadeInView delay={165} distance={12}>
+        <View style={styles.sectionCard}>
+          <View style={styles.cardHeaderRow}>
+            <View>
+              <Text style={styles.cardSectionTag}>STATISTICAL ASSAYING PRECISION · EXACT BINOMIAL</Text>
+              <Text style={styles.sectionHeaderTitle}>Defect Rate 95% Confidence Interval</Text>
+            </View>
+            <View
+              style={[
+                styles.storageTierBadge,
+                report.sampling_sufficiency?.is_sample_sufficient
+                  ? styles.storageTierBadgeGood
+                  : styles.storageTierBadgeWarn,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.storageTierText,
+                  report.sampling_sufficiency?.is_sample_sufficient
+                    ? styles.storageTierTextGood
+                    : styles.storageTierTextWarn,
+                ]}
+              >
+                {report.sampling_sufficiency?.is_sample_sufficient ? '±5% CONFIDENT' : 'UNDER-SAMPLED'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.storageScoreHeroRow}>
+            <View style={styles.storageScoreBox}>
+              <Text style={[styles.storageScoreLarge, { color: Colors.textPrimary }]}>
+                {report.defect_rate_clopper_pearson_ci
+                  ? `${report.defect_rate_clopper_pearson_ci[0]}–${report.defect_rate_clopper_pearson_ci[1]}%`
+                  : `${(report.rejected_pct ?? 0).toFixed(1)}%`}
+              </Text>
+              <Text style={styles.storageScoreOutOf}>Clopper-Pearson 95% CI</Text>
+            </View>
+            <View style={styles.storageHorizonBox}>
+              <Text style={styles.storageHorizonLabel}>SAMPLING MARGIN OF ERROR</Text>
+              <Text style={[styles.storageHorizonDays, { color: report.sampling_sufficiency?.is_sample_sufficient ? Colors.accentTeal : Colors.urs }]}>
+                ±{report.sampling_sufficiency?.current_margin_of_error_pct?.toFixed(1) ?? '—'}%
+              </Text>
+              <Text style={styles.storageHorizonSub}>
+                {report.sampling_sufficiency?.additional_bulbs_needed && report.sampling_sufficiency.additional_bulbs_needed > 0
+                  ? `Need ${report.sampling_sufficiency.additional_bulbs_needed} more bulbs for ±5% precision`
+                  : 'Sample size meets ±5% precision threshold'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </FadeInView>
+
       {/* Cold Storage Preservation Advisory */}
       <FadeInView delay={180} distance={12}>
         <View style={styles.sectionCard}>

@@ -376,6 +376,33 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         </FadeInView>
       )}
 
+      {/* Statistical Sampling Precision Bar */}
+      <FadeInView delay={90} distance={8}>
+        <View style={styles.samplingBarContainer}>
+          <View style={styles.samplingBarLeft}>
+            <Feather name="bar-chart-2" size={13} color="#0284c7" />
+            <Text style={styles.samplingBarTitle}>
+              Sampling Precision: ±{total > 0 ? (1.96 * Math.sqrt((Math.max(0.05, Math.min(0.95, rejected / total)) * (1 - Math.max(0.05, Math.min(0.95, rejected / total)))) / total) * 100).toFixed(1) : '100.0'}% MoE (95% CI)
+            </Text>
+          </View>
+          <View style={[styles.samplingBarRight, {
+            backgroundColor: (total >= Math.ceil((1.96 * 1.96 * Math.max(0.05, Math.min(0.95, rejected / (total || 1))) * (1 - Math.max(0.05, Math.min(0.95, rejected / (total || 1))))) / 0.0025))
+              ? '#ecfdf5'
+              : '#fffbeb'
+          }]}>
+            <Text style={[styles.samplingBarSub, {
+              color: (total >= Math.ceil((1.96 * 1.96 * Math.max(0.05, Math.min(0.95, rejected / (total || 1))) * (1 - Math.max(0.05, Math.min(0.95, rejected / (total || 1))))) / 0.0025))
+                ? '#065f46'
+                : '#92400e'
+            }]}>
+              {(total >= Math.ceil((1.96 * 1.96 * Math.max(0.05, Math.min(0.95, rejected / (total || 1))) * (1 - Math.max(0.05, Math.min(0.95, rejected / (total || 1))))) / 0.0025))
+                ? 'Sufficient (±5%)'
+                : `Need +${Math.max(0, Math.ceil((1.96 * 1.96 * Math.max(0.05, Math.min(0.95, rejected / (total || 1))) * (1 - Math.max(0.05, Math.min(0.95, rejected / (total || 1))))) / 0.0025) - total)} bulbs for ±5%`}
+            </Text>
+          </View>
+        </View>
+      </FadeInView>
+
       {/* Multi-Tab View Switcher */}
       <FadeInView delay={100} distance={10}>
         <ScrollView
@@ -2744,5 +2771,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#92400e',
     letterSpacing: 0.2,
+  },
+  samplingBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f9ff',
+    borderColor: '#bae6fd',
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  samplingBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  samplingBarTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0369a1',
+  },
+  samplingBarRight: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  samplingBarSub: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

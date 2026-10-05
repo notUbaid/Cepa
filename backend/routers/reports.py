@@ -43,7 +43,12 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
     from routers.inspections import _get_bulb_storage_profile, _extract_defect_probs
     from cv.shelf_life import compute_lot_storage_advisory
     from grading.commercial import calculate_mandi_settlement
-    from grading.statistics import compute_apmc_size_distribution, compute_lot_weight_statistics
+    from grading.statistics import (
+        compute_apmc_size_distribution,
+        compute_lot_weight_statistics,
+        compute_clopper_pearson_interval,
+        calculate_sample_size_needed,
+    )
 
     storage_profiles = []
     sizes_mm: list[float] = []
@@ -86,6 +91,8 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
     )
     apmc = compute_apmc_size_distribution(sizes_mm)
     weights = compute_lot_weight_statistics(weights_g)
+    cp_ci = compute_clopper_pearson_interval(report.rejected_count, report.total_bulbs)
+    sufficiency = calculate_sample_size_needed(report.rejected_count, report.total_bulbs, target_moe_pct=5.0)
 
     return ReportDetail(
         id=report.id,
@@ -141,6 +148,8 @@ def _report_to_detail(report: Report, inspection: Inspection) -> ReportDetail:
             "min_bulb_weight_g": weights.min_bulb_weight_g,
             "max_bulb_weight_g": weights.max_bulb_weight_g,
         },
+        defect_rate_clopper_pearson_ci=cp_ci,
+        sampling_sufficiency=sufficiency,
         verify_url=f"{settings.report_base_url}/api/v1/reports/{report.report_id}/verify",
         cryptographic_seal=report.cryptographic_seal,
         image_sha256=report.image_sha256,
@@ -407,4 +416,22 @@ async def verify_report_seal_endpoint(
         return HTMLResponse(content=html)
 
     return audit
+
+
+@router.get("/.well-known/cepa-public-key")
+def get_cepa_public_key():
+    """
+    Expose the CEPA Sovereign Root Ed25519 Public Key.
+    Enables banks, buyers, APMC inspectors, and e-NAM nodes to independently verify
+    inspection certificates completely offline without contacting the CEPA server.
+    Conforms to RFC 8032 and RFC 8785 digital notary standards.
+    """
+    from services.crypto_seal import get_ed25519_public_key_hex, get_ed25519_public_key_pem
+    return {
+        "algorithm": "Ed25519",
+        "format": "RFC-8032",
+        "public_key_hex": get_ed25519_public_key_hex(),
+        "public_key_pem": get_ed25519_public_key_pem(),
+        "usage": "cepa-certificate-seals-verification",
+    }
 

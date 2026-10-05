@@ -27,13 +27,12 @@ def verify_officer_token(
     Header:
         X-Officer-Token: <token>
 
-    In development mode (ENFORCE_OFFICER_AUTH=false), unauthenticated requests are
-    permitted with a development officer identity so test suites and local frontends
-    operate without friction. In production, valid token matching settings.officer_api_key
+    Open/unauthenticated officer actions are allowed ONLY when DEMO_MODE=True.
+    When DEMO_MODE=False (production default), a valid token matching settings.officer_api_key
     is strictly required.
     """
-    if not settings.enforce_officer_auth:
-        return x_officer_token or "officer-dev-default"
+    if settings.demo_mode and not settings.enforce_officer_auth:
+        return x_officer_token or "officer-demo-default"
 
     if not x_officer_token:
         logger.warning("Rejected unauthenticated request to protected inspection route")

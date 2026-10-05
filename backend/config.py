@@ -86,7 +86,8 @@ class Settings(BaseSettings):
     seg_iou_threshold: float = 0.45
 
     # ── Security & Authentication ────────────────────────────────────────────
-    officer_api_key: str = "cepa-officer-secret-key-2026"
+    demo_mode: bool = False
+    officer_api_key: str = ""
     enforce_officer_auth: bool = False  # Set to True in production to strictly require X-Officer-Token
     # Dedicated HMAC secret for tamper-evident report seals (set via SOVEREIGN_SEAL_SECRET in .env)
     hmac_seal_secret_key: str = ""
@@ -153,21 +154,31 @@ class Settings(BaseSettings):
             except OSError as e:
                 logger.warning("Could not ensure directory %s: %s", d, e)
 
+    def model_post_init(self, __context: Any) -> None:
+        """Post-initialization validation and key bootstrapping."""
+        if not self.officer_api_key or self.officer_api_key == "cepa-officer-secret-key-2026":
+            import secrets
+            generated = secrets.token_hex(24)
+            self.officer_api_key = generated
+            logger.info("SECURITY AUDIT NOTICE: OFFICER_API_KEY was empty or default. Generated cryptographically random token at startup.")
+        if not self.demo_mode and not self.enforce_officer_auth:
+            self.enforce_officer_auth = True
+
     def validate_security_configuration(self) -> None:
         """
         Validate security posture:
-        - In production with enforce_officer_auth=True, prevents using the default or blank officer key.
-        - Warns clearly in development if default secrets are active.
+        - In production with DEMO_MODE=False, strictly requires configured officer key and enforces auth.
+        - In DEMO_MODE=True, logs explicit notice that officer endpoints operate in open evaluation mode.
         """
         is_prod = self.backend_env.lower() == "production"
-        if is_prod and self.enforce_officer_auth:
-            if self.officer_api_key in ("cepa-officer-secret-key-2026", "") or len(self.officer_api_key) < 16:
+        if is_prod and not self.demo_mode:
+            if not self.officer_api_key or len(self.officer_api_key) < 16:
                 raise RuntimeError(
                     "Production Security Invariant Violation: OFFICER_API_KEY must be configured with a strong, "
-                    "non-default secret key (min 16 chars) when ENFORCE_OFFICER_AUTH=true in production."
+                    "non-default secret key (min 16 chars) when DEMO_MODE=false in production."
                 )
-        elif not self.enforce_officer_auth:
-            logger.info("Security Posture: Officer auth is open (demo/evaluation mode). Destructive actions still require token.")
+        elif self.demo_mode:
+            logger.info("Security Posture: DEMO_MODE is active. Officer endpoints operate in open evaluation mode.")
 
 
 # Module-level singleton -- import this everywhere

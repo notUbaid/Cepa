@@ -254,6 +254,49 @@ def generate_pdf_report(
     story.append(defect_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # ── Statistical Sampling Precision & Defect Rate Confidence ─────────────
+    story.append(Paragraph("Statistical Sampling Confidence (Clopper-Pearson 95% CI)", styles["Heading2"]))
+
+    from grading.statistics import (
+        compute_clopper_pearson_interval,
+        calculate_sample_size_needed,
+    )
+    cp_lower, cp_upper = compute_clopper_pearson_interval(report.rejected_count, report.total_bulbs)
+    samp_info = calculate_sample_size_needed(report.rejected_count, report.total_bulbs, target_moe_pct=5.0)
+
+    samp_status_label = (
+        "Sufficient (within ±5.0% error margin)"
+        if samp_info["is_sample_sufficient"]
+        else f"Under-sampled (±{samp_info['current_margin_of_error_pct']:.1f}% error; {samp_info['additional_bulbs_needed']} additional bulbs needed for ±5.0% precision)"
+    )
+
+    sampling_data = [
+        ["Statistical Parameter", "Value / Assessment"],
+        ["Sample Size (Bulbs Evaluated)", f"{report.total_bulbs} bulbs"],
+        ["Observed Defect Rate", f"{report.rejected_pct:.1f}% ({report.rejected_count} off-grade bulbs)"],
+        ["Exact Binomial 95% CI (Clopper-Pearson)", f"[{cp_lower:.1f}%, {cp_upper:.1f}%]"],
+        ["Current Margin of Error", f"±{samp_info['current_margin_of_error_pct']:.1f}%"],
+        ["Target Procurement Precision", "±5.0% (95% confidence standard)"],
+        ["Recommended Sample Size (N*)", f"{samp_info['recommended_total_sample']} bulbs"],
+        ["Additional Bulbs Needed", f"{samp_info['additional_bulbs_needed']} bulbs"],
+        ["Sampling Sufficiency Verdict", samp_status_label],
+    ]
+
+    sampling_table = Table(sampling_data, colWidths=[7 * cm, 9 * cm])
+    sampling_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9f9f9")]),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#bdc3c7")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(sampling_table)
+    story.append(Spacer(1, 0.4 * cm))
+
     # ── Assayer Manual Destructive Cut-Test Record ───────────────────────────
     story.append(Paragraph("Assayer Destructive Cut-Test Protocol", styles["Heading2"]))
     cut_performed = bool(getattr(report, "cut_test_performed", False) or getattr(inspection, "cut_test_performed", False))

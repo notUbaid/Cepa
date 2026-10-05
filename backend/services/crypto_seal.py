@@ -29,12 +29,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
 from config import settings
 from services.provenance_service import get_or_freeze_provenance
 
 logger = logging.getLogger(__name__)
 
 _EPHEMERAL_DEV_SECRET: bytes | None = None
+_ED25519_PRIVATE_KEY: ed25519.Ed25519PrivateKey | None = None
 
 
 def compute_image_sha256(
@@ -72,13 +77,16 @@ def compute_image_sha256(
 class SealResult(tuple):
     """
     Two-tuple (seal_hex, image_sha256) for complete backwards compatibility
-    with unpacking, while carrying detailed verification metadata and manifest hash.
+    with unpacking, while carrying detailed verification metadata, manifest hash,
+    and Ed25519 asymmetric public-key signature.
     """
     seal_hex: str
     image_sha256: str | None
     seal_status: str
     is_photo_verified: bool
     manifest_hash: str | None
+    ed25519_signature: str | None
+    ed25519_public_key: str | None
 
     def __new__(
         cls,
@@ -87,6 +95,8 @@ class SealResult(tuple):
         seal_status: str = "VALID",
         is_photo_verified: bool = True,
         manifest_hash: str | None = None,
+        ed25519_signature: str | None = None,
+        ed25519_public_key: str | None = None,
     ):
         img_repr = image_sha256 or "PHOTO_MISSING"
         return super().__new__(cls, (seal_hex, img_repr))
@@ -98,12 +108,122 @@ class SealResult(tuple):
         seal_status: str = "VALID",
         is_photo_verified: bool = True,
         manifest_hash: str | None = None,
+        ed25519_signature: str | None = None,
+        ed25519_public_key: str | None = None,
     ):
         self.seal_hex = seal_hex
         self.image_sha256 = image_sha256
         self.seal_status = seal_status
         self.is_photo_verified = is_photo_verified
         self.manifest_hash = manifest_hash
+        self.ed25519_signature = ed25519_signature
+        self.ed25519_public_key = ed25519_public_key
+
+
+def get_ed25519_private_key() -> ed25519.Ed25519PrivateKey:
+    """
+    Obtain the server's Ed25519 sovereign signing private key.
+    Loads from environment variable, persistent key directory, or generates
+    and persists an RFC 8032 keypair.
+    """
+    global _ED25519_PRIVATE_KEY
+    if _ED25519_PRIVATE_KEY is not None:
+        return _ED25519_PRIVATE_KEY
+
+    # 1. Environment variable
+    env_key = os.environ.get("CEPA_ED25519_PRIVATE_KEY") or os.environ.get("ED25519_PRIVATE_KEY")
+    if env_key and env_key.strip():
+        k_str = env_key.strip()
+        try:
+            if "BEGIN PRIVATE KEY" in k_str or "BEGIN OPENSSH PRIVATE KEY" in k_str:
+                _ED25519_PRIVATE_KEY = serialization.load_pem_private_key(k_str.encode("utf-8"), password=None)
+            else:
+                raw_bytes = bytes.fromhex(k_str)
+                _ED25519_PRIVATE_KEY = ed25519.Ed25519PrivateKey.from_private_bytes(raw_bytes)
+            logger.info("Loaded Ed25519 sovereign signing key from environment variable.")
+            return _ED25519_PRIVATE_KEY
+        except Exception as e:
+            logger.warning("Failed to load Ed25519 private key from environment: %s", e)
+
+    # 2. File in storage/keys/
+    key_dir = settings.storage_dir / "keys"
+    key_file = key_dir / "ed25519_private.pem"
+    if key_file.exists():
+        try:
+            with open(key_file, "rb") as f:
+                _ED25519_PRIVATE_KEY = serialization.load_pem_private_key(f.read(), password=None)
+            logger.info("Loaded Ed25519 sovereign signing key from disk at %s", key_file)
+            return _ED25519_PRIVATE_KEY
+        except Exception as e:
+            logger.warning("Failed to load Ed25519 key from %s: %s", key_file, e)
+
+    # 3. Generate new keypair and persist if possible
+    _ED25519_PRIVATE_KEY = ed25519.Ed25519PrivateKey.generate()
+    try:
+        key_dir.mkdir(parents=True, exist_ok=True)
+        pem_bytes = _ED25519_PRIVATE_KEY.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        with open(key_file, "wb") as f:
+            f.write(pem_bytes)
+        pub_pem = _ED25519_PRIVATE_KEY.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        with open(key_dir / "ed25519_public.pem", "wb") as f:
+            f.write(pub_pem)
+        logger.info("Generated and persisted new Ed25519 sovereign keypair to %s", key_dir)
+    except Exception as e:
+        logger.warning("Could not persist Ed25519 keys to disk: %s. Using ephemeral in-memory key.", e)
+
+    return _ED25519_PRIVATE_KEY
+
+
+def get_ed25519_public_key() -> ed25519.Ed25519PublicKey:
+    """Obtain public key corresponding to sovereign Ed25519 signing key."""
+    return get_ed25519_private_key().public_key()
+
+
+def get_ed25519_public_key_pem() -> str:
+    """Return SubjectPublicKeyInfo PEM string for public certificate distribution."""
+    pub = get_ed25519_public_key()
+    return pub.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("utf-8")
+
+
+def get_ed25519_public_key_hex() -> str:
+    """Return 32-byte raw public key as 64-character uppercase hex string."""
+    pub = get_ed25519_public_key()
+    raw = pub.public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return raw.hex().upper()
+
+
+def verify_ed25519_seal(
+    signature_hex: str,
+    manifest_bytes: bytes,
+    public_key: ed25519.Ed25519PublicKey | None = None,
+) -> bool:
+    """
+    Verify Ed25519 digital signature over canonical evidence manifest.
+    Accepts hex signature with or without 'ED25519:' prefix.
+    """
+    try:
+        pub = public_key or get_ed25519_public_key()
+        sig_clean = signature_hex.strip()
+        if sig_clean.upper().startswith("ED25519:"):
+            sig_clean = sig_clean[8:]
+        sig_bytes = bytes.fromhex(sig_clean)
+        pub.verify(sig_bytes, manifest_bytes)
+        return True
+    except Exception:
+        return False
 
 
 def _get_seal_secret_key(secret_key: str | None = None) -> bytes:
@@ -351,10 +471,18 @@ def compute_inspection_seal(
     key = _get_seal_secret_key(secret_key)
     seal_hex = hmac.new(key, manifest_hash.encode("utf-8"), hashlib.sha256).hexdigest().upper()
 
+    # Sign evidence manifest with Ed25519
+    priv_key = get_ed25519_private_key()
+    ed25519_sig = priv_key.sign(manifest_hash.encode("utf-8"))
+    ed25519_sig_hex = ed25519_sig.hex().upper()
+    ed25519_pub_hex = get_ed25519_public_key_hex()
+
     # Store manifest details on report if writable
     try:
         setattr(report, "manifest_hash", manifest_hash)
         setattr(report, "evidence_manifest_json", canonical_str)
+        setattr(report, "ed25519_signature", ed25519_sig_hex)
+        setattr(report, "ed25519_public_key", ed25519_pub_hex)
     except Exception:
         pass
 
@@ -364,6 +492,8 @@ def compute_inspection_seal(
         seal_status=seal_status,
         is_photo_verified=is_photo_verified,
         manifest_hash=manifest_hash,
+        ed25519_signature=ed25519_sig_hex,
+        ed25519_public_key=ed25519_pub_hex,
     )
 
 
@@ -376,14 +506,22 @@ def verify_inspection_seal(
     require_photo_on_disk: bool = False,
 ) -> bool:
     """
-    Verify if a given seal matches the recomputed HMAC-SHA256 signature over the Evidence Manifest.
+    Verify if a given seal matches either the Ed25519 asymmetric signature or the
+    recomputed HMAC-SHA256 signature over the Canonical Evidence Manifest.
     """
     res = compute_inspection_seal(report, inspection, storage_dir, secret_key)
     if require_photo_on_disk and not res.is_photo_verified:
         return False
 
-    # Check against manifest-based seal
-    if hmac.compare_digest(seal_hex.strip().upper(), res.seal_hex):
+    clean_seal = seal_hex.strip().upper()
+
+    # 1. Asymmetric Ed25519 signature verification (RFC 8032)
+    if clean_seal.startswith("ED25519:") or len(clean_seal) == 128:
+        if res.manifest_hash and verify_ed25519_seal(clean_seal, res.manifest_hash.encode("utf-8")):
+            return True
+
+    # 2. Symmetric HMAC-SHA256 seal verification (FIPS 198-1)
+    if hmac.compare_digest(clean_seal, res.seal_hex):
         return True
 
     # Legacy fallback check (for existing historical seals)
@@ -403,7 +541,7 @@ def verify_inspection_seal(
     )
     key = _get_seal_secret_key(secret_key)
     legacy_seal = hmac.new(key, legacy_payload.encode("utf-8"), hashlib.sha256).hexdigest().upper()
-    return hmac.compare_digest(seal_hex.strip().upper(), legacy_seal)
+    return hmac.compare_digest(clean_seal, legacy_seal)
 
 
 def audit_inspection_seal(
@@ -439,12 +577,21 @@ def audit_inspection_seal(
         else:
             pdf_verified = False
 
+    ed25519_verified = (
+        verify_ed25519_seal(computed.ed25519_signature, computed.manifest_hash.encode("utf-8"))
+        if computed.ed25519_signature and computed.manifest_hash
+        else False
+    )
+
     return {
         "is_valid": is_valid,
         "seal_status": status,
         "stored_seal": stored_seal,
         "computed_seal": computed.seal_hex,
         "manifest_hash": computed.manifest_hash,
+        "ed25519_signature": computed.ed25519_signature,
+        "ed25519_public_key": computed.ed25519_public_key,
+        "ed25519_verified": ed25519_verified,
         "image_sha256": computed.image_sha256,
         "is_photo_verified_on_disk": computed.is_photo_verified,
         "pdf_verified": pdf_verified,
